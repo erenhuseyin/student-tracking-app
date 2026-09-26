@@ -9,7 +9,7 @@ export type Kurum = {
   id: string;
   ad: string;
   // Kuruma özel ayarlar; plan/abonelik alanları ileride buraya ya da ayrı kolonlara eklenebilir.
-  ayarlar: Record<string, unknown> | null;
+  ayarlar: Record<string, unknown>;
 };
 
 export type Sinif = {
@@ -38,4 +38,16 @@ export type Ogrenci = {
   dogum_tarihi: string;
 };
 
-// Not: Veli-öğrenci ilişkisi çoka çoktur (veli_ogrenci tablosu); Ogrenci üzerinde veli_id tutulmaz.
+// Veli-öğrenci ilişkisi çoka çoktur; Ogrenci üzerinde veli_id tutulmaz.
+export type VeliOgrenci = {
+  kurum_id: string;
+  veli_id: string;
+  ogrenci_id: string;
+};
+
+// Öğretmen-sınıf atama tablosu
+export type OgretmenSinif = {
+  kurum_id: string;
+  ogretmen_id: string;
+  sinif_id: string;
+};
