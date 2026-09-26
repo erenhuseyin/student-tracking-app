@@ -289,8 +289,12 @@ reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
 set local role authenticated;
 
-select tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000004'$q$);
-select tst.dene($q$update public.kullanici set rol = 'super_admin', kurum_id = null where id = 'b0000000-0000-0000-0000-000000000004'$q$);
+select tst.esit('ogretmen kendini kurum_admin yapamaz',
+  tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000004'$q$), 'hata:42501');
+select tst.esit('ogretmen kendini super_admin yapamaz',
+  tst.dene($q$update public.kullanici set rol = 'super_admin', kurum_id = null where id = 'b0000000-0000-0000-0000-000000000004'$q$), 'hata:42501');
+select tst.esit('ogretmen başkasının rolünü değiştiremez',
+  tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'ok:0');
 -- kurum_id değiştirme (başka kuruma geçiş): kolon yetkisi yok
 select tst.esit('ogretmen kurum_id update',
   tst.dene($q$update public.kullanici set kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'b0000000-0000-0000-0000-000000000004'$q$), 'hata:42501');
@@ -325,6 +329,9 @@ select tst.esit('adminA kurum insert', tst.dene($q$insert into public.kurum (ad)
 -- süper admin ataması denemesi (sonuç durumuna bakılır)
 select tst.dene($q$update public.kullanici set rol = 'super_admin' where id = 'b0000000-0000-0000-0000-000000000004'$q$);
 select tst.dene($q$update public.kullanici set rol = 'super_admin', kurum_id = null where id = 'b0000000-0000-0000-0000-000000000004'$q$);
+-- kurum admini bile kendi rolünü değiştiremez
+select tst.esit('adminA kendi rolünü değiştiremez',
+  tst.dene($q$update public.kullanici set rol = 'ogretmen' where id = 'b0000000-0000-0000-0000-000000000002'$q$), 'hata:42501');
 -- pozitif kontrol: kendi kurumundaki öğretmeni kurum_admin yapabilir
 select tst.esit('adminA kendi kurumunda rol atama (pozitif)',
   tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000004'$q$), 'ok:1');
