@@ -50,6 +50,9 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 - **Rol değiştirme kuralları (trigger):** Kimse kendi rolünü değiştiremez (kurum admini dahil); rolü yalnızca `super_admin` ve `kurum_admin` değiştirir. Kurum admini `super_admin` yapamaz. `kurum` tablosuna yalnızca süper admin yazar.
 - **Güvenlik açığı bulundu ve kapatıldı (2026-09-26):** İlk RLS'te "kendi rolünü değiştirme" kontrolü `with check (rol = gizli.mevcut_rol())` ile yapılıyordu; güncelleme sırasında fonksiyon yeni rolü gördüğü için bir öğretmen kendini `kurum_admin` yapabiliyordu. Test yakaladı, kontrol BEFORE UPDATE trigger'a taşındı (`20260926120000_rol_yukseltme_duzelt.sql`). **Ders:** Politikalarda `with check` içinde aynı tabloyu okuyan fonksiyonla "eski değer" karşılaştırması yapma; trigger kullan. Yeni tablo/politika eklerken `rls.test.sql` genişletilmeli.
 - **Migration'lar Dashboard SQL Editor'den uygulandı** (CLI `login`/`link` bu dizinde çalışmadı). Bu yüzden uzak `supabase_migrations` geçmişinde kayıtlı değiller; CLI bağlanınca `supabase migration repair --status applied <versiyon>` (5 versiyon için) ile işaretlenmeli, yoksa `db push` migration'ları tekrar uygulamaya çalışır.
+- **Kullanıcı oluşturma = davet Edge Function (2026-09-26 karar):** `auth.users` trigger'ı YOK. `supabase/functions/davet-gonder/index.ts`: çağıranın JWT'si doğrulanır, rol/kurum kararını sunucu verir (super_admin → yalnızca `kurum_admin` davet eder, kurum_id gövdeden; kurum_admin → ogretmen/veli/kurum_admin, hedef kurum HER ZAMAN kendi kurumu; diğerleri 403; `super_admin` API'den verilmez). service_role ile `inviteUserByEmail` + `kullanici` + bağ satırları; herhangi biri düşerse auth kullanıcısı silinir (FK cascade). İstemci: `lib/davet.ts` (`davetGonder`).
+- **Tipler = hibrit (2026-09-26 karar):** `supabase gen types` çıktısı `lib/veritabani.tipleri.ts` (elle dokunulmaz), `lib/tipler.ts` üstünde ince takma adlar. **Henüz yapılmadı** (üretilmiş dosya bekleniyor, bkz. Bilinen Sorunlar).
+- **`supabase/functions` `tsconfig.json`'da exclude edildi:** Deno kodu (`npm:` importları, `Deno.*`) uygulamanın `tsc`'sinde hata verir. Fonksiyon `npx deno check` ile ayrıca doğrulanır.
 - **Kurum admini `ayarlar`'ı düzenler (2026-09-26 karar):** `kurum` için kolon yetkisi `(ad, ayarlar)`; `ad` değişikliği trigger ile yalnızca süper admine bırakıldı. **Plan/abonelik gibi kurum admininin değiştirmemesi gereken alanlar `ayarlar` içine konmamalı**, ayrı kolon olmalı ve kolon yetkisi verilmemeli.
 - **Öğretmen sınıfındaki velileri görür (2026-09-26 karar):** `kullanici` üzerinde `gizli.ogretmen_velisi_mi()` politikası. RLS satır süzer, kolon değil: `kullanici`'ya telefon/e-posta gibi hassas kolon eklenirse öğretmene de açılır; iletişim bilgisi ayrı tabloda tutulmalı (KVKK).
 - **Varsayılan Node 22** (`nvm alias default 22`, 2026-09-26). Artık her terminalde `nvm use 22` gerekmez; Node 16'ya bağımlı başka projeler varsa onlarda `nvm use 16` gerekir.
@@ -61,6 +64,10 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 
 - `lib/supabase.ts` env eksikken fırlattığı hata, web statik export'ta (`expo export --platform web`) test edilirken build'i düşürmedi; mesaj bundle'da mevcut ama fırlatma davranışı uçtan uca doğrulanmadı. Dosya henüz import edilmediği için şimdilik etkisiz — ilk gerçek kullanımda (login) kontrol edilmeli.
+- **Tipler bekliyor:** `! npx supabase gen types typescript --project-id <ref> > lib/veritabani.tipleri.ts` (CLI girişi gerekli) ya da Dashboard tip üreticisinden yapıştırma → sonra `lib/supabase.ts` `createClient<Database>`, `lib/tipler.ts` takma adlar, `package.json`'a `tipleri-uret` script'i.
+- **`davet-gonder` deploy edilmedi ve yetki mantığı uçtan uca test edilmedi.** Yerelde (`deno check` + yerel sunucu) doğrulananlar: derleme temiz; GET→405, başlıksız→401, sahte JWT→401, anon key ile→401. Doğrulanmayanlar: yetki matrisi (403/kurum zorlaması), 409, doğrulama hataları, rollback, gerçek davet e-postası. Bunlar ilk süper admin + test hesapları hazır olunca test edilmeli (gerçek e-posta için test adresi kullanıcıdan istenmeli).
+- **Davet geri alındığında ölü link:** `inviteUserByEmail` e-postayı DB insert'lerinden ÖNCE gönderiyor; sonraki bir adım düşerse kullanıcı silinir ama e-posta çoktan gitmiştir (link çalışmaz). Kabul edildi; sık olursa ele alınmalı.
+- **Deploy öncesi Dashboard ayarları (kullanıcı):** Authentication > URL Configuration > Redirect URLs'e `ogrencitakip://davet-kabul` (ve web karşılığı) eklenmeli; Authentication > Sign In / Providers'ta **"Allow new users to sign up" kapatılmalı** (yalnızca davetle üye alınacak; şu an herkes publishable key ile `auth.users`'a kayıt açabilir — veriye erişemez ama gereksiz hesap üretir).
 - İlk süper admin henüz yok. Elle eklenecek: Dashboard > Authentication'da kullanıcı oluştur, sonra SQL Editor'de `insert into public.kullanici (auth_id, rol, kurum_id, ad_soyad) values ('<auth uuid>', 'super_admin', null, '<ad>');`
 - Dashboard > Advisors (Security) kontrolü yapılmadı; "RLS disabled" uyarısı olmaması beklenir.
 - Uygulama cihaz/simülatörde açılıp görsel olarak doğrulanmadı (yalnızca derleme/tip/doctor kontrolleri).
@@ -69,8 +76,7 @@ _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 
 _(Claude Code'un kendi başına karar veremeyip kullanıcıya sorması gereken noktalar)_
 
-- Kullanıcı oluşturma: önerilen yol davet **Edge Function** (service role ile `kullanici` satırı + auth daveti), `auth.users` trigger'ı yok. Karar bekliyor.
-- Tipler: önerilen yol **hibrit** — `supabase gen types` çıktısı `lib/veritabani.tipleri.ts` (elle dokunulmaz), `lib/tipler.ts` bunun üzerine ince takma adlar. CLI girişi gerekiyor ya da Dashboard tip üreticisinden yapıştırılır. Karar bekliyor.
+- Özel SMTP: Supabase'in dahili e-posta servisinin saatlik gönderim limiti çok düşük; gerçek onboarding (davetler) öncesi özel SMTP ayarlanmalı, davet e-posta şablonu Türkçeleştirilmeli.
 
 ## Son Oturum Notu
 
