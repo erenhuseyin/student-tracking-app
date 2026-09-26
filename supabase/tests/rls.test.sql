@@ -189,7 +189,7 @@ select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-0000000
 set local role authenticated;
 
 select tst.esit('ogrA1 kurum', (select count(*) from public.kurum)::text, '1');
-select tst.esit('ogrA1 kullanici (yalnız kendisi)', (select count(*) from public.kullanici)::text, '1');
+select tst.esit('ogrA1 kullanici (kendisi + sınıfındaki veliler)', (select string_agg(ad_soyad, ',' order by ad_soyad) from public.kullanici), 'ogrA1,veliA1,veliA2');
 select tst.esit('ogrA1 sinif', (select string_agg(ad, ',' order by ad) from public.sinif), 'sA1');
 select tst.esit('ogrA1 ogrenci', (select string_agg(ad_soyad, ',' order by ad_soyad) from public.ogrenci), 'oA1,oA2');
 select tst.esit('ogrA1 aynı kurumdaki atanmadığı sınıfın öğrencisi (oA3)', (select count(*) from public.ogrenci where ad_soyad = 'oA3')::text, '0');
@@ -204,6 +204,7 @@ set local role authenticated;
 select tst.esit('ogrA2 sinif', (select string_agg(ad, ',') from public.sinif), 'sA2');
 select tst.esit('ogrA2 ogrenci', (select string_agg(ad_soyad, ',') from public.ogrenci), 'oA3');
 select tst.esit('ogrA2 veli_ogrenci (oA3 velisiz)', (select count(*) from public.veli_ogrenci)::text, '0');
+select tst.esit('ogrA2 kullanici (sınıfında veli yok: yalnız kendisi)', (select count(*) from public.kullanici)::text, '1');
 
 -- ogrA0 (atamasız) hiçbir sınıf/öğrenci göremez
 reset role;
@@ -212,6 +213,7 @@ set local role authenticated;
 
 select tst.esit('ogrA0 sinif', (select count(*) from public.sinif)::text, '0');
 select tst.esit('ogrA0 ogrenci', (select count(*) from public.ogrenci)::text, '0');
+select tst.esit('ogrA0 kullanici (atamasız: yalnız kendisi)', (select count(*) from public.kullanici)::text, '1');
 
 -- ogrB: A kurumunun hiçbir satırını göremez
 reset role;
@@ -220,6 +222,7 @@ set local role authenticated;
 
 select tst.esit('ogrB ogrenci', (select string_agg(ad_soyad, ',') from public.ogrenci), 'oB1');
 select tst.esit('ogrB sinif', (select string_agg(ad, ',') from public.sinif), 'sB1');
+select tst.esit('ogrB kullanici (A kurumunun velileri görünmez)', (select string_agg(ad_soyad, ',' order by ad_soyad) from public.kullanici), 'ogrB,veliB');
 
 -- ===========================================================================
 -- 7. VELİ (çoka çok): yalnızca bağlı çocuklar
@@ -264,6 +267,10 @@ select tst.esit('ogretmen ogrenci insert',
 select tst.esit('ogretmen ogrenci update', tst.dene($q$update public.ogrenci set ad_soyad = 'x'$q$), 'ok:0');
 select tst.esit('ogretmen ogrenci delete', tst.dene($q$delete from public.ogrenci$q$), 'ok:0');
 select tst.esit('ogretmen sinif update', tst.dene($q$update public.sinif set ad = 'x'$q$), 'ok:0');
+select tst.esit('ogretmen veli kullanici update',
+  tst.dene($q$update public.kullanici set ad_soyad = 'x' where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'ok:0');
+select tst.esit('ogretmen veli rol update',
+  tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'ok:0');
 select tst.esit('ogretmen veli_ogrenci insert',
   tst.dene($q$insert into public.veli_ogrenci (kurum_id, veli_id, ogrenci_id) values ('c0000000-0000-0000-0000-00000000000a','b0000000-0000-0000-0000-000000000009','e0000000-0000-0000-0000-0000000000a1')$q$), 'hata:42501');
 select tst.esit('ogretmen ogretmen_sinif insert',
@@ -324,7 +331,11 @@ select tst.esit('adminA B kullanicisini güncelleyemez (ogrB)',
   tst.dene($q$update public.kullanici set ad_soyad = 'x' where id = 'b0000000-0000-0000-0000-000000000007'$q$), 'ok:0');
 select tst.esit('adminA süper admini güncelleyemez',
   tst.dene($q$update public.kullanici set ad_soyad = 'x' where id = 'b0000000-0000-0000-0000-000000000001'$q$), 'ok:0');
-select tst.esit('adminA kurum update', tst.dene($q$update public.kurum set ad = 'x'$q$), 'ok:0');
+select tst.esit('adminA kurum adını değiştiremez', tst.dene($q$update public.kurum set ad = 'x'$q$), 'hata:42501');
+select tst.esit('adminA kendi kurumunun ayarlar''ını günceller',
+  tst.dene($q$update public.kurum set ayarlar = '{"tema":"koyu"}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:1');
+select tst.esit('adminA B kurumunun ayarlar''ını güncelleyemez',
+  tst.dene($q$update public.kurum set ayarlar = '{"x":1}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'ok:0');
 select tst.esit('adminA kurum insert', tst.dene($q$insert into public.kurum (ad) values ('x')$q$), 'hata:42501');
 -- süper admin ataması denemesi (sonuç durumuna bakılır)
 select tst.dene($q$update public.kullanici set rol = 'super_admin' where id = 'b0000000-0000-0000-0000-000000000004'$q$);
