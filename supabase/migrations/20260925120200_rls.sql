@@ -7,9 +7,9 @@
 --   * Erişim matrisi: docs/ILERLEME.md ve bu dosya. Yeni tablo eklenirken RLS politikası
 --     olmadan bırakılmaz (CLAUDE.md).
 --
--- Not: FORCE ROW LEVEL SECURITY kullanılmadı. Tablo sahibi (postgres) Supabase'de zaten
--- BYPASSRLS'dir ve SECURITY DEFINER yardımcı fonksiyonlar sahip olarak çalışır; FORCE
--- bunlarda özyinelemeye yol açabilir. İstemci rolleri (anon/authenticated) RLS'e tabidir.
+-- Not: FORCE ROW LEVEL SECURITY kullanılmadı. SECURITY DEFINER yardımcı fonksiyonlar tablo
+-- sahibi olarak çalışır ve sahip RLS'ten muaftır; FORCE bunu kapatıp kullanici politikalarında
+-- özyinelemeye yol açardı. İstemci rolleri (anon/authenticated) RLS'e tabidir (test edildi).
 
 -- ---------------------------------------------------------------------------
 -- Yetkiler
