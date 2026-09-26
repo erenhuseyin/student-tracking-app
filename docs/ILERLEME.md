@@ -21,7 +21,7 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - Doğrulama: `tsc --noEmit`, `expo-doctor` (21/21) ve `expo export --platform web` başarılı
 - [x] Supabase kurulumu (Auth + temel tablolar + RLS) — 2026-09-26
   - Bulut projesi (supabase.com) bağlandı; `.env` dolu, anon/publishable key ile bağlantı doğrulandı
-  - Migration'lar: `20260925120000_temel_sema`, `..120100_yardimci_fonksiyonlar`, `..120200_rls`, `20260926120000_rol_yukseltme_duzelt`
+  - Migration'lar: `20260925120000_temel_sema`, `..120100_yardimci_fonksiyonlar`, `..120200_rls`, `20260926120000_rol_yukseltme_duzelt`, `20260926130000_kurum_ayarlar_ve_ogretmen_veli` (sonuncusu henüz uygulanmadı)
   - Tablolar: `kurum, kullanici, sinif, ogrenci, veli_ogrenci, ogretmen_sinif` (hepsinde RLS açık)
   - `supabase/tests/rls.test.sql`: izolasyon/erişim/yetki yükseltme testi — **hepsi geçti** (Dashboard SQL Editor'de çalıştırıldı, rollback'li)
   - Kapsam dışı (kendi özelliklerinde eklenecek): `yoklama, gelisim_kaydi, duyuru, bildirim_log`
@@ -50,6 +50,9 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 - **Rol değiştirme kuralları (trigger):** Kimse kendi rolünü değiştiremez (kurum admini dahil); rolü yalnızca `super_admin` ve `kurum_admin` değiştirir. Kurum admini `super_admin` yapamaz. `kurum` tablosuna yalnızca süper admin yazar.
 - **Güvenlik açığı bulundu ve kapatıldı (2026-09-26):** İlk RLS'te "kendi rolünü değiştirme" kontrolü `with check (rol = gizli.mevcut_rol())` ile yapılıyordu; güncelleme sırasında fonksiyon yeni rolü gördüğü için bir öğretmen kendini `kurum_admin` yapabiliyordu. Test yakaladı, kontrol BEFORE UPDATE trigger'a taşındı (`20260926120000_rol_yukseltme_duzelt.sql`). **Ders:** Politikalarda `with check` içinde aynı tabloyu okuyan fonksiyonla "eski değer" karşılaştırması yapma; trigger kullan. Yeni tablo/politika eklerken `rls.test.sql` genişletilmeli.
 - **Migration'lar Dashboard SQL Editor'den uygulandı** (CLI `login`/`link` bu dizinde çalışmadı). Bu yüzden uzak `supabase_migrations` geçmişinde kayıtlı değiller; CLI bağlanınca `supabase migration repair --status applied <versiyon>` (4 versiyon için) ile işaretlenmeli, yoksa `db push` migration'ları tekrar uygulamaya çalışır.
+- **Kurum admini `ayarlar`'ı düzenler (2026-09-26 karar):** `kurum` için kolon yetkisi `(ad, ayarlar)`; `ad` değişikliği trigger ile yalnızca süper admine bırakıldı. **Plan/abonelik gibi kurum admininin değiştirmemesi gereken alanlar `ayarlar` içine konmamalı**, ayrı kolon olmalı ve kolon yetkisi verilmemeli.
+- **Öğretmen sınıfındaki velileri görür (2026-09-26 karar):** `kullanici` üzerinde `gizli.ogretmen_velisi_mi()` politikası. RLS satır süzer, kolon değil: `kullanici`'ya telefon/e-posta gibi hassas kolon eklenirse öğretmene de açılır; iletişim bilgisi ayrı tabloda tutulmalı (KVKK).
+- **Varsayılan Node 22** (`nvm alias default 22`, 2026-09-26). Artık her terminalde `nvm use 22` gerekmez; Node 16'ya bağımlı başka projeler varsa onlarda `nvm use 16` gerekir.
 - **`.env` URL'si:** `supabase-js` proje kök adresini (`https://<ref>.supabase.co`) ister; Dashboard'daki "Data API" adresi `/rest/v1/` ile biter ve **çalışmaz** (doğrulandı: 404). Bkz. `.env.example`.
 - **`.gitignore`:** `.env` eklendi (şablon yalnızca `.env*.local`'i ignore ediyordu); `.env.example` takip ediliyor.
 
@@ -66,15 +69,12 @@ _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 
 _(Claude Code'un kendi başına karar veremeyip kullanıcıya sorması gereken noktalar)_
 
-- `auth.users` ↔ `kullanici` senkronu: kullanıcı oluşturma yalnızca davet Edge Function'ıyla mı olacak, yoksa trigger da eklensin mi?
-- Kurum adminleri kurum `ayarlar`'ını düzenleyebilsin mi? (Şu an yalnızca süper admin yazabiliyor.)
-- Öğretmen, sınıfındaki velilerin adını görebilsin mi? (Şu an yalnızca kendi satırını görüyor.)
-- Veritabanı tipleri ileride `supabase gen types` ile mi üretilecek, yoksa `lib/tipler.ts` elle mi sürdürülecek?
-- Varsayılan Node sürümü 22'ye alınsın mı?
+- Kullanıcı oluşturma: önerilen yol davet **Edge Function** (service role ile `kullanici` satırı + auth daveti), `auth.users` trigger'ı yok. Karar bekliyor.
+- Tipler: önerilen yol **hibrit** — `supabase gen types` çıktısı `lib/veritabani.tipleri.ts` (elle dokunulmaz), `lib/tipler.ts` bunun üzerine ince takma adlar. CLI girişi gerekiyor ya da Dashboard tip üreticisinden yapıştırılır. Karar bekliyor.
 
 ## Son Oturum Notu
 
 _(Serbest metin: bu oturumda ne yapıldı, bir sonraki oturuma nereden devam edilmeli)_
 
 - 2026-09-25: Proje iskeleti kuruldu.
-- 2026-09-26: Supabase çekirdek şema + RLS yazıldı, Dashboard'dan uygulandı, izolasyon testi geçti (bir yetki yükseltme açığı testte bulunup kapatıldı). Bir sonraki oturum: ilk süper admin'i elle ekle → login ekranı ve süper admin "yeni kurum ekle" akışı. Komutlar için önce `nvm use 22`.
+- 2026-09-26: Supabase çekirdek şema + RLS yazıldı, Dashboard'dan uygulandı, izolasyon testi geçti (bir yetki yükseltme açığı testte bulunup kapatıldı). Bir sonraki oturum: ilk süper admin'i elle ekle → login ekranı ve süper admin "yeni kurum ekle" akışı. Node 22 artık varsayılan. **Not:** `20260926130000_kurum_ayarlar_ve_ogretmen_veli.sql` henüz Dashboard'dan uygulanmadı/test edilmedi.
