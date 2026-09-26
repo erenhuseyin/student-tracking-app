@@ -152,7 +152,7 @@ select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-0000000
 set local role authenticated;
 
 select tst.esit('adminA kurum', (select count(*) from public.kurum)::text, '1');
-select tst.esit('adminA kullanici', (select count(*) from public.kullanici)::text, '5');
+select tst.esit('adminA kullanici', (select count(*) from public.kullanici)::text, '6');
 select tst.esit('adminA sinif', (select count(*) from public.sinif)::text, '2');
 select tst.esit('adminA ogrenci', (select count(*) from public.ogrenci)::text, '3');
 select tst.esit('adminA veli_ogrenci', (select count(*) from public.veli_ogrenci)::text, '3');
