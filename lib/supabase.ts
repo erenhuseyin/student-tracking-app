@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
+import type { Database } from '@/lib/veritabani.tipleri';
+
 // EXPO_PUBLIC_* değişkenleri derleme sırasında statik olarak gömülür;
 // bu yüzden process.env üzerinden dinamik erişim yapılmamalı.
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -20,7 +22,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // yalnızca tarayıcıda ya da native ortamda kullanılır.
 const oturumDepolamasiVar = Platform.OS !== 'web' || typeof window !== 'undefined';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: oturumDepolamasiVar ? AsyncStorage : undefined,
     autoRefreshToken: true,

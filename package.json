@@ -34,7 +34,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "tipleri-uret": "npx supabase gen types typescript --project-id \"$SUPABASE_PROJECT_REF\" > lib/veritabani.tipleri.ts"
   },
   "private": true
 }

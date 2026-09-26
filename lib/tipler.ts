@@ -1,53 +1,24 @@
-// Temel entity tipleri — docs/proje-spesifikasyonu.md Bölüm 4.
-// Alan adları veritabanı kolonlarıyla birebir aynıdır (snake_case, ASCII).
+// Uygulama içi kısa tip adları. Kaynak: lib/veritabani.tipleri.ts (veritabanı şemasından;
+// bkz. dosyanın başındaki not). Buraya elle alan yazma — şema değişince orası güncellenir.
+// Alan adları DB kolonlarıyla birebir aynıdır (snake_case, ASCII: `donem`, `dogum_tarihi`).
 
-export const ROLLER = ['super_admin', 'kurum_admin', 'ogretmen', 'veli'] as const;
+import { Constants, type Tables } from '@/lib/veritabani.tipleri';
+
+export const ROLLER = Constants.public.Enums.rol;
 
 export type Rol = (typeof ROLLER)[number];
 
-export type Kurum = {
-  id: string;
-  ad: string;
-  // Kuruma özel ayarlar; plan/abonelik alanları ileride buraya ya da ayrı kolonlara eklenebilir.
-  ayarlar: Record<string, unknown>;
-};
+export type Kurum = Tables<'kurum'>;
 
-export type Sinif = {
-  id: string;
-  kurum_id: string;
-  ad: string;
-  donem: string;
-};
+export type Sinif = Tables<'sinif'>;
 
-export type Kullanici = {
-  id: string;
-  // Supabase auth kullanıcısının id'si
-  auth_id: string;
-  rol: Rol;
-  // Süper admin hiçbir kuruma bağlı değildir; diğer roller için zorunlu.
-  kurum_id: string | null;
-  ad_soyad: string;
-};
+// Süper admin hiçbir kuruma bağlı değildir (kurum_id null); diğer roller için zorunludur.
+export type Kullanici = Tables<'kullanici'>;
 
-export type Ogrenci = {
-  id: string;
-  kurum_id: string;
-  sinif_id: string;
-  ad_soyad: string;
-  // ISO tarih (YYYY-MM-DD)
-  dogum_tarihi: string;
-};
+export type Ogrenci = Tables<'ogrenci'>;
 
 // Veli-öğrenci ilişkisi çoka çoktur; Ogrenci üzerinde veli_id tutulmaz.
-export type VeliOgrenci = {
-  kurum_id: string;
-  veli_id: string;
-  ogrenci_id: string;
-};
+export type VeliOgrenci = Tables<'veli_ogrenci'>;
 
 // Öğretmen-sınıf atama tablosu
-export type OgretmenSinif = {
-  kurum_id: string;
-  ogretmen_id: string;
-  sinif_id: string;
-};
+export type OgretmenSinif = Tables<'ogretmen_sinif'>;
