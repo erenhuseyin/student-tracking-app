@@ -5,7 +5,7 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Rol bazlı yönlendirme tamamlandı; sıradaki adım: Süper admin — yeni kurum ekleme akışı
+- **Aktif adım:** Süper admin — yeni kurum ekleme akışı tamamlandı; sıradaki adım: Sınıf/öğrenci yönetimi (CRUD) — ya da önce ilk kurum admini daveti (bkz. Açık Sorular)
 - **Son güncelleme:** 2026-09-27
 
 ## Tamamlananlar
@@ -25,7 +25,12 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - Tablolar: `kurum, kullanici, sinif, ogrenci, veli_ogrenci, ogretmen_sinif` (hepsinde RLS açık)
   - `supabase/tests/rls.test.sql`: izolasyon/erişim/yetki yükseltme testi — **hepsi geçti** (Dashboard SQL Editor'de çalıştırıldı, rollback'li)
   - Kapsam dışı (kendi özelliklerinde eklenecek): `yoklama, gelisim_kaydi, duyuru, bildirim_log`
-- [ ] Süper admin: kurum ekleme akışı
+- [x] Süper admin: kurum ekleme akışı — 2026-09-27
+  - `lib/kurumlar.ts`: `kurumlariGetir`, `kurumEkle` — RLS (`kurum_super_admin` politikası) zaten yalnızca super_admin'e izin verdiği için Edge Function gerekmedi, doğrudan `supabase.from('kurum')` çağrısı
+  - `(super_admin)/index.tsx`: kurum listesi (`useFocusEffect` ile ekrana her dönüşte tazelenir) + "Yeni Kurum Ekle"
+  - `(super_admin)/yeni-kurum.tsx`: tek alanlı form (kurum adı)
+  - **Kapsam dışı bırakıldı (kullanıcı kararı):** ilk kurum admininin daveti aynı akışa eklenmedi — `davet-gonder` henüz deploy edilmedi, ayrı bir adımda ele alınacak
+  - Web'de gerçek insert ile uçtan uca doğrulandı: boş liste → "Test Kurumu — silinecek" oluşturuldu, listede göründü → test verisi SQL Editor'de silindi (`delete from public.kurum where ad = '...'`), veride iz kalmadı
 - [x] Login ekranı — 2026-09-27 (davetle kullanıcı oluşturma ekranı `davet-kabul.tsx` henüz yok, kapsam dışı bırakıldı)
   - `lib/oturum.tsx`: `OturumSaglayici` + `useOturum()` — dört durum: `yukleniyor`, `oturum_yok`, `profil_yok` (auth hesabı var ama `kullanici` satırı yok), `hazir`
   - `app/(auth)/login.tsx` + `app/(auth)/_layout.tsx`; `app/_layout.tsx` artık `Stack.Protected` (expo-router 57) ile durum bazlı yönlendiriyor, `yukleniyor` sırasında native splash açık kalıyor
@@ -90,6 +95,7 @@ _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 _(Claude Code'un kendi başına karar veremeyip kullanıcıya sorması gereken noktalar)_
 
 - Özel SMTP: Supabase'in dahili e-posta servisinin saatlik gönderim limiti çok düşük; gerçek onboarding (davetler) öncesi özel SMTP ayarlanmalı, davet e-posta şablonu Türkçeleştirilmeli.
+- İlk kurum admini daveti: `(super_admin)/yeni-kurum.tsx`'e mi eklensin (kurum + admin tek form), yoksa kurum listesinde satır başına "Admin Davet Et" mi olsun? İkisi de `davet-gonder`'ın deploy edilmesini gerektiriyor.
 
 ## Son Oturum Notu
 
@@ -97,4 +103,4 @@ _(Serbest metin: bu oturumda ne yapıldı, bir sonraki oturuma nereden devam edi
 
 - 2026-09-25: Proje iskeleti kuruldu.
 - 2026-09-26: Supabase çekirdek şema + RLS yazıldı, Dashboard'dan uygulandı, izolasyon testi geçti (bir yetki yükseltme açığı testte bulunup kapatıldı). Node 22 artık varsayılan. Davet Edge Function ve hibrit tip yapısı eklendi (tipler CLI olmadığı için elle yazıldı).
-- 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, ilk süper admin (test hesabı) eklendi, web'de uçtan uca doğrulandı (giriş, kalıcı oturum, çıkış). Ardından rol bazlı yönlendirme: 4 route grubu (`(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`), süper admin akışı web'de doğrulandı. Bir sonraki oturum: Süper admin — yeni kurum ekleme akışı (bu, `(super_admin)/index.tsx`'in gerçek içeriği olacak).
+- 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, ilk süper admin (test hesabı) eklendi, web'de uçtan uca doğrulandı (giriş, kalıcı oturum, çıkış). Rol bazlı yönlendirme: 4 route grubu (`(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`). Süper admin — yeni kurum ekleme akışı: `lib/kurumlar.ts` + liste/form ekranları, Edge Function gerekmedi (RLS yeterli), web'de gerçek insert ile uçtan uca doğrulandı. Bir sonraki oturum: Sınıf/öğrenci yönetimi (CRUD) — kurum admini tarafı — ya da önce ilk kurum admini daveti (`davet-gonder`'ın ilk deploy'u, onay gerektirir).
