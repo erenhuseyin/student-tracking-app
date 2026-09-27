@@ -5,7 +5,7 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Login ekranı tamamlandı; sıradaki adım: Rol bazlı yönlendirme (öncesinde ilk süper admin elle eklenmeli, henüz eklenmedi)
+- **Aktif adım:** Login ekranı uçtan uca doğrulandı (ilk süper admin ile); sıradaki adım: Rol bazlı yönlendirme
 - **Son güncelleme:** 2026-09-27
 
 ## Tamamlananlar
@@ -30,7 +30,8 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - `lib/oturum.tsx`: `OturumSaglayici` + `useOturum()` — dört durum: `yukleniyor`, `oturum_yok`, `profil_yok` (auth hesabı var ama `kullanici` satırı yok), `hazir`
   - `app/(auth)/login.tsx` + `app/(auth)/_layout.tsx`; `app/_layout.tsx` artık `Stack.Protected` (expo-router 57) ile durum bazlı yönlendiriyor, `yukleniyor` sırasında native splash açık kalıyor
   - `app/index.tsx`: geçici karşılama + Çıkış Yap (rol bazlı yönlendirme henüz yok)
-  - Web'de (Claude in Chrome ile) canlı doğrulandı: `/` → oturum yokken `/login`'e düşüyor; boş gönderim ve **gerçek** yanlış e-posta/şifre denemesi (Supabase Auth'a çağrı yapıldı) doğru Türkçe hata veriyor
+  - Web'de (Claude in Chrome ile) canlı doğrulandı: `/` → oturum yokken `/login`'e düşüyor; boş gönderim ve **gerçek** yanlış e-posta/şifre denemesi doğru Türkçe hata veriyor
+  - **Gerçek girişle uçtan uca doğrulandı (2026-09-27):** ilk süper admin (`admin@test.local`) ile giriş → "Hoş geldin, Test Admin (super_admin)"; sayfa yenilenince oturum kalıcı (login'e düşmedi); Çıkış Yap → `(auth)/login`'e döndü
 - [ ] Rol bazlı yönlendirme (admin/öğretmen/veli farklı ekranlar görür) — `app/index.tsx`'teki geçici karşılama bunun yerini alacak
 - [ ] Sınıf/öğrenci yönetimi (CRUD)
 - [ ] Yoklama alma
@@ -69,11 +70,11 @@ _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 
 - `lib/supabase.ts` env eksikken fırlattığı hata, web statik export'ta (`expo export --platform web`) test edilirken build'i düşürmedi; mesaj bundle'da mevcut ama fırlatma davranışı uçtan uca doğrulanmadı. Dosya henüz import edilmediği için şimdilik etkisiz — ilk gerçek kullanımda (login) kontrol edilmeli.
 - **Tipler elle yazıldı, üretilmedi:** bkz. Alınan Teknik Kararlar. CLI çalışınca `npm run tipleri-uret` ile gerçek çıktıyla değiştirilmeli. Not: `.select('yok_kolon')` derleme hatası vermez (sonuç tipi `SelectQueryError` olur); yanlış tablo adı ve yanlış enum değeri derleme hatası verir.
-- **Gerçek giriş (`hazir` durumu) ve `profil_yok` ekranı test edilmedi.** İlk süper admin yok; test edilen tek gerçek Auth çağrısı yanlış şifre denemesiydi. İlk süper admin eklenince: (a) doğru bilgiyle giriş → `app/index.tsx` karşılama, (b) `kullanici` satırı silinmiş/oluşturulmamış bir auth hesabıyla giriş → `profil_yok` ekranı, uçtan uca doğrulanmalı.
+- **`profil_yok` ekranı test edilmedi** (auth hesabı var ama `kullanici` satırı yok senaryosu). Gerçek giriş artık test edildi (bkz. Tamamlananlar).
 - **`davet-gonder` deploy edilmedi ve yetki mantığı uçtan uca test edilmedi.** Yerelde (`deno check` + yerel sunucu) doğrulananlar: derleme temiz; GET→405, başlıksız→401, sahte JWT→401, anon key ile→401. Doğrulanmayanlar: yetki matrisi (403/kurum zorlaması), 409, doğrulama hataları, rollback, gerçek davet e-postası. Bunlar ilk süper admin + test hesapları hazır olunca test edilmeli (gerçek e-posta için test adresi kullanıcıdan istenmeli).
 - **Davet geri alındığında ölü link:** `inviteUserByEmail` e-postayı DB insert'lerinden ÖNCE gönderiyor; sonraki bir adım düşerse kullanıcı silinir ama e-posta çoktan gitmiştir (link çalışmaz). Kabul edildi; sık olursa ele alınmalı.
 - **Deploy öncesi Dashboard ayarları (kullanıcı):** Authentication > URL Configuration > Redirect URLs'e `ogrencitakip://davet-kabul` (ve web karşılığı) eklenmeli; Authentication > Sign In / Providers'ta **"Allow new users to sign up" kapatılmalı** (yalnızca davetle üye alınacak; şu an herkes publishable key ile `auth.users`'a kayıt açabilir — veriye erişemez ama gereksiz hesap üretir).
-- İlk süper admin henüz yok. Elle eklenecek: Dashboard > Authentication'da kullanıcı oluştur, sonra SQL Editor'de `insert into public.kullanici (auth_id, rol, kurum_id, ad_soyad) values ('<auth uuid>', 'super_admin', null, '<ad>');`
+- **İlk süper admin eklendi (test hesabı):** `admin@test.local` / `kullanici.ad_soyad = 'Test Admin'`, Dashboard > Authentication'dan oluşturuldu + yukarıdaki SQL ile `kullanici` satırı eklendi. Gerçek bir kurum/kullanıcı için ayrıca üretim hesabı açılmalı.
 - Dashboard > Advisors (Security) kontrolü yapılmadı; "RLS disabled" uyarısı olmaması beklenir.
 - Uygulama cihaz/simülatörde açılıp görsel olarak doğrulanmadı (yalnızca derleme/tip/doctor kontrolleri).
 
@@ -89,4 +90,4 @@ _(Serbest metin: bu oturumda ne yapıldı, bir sonraki oturuma nereden devam edi
 
 - 2026-09-25: Proje iskeleti kuruldu.
 - 2026-09-26: Supabase çekirdek şema + RLS yazıldı, Dashboard'dan uygulandı, izolasyon testi geçti (bir yetki yükseltme açığı testte bulunup kapatıldı). Node 22 artık varsayılan. Davet Edge Function ve hibrit tip yapısı eklendi (tipler CLI olmadığı için elle yazıldı).
-- 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, web'de canlı doğrulandı (yanlış şifre senaryosu). Bir sonraki oturum: ilk süper admini elle ekle (SQL yukarıda) → gerçek girişi test et → rol bazlı yönlendirme.
+- 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, ilk süper admin (test hesabı) eklendi, web'de uçtan uca doğrulandı (giriş, kalıcı oturum, çıkış). Bir sonraki oturum: rol bazlı yönlendirme.
