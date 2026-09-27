@@ -75,6 +75,8 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 - **Varsayılan Node 22** (`nvm alias default 22`, 2026-09-26). Artık her terminalde `nvm use 22` gerekmez; Node 16'ya bağımlı başka projeler varsa onlarda `nvm use 16` gerekir.
 - **`.env` URL'si:** `supabase-js` proje kök adresini (`https://<ref>.supabase.co`) ister; Dashboard'daki "Data API" adresi `/rest/v1/` ile biter ve **çalışmaz** (doğrulandı: 404). Bkz. `.env.example`.
 - **`.gitignore`:** `.env` eklendi (şablon yalnızca `.env*.local`'i ignore ediyordu); `.env.example` takip ediliyor.
+- **Görsel tasarım bilinçli olarak ertelendi (2026-09-27 karar):** Şu ana kadarki tüm ekranlar (login, kurum listesi/ekleme, rol ana sayfaları) işlevsel doğrulama için minimal/placeholder stille yazıldı — sabit renkler (`#208aef` vb.), tasarım sistemi/tema, ikon, marka kimliği yok. Gerçek görsel tasarım ayrı bir aşamada ele alınacak; o zamana kadar yeni ekranlar da aynı minimal desenle (mevcut stil dosyalarındaki gibi) yazılmaya devam edilecek, üstüne tasarım geldiğinde toplu güncellenecek.
+- **Mobilde canlı doğrulandı (2026-09-27):** `npx expo start` (LAN, Expo Go) ile gerçek bir telefonda login ekranı açıldı. Web'de test edilenlerin native tarafta da derlenip render olduğu doğrulandı; rol ekranları/kurum ekleme mobilde ayrıca test edilmedi (yalnızca login ekranı görüldü).
 
 ## Bilinen Sorunlar / Yarım Kalanlar
 
