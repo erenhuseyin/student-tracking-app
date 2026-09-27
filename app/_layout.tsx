@@ -9,7 +9,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 function Yonlendirici() {
-  const { durum } = useOturum();
+  const { durum, kullanici } = useOturum();
+  const rol = durum === 'hazir' ? kullanici?.rol : undefined;
 
   useEffect(() => {
     if (durum !== 'yukleniyor') {
@@ -22,8 +23,20 @@ function Yonlendirici() {
       <Stack.Protected guard={durum === 'oturum_yok'}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={durum === 'hazir' || durum === 'profil_yok'}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Protected guard={durum === 'profil_yok'}>
+        <Stack.Screen name="profil-yok" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'super_admin'}>
+        <Stack.Screen name="(super_admin)" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'kurum_admin'}>
+        <Stack.Screen name="(kurum_admin)" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'ogretmen'}>
+        <Stack.Screen name="(ogretmen)" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'veli'}>
+        <Stack.Screen name="(veli)" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );
