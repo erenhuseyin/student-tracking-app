@@ -47,6 +47,16 @@ end $$;
 
 grant execute on all functions in schema tst to anon, authenticated;
 
+-- Kalıcı test hesapları (bkz. docs/ILERLEME.md) bu transaction'dan ÖNCE commit edilmiş
+-- durumda; süper admin RLS'te sınırsız olduğu için onları da görür. "sa ..." testleri bu
+-- yüzden sabit sayı yerine "mevcut kalıcı veri + bu transaction'ın eklediği veri" bekler.
+select set_config('tst.taban_kurum', (select count(*) from public.kurum)::text, true);
+select set_config('tst.taban_kullanici', (select count(*) from public.kullanici)::text, true);
+select set_config('tst.taban_sinif', (select count(*) from public.sinif)::text, true);
+select set_config('tst.taban_ogrenci', (select count(*) from public.ogrenci)::text, true);
+select set_config('tst.taban_veli_ogrenci', (select count(*) from public.veli_ogrenci)::text, true);
+select set_config('tst.taban_ogretmen_sinif', (select count(*) from public.ogretmen_sinif)::text, true);
+
 -- ---------------------------------------------------------------------------
 -- Sahte veri (postgres rolüyle)
 -- ---------------------------------------------------------------------------
@@ -137,12 +147,12 @@ reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 set local role authenticated;
 
-select tst.esit('sa kurum', (select count(*) from public.kurum)::text, '2');
-select tst.esit('sa kullanici', (select count(*) from public.kullanici)::text, '10');
-select tst.esit('sa sinif', (select count(*) from public.sinif)::text, '3');
-select tst.esit('sa ogrenci', (select count(*) from public.ogrenci)::text, '4');
-select tst.esit('sa veli_ogrenci', (select count(*) from public.veli_ogrenci)::text, '4');
-select tst.esit('sa ogretmen_sinif', (select count(*) from public.ogretmen_sinif)::text, '3');
+select tst.esit('sa kurum', (select count(*) from public.kurum)::text, (current_setting('tst.taban_kurum')::int + 2)::text);
+select tst.esit('sa kullanici', (select count(*) from public.kullanici)::text, (current_setting('tst.taban_kullanici')::int + 10)::text);
+select tst.esit('sa sinif', (select count(*) from public.sinif)::text, (current_setting('tst.taban_sinif')::int + 3)::text);
+select tst.esit('sa ogrenci', (select count(*) from public.ogrenci)::text, (current_setting('tst.taban_ogrenci')::int + 4)::text);
+select tst.esit('sa veli_ogrenci', (select count(*) from public.veli_ogrenci)::text, (current_setting('tst.taban_veli_ogrenci')::int + 4)::text);
+select tst.esit('sa ogretmen_sinif', (select count(*) from public.ogretmen_sinif)::text, (current_setting('tst.taban_ogretmen_sinif')::int + 3)::text);
 
 -- ===========================================================================
 -- 4. KURUM ADMİNİ A: yalnızca A kurumunu görür, B'den tek satır sızmaz
@@ -392,6 +402,71 @@ set local role authenticated;
 
 select tst.esit('sa kurum insert', tst.dene($q$insert into public.kurum (ad) values ('Kurum C')$q$), 'ok:1');
 select tst.esit('sa kurum update', tst.dene($q$update public.kurum set ad = 'Kurum C2' where ad = 'Kurum C'$q$), 'ok:1');
+
+-- ===========================================================================
+-- 11. YOKLAMA
+-- ===========================================================================
+-- ogrA1 (sA1'e atanmış: oA1, oA2) kendi öğrencisine yoklama girer
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA1 kendi öğrencisine yoklama girer',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','2026-09-28','geldi','b0000000-0000-0000-0000-000000000005')$q$), 'ok:1');
+select tst.esit('ogrA1 aynı gün ikinci kayıt (unique ihlali)',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','2026-09-28','gec','b0000000-0000-0000-0000-000000000005')$q$), 'hata:23505');
+select tst.esit('ogrA1 aynı gün upsert ile günceller',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','2026-09-28','gec','b0000000-0000-0000-0000-000000000005') on conflict (ogrenci_id, tarih) do update set durum = excluded.durum$q$), 'ok:1');
+select tst.esit('ogrA1 atanmadığı öğrenciye (oA3) yoklama giremez',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a3','2026-09-28','geldi','b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('ogrA1 başkası adına giren_kullanici_id ile giremez',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a2','2026-09-28','geldi','b0000000-0000-0000-0000-000000000006')$q$), 'hata:42501');
+select tst.esit('ogrA1 kendi girdiği kaydı günceller',
+  tst.dene($q$update public.yoklama set durum = 'gelmedi' where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1' and tarih = '2026-09-28'$q$), 'ok:1');
+
+-- ogrA2 (sA2'ye atanmış, sA1'e değil) ogrA1'in öğrencisinin kaydını göremez/güncelleyemez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000006","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA2 ogrA1nin öğrencisinin yoklamasını göremez', (select count(*) from public.yoklama where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1')::text, '0');
+select tst.esit('ogrA2 ogrA1nin öğrencisinin yoklamasını güncelleyemez',
+  tst.dene($q$update public.yoklama set durum = 'gec' where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+
+-- veliA1 (oA1, oA2'nin velisi) yalnızca okur
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA1 oA1 yoklamasını görür', (select count(*) from public.yoklama where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1')::text, '1');
+select tst.esit('veliA1 yoklama giremez',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','2026-09-27','geldi','b0000000-0000-0000-0000-000000000008')$q$), 'hata:42501');
+select tst.esit('veliA1 yoklama güncelleyemez',
+  tst.dene($q$update public.yoklama set durum = 'gec' where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+
+-- veliA2 (yalnızca oA2'nin velisi) oA1'in yoklamasını göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA2 oA1 yoklamasını göremez', (select count(*) from public.yoklama where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1')::text, '0');
+
+-- veliB (B kurumu) A kurumunun yoklamasını hiç göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliB A kurumunun yoklamasını göremez', (select count(*) from public.yoklama where kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '0');
+
+-- adminA kendi kurumunda tüm yoklamaları yönetir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('adminA kendi kurumunun yoklamasını günceller',
+  tst.dene($q$update public.yoklama set durum = 'geldi' where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
+select tst.esit('adminA B kurumunun yoklamasına yazamaz',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000b','e0000000-0000-0000-0000-0000000000b1','2026-09-28','geldi','b0000000-0000-0000-0000-000000000002')$q$), 'hata:42501');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
