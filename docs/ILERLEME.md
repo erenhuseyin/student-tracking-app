@@ -5,7 +5,7 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Sınıf/öğrenci yönetimi (CRUD) tamamlandı; sıradaki adım: Yoklama alma — ya da önce ilk kurum admini daveti (bkz. Açık Sorular)
+- **Aktif adım:** Yoklama alma (öğretmen + veli görüntüleme) tamamlandı; sıradaki adım: Veli girişi telefon+SMS'e geçiş — ya da EAS build / ilk kurum admini daveti (bkz. Açık Sorular)
 - **Son güncelleme:** 2026-09-28
 
 ## Tamamlananlar
@@ -52,7 +52,15 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - **Silme kısıtı:** `ogrenci.sinif_id` FK'sinde `on delete` belirtilmemiş (varsayılan `no action`) → öğrencisi olan sınıf silinemez; bu, `sinifSil`'de `23503` hata koduyla yakalanıp "Bu sınıfta öğrenci var, önce onları başka bir sınıfa taşıyın veya silin." mesajına çevrildi
   - Öğrenci doğum tarihi elle `YYYY-AA-GG` girilir (native tarih seçici kapsam dışı)
   - Web'de kurum admini test hesabıyla (`kurumadmin@test.local`) **tam CRUD döngüsü uçtan uca doğrulandı:** sınıf ekle → düzenle → öğrenci ekle → düzenle → öğrencili sınıfı silmeyi dene (doğru hata) → öğrenciyi sil → sınıfı sil (başarılı)
-- [ ] Yoklama alma
+- [x] Yoklama alma — 2026-09-28 (öğretmen tarafı + kullanıcı kararıyla genişletildi: veli görüntüleme; push bildirim hâlâ ayrı madde)
+  - Migration `20260928120000_yoklama.sql` + `20260928120100_yoklama_tamamla.sql` (ikiye bölünmesinin sebebi: ilki Dashboard'da elle çalıştırılırken `giren_kullanici_id` FK'si atlanmıştı, dosyalar DB'nin gerçek uygulanma sırasını yansıtıyor)
+  - `yoklama` tablosu: `unique(ogrenci_id, tarih)` — günde tek kayıt, öğretmen tekrar işaretlerse `lib/yoklama.ts`'teki `yoklamaKaydet` upsert ile günceller
+  - RLS: super_admin/kurum_admin tümü; ogretmen yalnızca kendi öğrencilerine insert/update (delete yok), `giren_kullanici_id` sahteciliği `with check`'te engellendi; veli yalnızca kendi çocuklarına select
+  - Ekranlar: `(ogretmen)/index.tsx` (sınıf listesi) → `(ogretmen)/yoklama/[sinifId].tsx` (tek dokunuşla Geldi/Gelmedi/Geç işaretleme); `(veli)/index.tsx` (çocuk listesi) → `(veli)/yoklama/[ogrenciId].tsx` (salt okunur geçmiş)
+  - `supabase/tests/rls.test.sql`'e 11. bölüm eklendi (izolasyon, yetki, upsert/unique senaryoları) — **hepsi geçti**
+  - **Test sırasında bir test-script hatası bulundu (güvenlik açığı değil):** "sa kurum/kullanici/..." testleri sabit sayı bekliyordu, kalıcı test verisiyle (bkz. altta) çakıştı; testler artık "mevcut kalıcı veri + bu transaction'ın eklediği veri" bekleyecek şekilde düzeltildi (`set_config('tst.taban_...')` deseni)
+  - Kalıcı test verisi genişledi: `ogretmen@test.local` (1-A sınıfına atanmış), `veli@test.local` (Elif Kaya'nın velisi), sınıf "1-A" + öğrenci "Elif Kaya" (Test Okulu'nda)
+  - Web'de **tam uçtan uca doğrulandı:** kurum admini sınıf+öğrenci oluşturdu → öğretmen "Geldi" işaretledi → veli ekranında "2026-09-28 → Geldi" doğru göründü
 - [ ] Veliye push bildirim
 - [ ] EAS build + Play Console internal testing
 
@@ -81,7 +89,12 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 - **Varsayılan Node 22** (`nvm alias default 22`, 2026-09-26). Artık her terminalde `nvm use 22` gerekmez; Node 16'ya bağımlı başka projeler varsa onlarda `nvm use 16` gerekir.
 - **`.env` URL'si:** `supabase-js` proje kök adresini (`https://<ref>.supabase.co`) ister; Dashboard'daki "Data API" adresi `/rest/v1/` ile biter ve **çalışmaz** (doğrulandı: 404). Bkz. `.env.example`.
 - **`.gitignore`:** `.env` eklendi (şablon yalnızca `.env*.local`'i ignore ediyordu); `.env.example` takip ediliyor.
-- **Kalıcı test verisi (2026-09-28):** `kurumadmin@test.local` / kurum "Test Okulu" — süper admin test hesabı (`admin@test.local`) gibi kalıcı bırakıldı, sonraki oturumlarda kurum admini ekranlarını test etmek için kullanılabilir. `kurum_id`'sini bulmak için: `select id from public.kurum where ad = 'Test Okulu';`.
+- **Kalıcı test verisi (2026-09-28, genişletildi):** Kurum "Test Okulu" içinde tüm roller test edilebilir durumda:
+  - `admin@test.local` — super_admin
+  - `kurumadmin@test.local` — kurum_admin (Test Okulu)
+  - `ogretmen@test.local` — ogretmen, sınıf "1-A"ya atanmış
+  - `veli@test.local` — veli, öğrenci "Elif Kaya"nın velisi (1-A sınıfında)
+  - Hepsinin şifresi `Test1234!`. Bulmak için: `select id from public.kurum where ad = 'Test Okulu';` / `select ad_soyad, rol from public.kullanici where kurum_id = (select id from public.kurum where ad = 'Test Okulu') or rol = 'super_admin';`
 - **Görsel tasarım bilinçli olarak ertelendi (2026-09-27 karar):** Şu ana kadarki tüm ekranlar (login, kurum listesi/ekleme, rol ana sayfaları) işlevsel doğrulama için minimal/placeholder stille yazıldı — sabit renkler (`#208aef` vb.), tasarım sistemi/tema, ikon, marka kimliği yok. Gerçek görsel tasarım ayrı bir aşamada ele alınacak; o zamana kadar yeni ekranlar da aynı minimal desenle (mevcut stil dosyalarındaki gibi) yazılmaya devam edilecek, üstüne tasarım geldiğinde toplu güncellenecek.
 - **Mobilde canlı doğrulandı (2026-09-27):** `npx expo start` (LAN, Expo Go) ile gerçek bir telefonda login ekranı açıldı. Web'de test edilenlerin native tarafta da derlenip render olduğu doğrulandı; rol ekranları/kurum ekleme mobilde ayrıca test edilmedi (yalnızca login ekranı görüldü).
 
@@ -105,6 +118,7 @@ _(Claude Code'un kendi başına karar veremeyip kullanıcıya sorması gereken n
 
 - Özel SMTP: Supabase'in dahili e-posta servisinin saatlik gönderim limiti çok düşük; gerçek onboarding (davetler) öncesi özel SMTP ayarlanmalı, davet e-posta şablonu Türkçeleştirilmeli.
 - İlk kurum admini daveti: `(super_admin)/yeni-kurum.tsx`'e mi eklensin (kurum + admin tek form), yoksa kurum listesinde satır başına "Admin Davet Et" mi olsun? İkisi de `davet-gonder`'ın deploy edilmesini gerektiriyor.
+- **Veli girişi: telefon + SMS OTP'ye geçiş (2026-09-28, kullanıcı talebi).** Gerekçe: veliler düşük teknoloji okuryazarlığına sahip olabilir, e-posta+şifre (hatta magic link tıklama) çok zor; SMS onay kodu (bankacılık/e-Devlet tanıdıklığı) + native OTP autofill çok daha az adım gerektiriyor. Mimariyi bozmaz — yalnızca giriş yöntemi değişir, `veli_ogrenci` ilişkisi ve RLS aynı kalır (TCKN ile "ilişkisiz erişim" modeli değerlendirilip KVKK riski nedeniyle reddedildi, bkz. bu oturumun konuşması). **Netleşmesi gereken:** SMS sağlayıcı seçimi (Twilio Türkiye numaralarına gönderim maliyeti/desteği belirsiz, yerli bir sağlayıcı — Netgsm, İleti Merkezi vb. — araştırılmalı), yalnızca veli için mi yoksa tüm roller için mi (öğretmen/admin hâlâ e-posta kullanabilir), Supabase Auth phone provider kurulumu. Ayrı bir adımda ele alınacak.
 
 ## Son Oturum Notu
 
@@ -113,4 +127,5 @@ _(Serbest metin: bu oturumda ne yapıldı, bir sonraki oturuma nereden devam edi
 - 2026-09-25: Proje iskeleti kuruldu.
 - 2026-09-26: Supabase çekirdek şema + RLS yazıldı, Dashboard'dan uygulandı, izolasyon testi geçti (bir yetki yükseltme açığı testte bulunup kapatıldı). Node 22 artık varsayılan. Davet Edge Function ve hibrit tip yapısı eklendi (tipler CLI olmadığı için elle yazıldı).
 - 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, ilk süper admin (test hesabı) eklendi, web'de uçtan uca doğrulandı (giriş, kalıcı oturum, çıkış). Rol bazlı yönlendirme: 4 route grubu (`(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`). Süper admin — yeni kurum ekleme akışı: `lib/kurumlar.ts` + liste/form ekranları, Edge Function gerekmedi (RLS yeterli), web'de gerçek insert ile uçtan uca doğrulandı. Mobilde (Expo Go, LAN) login ekranı canlı doğrulandı.
-- 2026-09-28: Sınıf/öğrenci yönetimi (CRUD) — kurum admini tarafı — tamamlandı. `kurumadmin@test.local` test hesabı oluşturuldu (kalıcı bırakıldı, kurum: "Test Okulu"). Tam CRUD döngüsü web'de uçtan uca doğrulandı. Bir sonraki oturum: Yoklama alma — ya da önce ilk kurum admini daveti (`davet-gonder`'ın ilk deploy'u, onay gerektirir).
+- 2026-09-28: Sınıf/öğrenci yönetimi (CRUD) — kurum admini tarafı — tamamlandı. `kurumadmin@test.local` test hesabı oluşturuldu (kalıcı bırakıldı, kurum: "Test Okulu"). Tam CRUD döngüsü web'de uçtan uca doğrulandı.
+- 2026-09-28 (devam): Yoklama alma (öğretmen + veli görüntüleme) tamamlandı. `ogretmen@test.local` ve `veli@test.local` test hesapları eklendi (kalıcı). Test dosyasında kalıcı veriyle çakışan bir sayım hatası bulunup düzeltildi (güvenlik açığı değil). Web'de tam zincir uçtan uca doğrulandı: kurum admini sınıf/öğrenci oluşturdu → öğretmen yoklama işaretledi → veli gördü. Ayrıca kullanıcıyla veli girişi tartışıldı: TCKN ile ilişkisiz erişim modeli KVKK riski nedeniyle reddedildi, bunun yerine **telefon + SMS OTP** girişine geçiş kararlaştırıldı (bkz. Açık Sorular) — henüz uygulanmadı. Bir sonraki oturum: telefon+SMS girişi (SMS sağlayıcı araştırması dahil) — ya da EAS build / ilk kurum admini daveti.
