@@ -1,17 +1,51 @@
 // Erişim: yalnızca ogretmen
-import { StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
-import { useOturum } from '@/lib/oturum';
+import { siniflariGetir } from '@/lib/siniflar';
+import type { Sinif } from '@/lib/tipler';
 
 export default function OgretmenAnaSayfa() {
-  const { kullanici } = useOturum();
+  const router = useRouter();
+  const [siniflar, setSiniflar] = useState<Sinif[] | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      setHata(null);
+      // RLS (sinif_ogretmen_oku politikası) yalnızca öğretmenin atandığı sınıfları döndürür.
+      siniflariGetir()
+        .then(setSiniflar)
+        .catch((e: Error) => setHata(e.message));
+    }, []),
+  );
 
   return (
     <View style={styles.kapsayici}>
       <Text style={styles.baslik}>Sınıflarım</Text>
-      <Text style={styles.aciklama}>Hoş geldin, {kullanici?.ad_soyad}.</Text>
-      <Text style={styles.aciklama}>Yoklama ve gelişim kaydı yakında burada olacak.</Text>
+
+      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
+
+      {siniflar === null && !hata ? (
+        <ActivityIndicator style={styles.yukleniyor} />
+      ) : (
+        <FlatList
+          style={styles.liste}
+          data={siniflar ?? []}
+          keyExtractor={(s) => s.id}
+          ListEmptyComponent={<Text style={styles.bosMetin}>Henüz size atanmış sınıf yok.</Text>}
+          renderItem={({ item }) => (
+            <Pressable style={styles.satir} onPress={() => router.push(`/yoklama/${item.id}`)}>
+              <Text style={styles.satirMetni}>
+                {item.ad} — {item.donem}
+              </Text>
+            </Pressable>
+          )}
+        />
+      )}
+
       <CikisYapButonu />
     </View>
   );
@@ -20,17 +54,36 @@ export default function OgretmenAnaSayfa() {
 const styles = StyleSheet.create({
   kapsayici: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
     padding: 24,
+    gap: 12,
   },
   baslik: {
     fontSize: 24,
     fontWeight: '600',
-  },
-  aciklama: {
     textAlign: 'center',
-    color: '#444',
+    marginTop: 24,
+  },
+  yukleniyor: {
+    marginTop: 24,
+  },
+  liste: {
+    flex: 1,
+  },
+  bosMetin: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 24,
+  },
+  satir: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  satirMetni: {
+    fontSize: 16,
+  },
+  hataMetni: {
+    color: '#c62828',
+    textAlign: 'center',
   },
 });
