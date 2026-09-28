@@ -1,17 +1,49 @@
 // Erişim: yalnızca veli
-import { StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
-import { useOturum } from '@/lib/oturum';
+import { veliCocuklariniGetir } from '@/lib/ogrenciler';
+import type { Ogrenci } from '@/lib/tipler';
 
 export default function VeliAnaSayfa() {
-  const { kullanici } = useOturum();
+  const router = useRouter();
+  const [cocuklar, setCocuklar] = useState<Ogrenci[] | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      setHata(null);
+      // RLS (ogrenci_veli_oku politikası) yalnızca velinin bağlı olduğu öğrencileri döndürür.
+      veliCocuklariniGetir()
+        .then(setCocuklar)
+        .catch((e: Error) => setHata(e.message));
+    }, []),
+  );
 
   return (
     <View style={styles.kapsayici}>
       <Text style={styles.baslik}>Çocuklarım</Text>
-      <Text style={styles.aciklama}>Hoş geldin, {kullanici?.ad_soyad}.</Text>
-      <Text style={styles.aciklama}>Gelişim geçmişi yakında burada olacak.</Text>
+
+      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
+
+      {cocuklar === null && !hata ? (
+        <ActivityIndicator style={styles.yukleniyor} />
+      ) : (
+        <FlatList
+          style={styles.liste}
+          data={cocuklar ?? []}
+          keyExtractor={(o) => o.id}
+          ListEmptyComponent={<Text style={styles.bosMetin}>Bağlı bir çocuk bulunamadı.</Text>}
+          renderItem={({ item }) => (
+            <Pressable style={styles.satir} onPress={() => router.push(`/yoklama/${item.id}`)}>
+              <Text style={styles.satirMetni}>{item.ad_soyad}</Text>
+            </Pressable>
+          )}
+        />
+      )}
+
       <CikisYapButonu />
     </View>
   );
@@ -20,17 +52,36 @@ export default function VeliAnaSayfa() {
 const styles = StyleSheet.create({
   kapsayici: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
     padding: 24,
+    gap: 12,
   },
   baslik: {
     fontSize: 24,
     fontWeight: '600',
-  },
-  aciklama: {
     textAlign: 'center',
-    color: '#444',
+    marginTop: 24,
+  },
+  yukleniyor: {
+    marginTop: 24,
+  },
+  liste: {
+    flex: 1,
+  },
+  bosMetin: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 24,
+  },
+  satir: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  satirMetni: {
+    fontSize: 16,
+  },
+  hataMetni: {
+    color: '#c62828',
+    textAlign: 'center',
   },
 });
