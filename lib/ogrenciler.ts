@@ -27,6 +27,14 @@ export async function ogrencileriGetir(sinifId: string): Promise<Ogrenci[]> {
   return data;
 }
 
+// Veli, RLS (ogrenci_veli_oku politikası) sayesinde yalnızca kendi çocuklarını görür;
+// bu yüzden ek bir veli_id filtresi gerekmez.
+export async function veliCocuklariniGetir(): Promise<Ogrenci[]> {
+  const { data, error } = await supabase.from('ogrenci').select('*').order('ad_soyad');
+  if (error) throw new Error(hataMesajinaCevir(error.message));
+  return data;
+}
+
 export async function ogrenciGetir(id: string): Promise<Ogrenci> {
   const { data, error } = await supabase.from('ogrenci').select('*').eq('id', id).single();
   if (error) throw new Error(hataMesajinaCevir(error.message));
