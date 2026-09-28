@@ -1,17 +1,77 @@
 // Erişim: yalnızca kurum_admin
-import { StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
-import { useOturum } from '@/lib/oturum';
+import { SilOnayButonu } from '@/components/SilOnayButonu';
+import { siniflariGetir, sinifSil } from '@/lib/siniflar';
+import type { Sinif } from '@/lib/tipler';
 
 export default function KurumAdminAnaSayfa() {
-  const { kullanici } = useOturum();
+  const router = useRouter();
+  const [siniflar, setSiniflar] = useState<Sinif[] | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
+
+  const yenile = useCallback(async () => {
+    setHata(null);
+    try {
+      setSiniflar(await siniflariGetir());
+    } catch (e) {
+      setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      yenile();
+    }, [yenile]),
+  );
 
   return (
     <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Kurum Yönetimi</Text>
-      <Text style={styles.aciklama}>Hoş geldin, {kullanici?.ad_soyad}.</Text>
-      <Text style={styles.aciklama}>Sınıf ve kullanıcı yönetimi yakında burada olacak.</Text>
+      <Text style={styles.baslik}>Sınıflarım</Text>
+
+      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
+
+      {siniflar === null && !hata ? (
+        <ActivityIndicator style={styles.yukleniyor} />
+      ) : (
+        <FlatList
+          style={styles.liste}
+          data={siniflar ?? []}
+          keyExtractor={(s) => s.id}
+          ListEmptyComponent={<Text style={styles.bosMetin}>Henüz sınıf yok.</Text>}
+          renderItem={({ item }) => (
+            <View style={styles.satir}>
+              <Pressable style={styles.satirIcerik} onPress={() => router.push(`/sinif/${item.id}`)}>
+                <Text style={styles.satirMetni}>
+                  {item.ad} — {item.donem}
+                </Text>
+              </Pressable>
+              <View style={styles.satirButonlari}>
+                <Pressable onPress={() => router.push(`/sinif-duzenle/${item.id}`)}>
+                  <Text style={styles.duzenleMetni}>Düzenle</Text>
+                </Pressable>
+                <SilOnayButonu
+                  onSil={async () => {
+                    try {
+                      await sinifSil(item.id);
+                      await yenile();
+                    } catch (e) {
+                      setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
+                    }
+                  }}
+                />
+              </View>
+            </View>
+          )}
+        />
+      )}
+
+      <Pressable style={styles.buton} onPress={() => router.push('/yeni-sinif')}>
+        <Text style={styles.butonMetni}>Yeni Sınıf Ekle</Text>
+      </Pressable>
       <CikisYapButonu />
     </View>
   );
@@ -20,17 +80,61 @@ export default function KurumAdminAnaSayfa() {
 const styles = StyleSheet.create({
   kapsayici: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
     padding: 24,
+    gap: 12,
   },
   baslik: {
     fontSize: 24,
     fontWeight: '600',
-  },
-  aciklama: {
     textAlign: 'center',
-    color: '#444',
+    marginTop: 24,
+  },
+  yukleniyor: {
+    marginTop: 24,
+  },
+  liste: {
+    flex: 1,
+  },
+  bosMetin: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 24,
+  },
+  satir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  satirIcerik: {
+    flex: 1,
+  },
+  satirMetni: {
+    fontSize: 16,
+  },
+  satirButonlari: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  duzenleMetni: {
+    color: '#208aef',
+  },
+  hataMetni: {
+    color: '#c62828',
+    textAlign: 'center',
+  },
+  buton: {
+    backgroundColor: '#208aef',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  butonMetni: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
