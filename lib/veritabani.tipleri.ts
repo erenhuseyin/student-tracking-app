@@ -226,6 +226,58 @@ export type Database = {
           },
         ];
       };
+      yoklama: {
+        Row: {
+          durum: Database['public']['Enums']['yoklama_durumu'];
+          giren_kullanici_id: string;
+          id: string;
+          kurum_id: string;
+          ogrenci_id: string;
+          olusturma_tarihi: string;
+          tarih: string;
+        };
+        Insert: {
+          durum: Database['public']['Enums']['yoklama_durumu'];
+          giren_kullanici_id: string;
+          id?: string;
+          kurum_id: string;
+          ogrenci_id: string;
+          olusturma_tarihi?: string;
+          tarih: string;
+        };
+        Update: {
+          durum?: Database['public']['Enums']['yoklama_durumu'];
+          giren_kullanici_id?: string;
+          id?: string;
+          kurum_id?: string;
+          ogrenci_id?: string;
+          olusturma_tarihi?: string;
+          tarih?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'yoklama_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'yoklama_ogrenci_ayni_kurum_fkey';
+            columns: ['ogrenci_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'ogrenci';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+          {
+            foreignKeyName: 'yoklama_giren_kullanici_id_fkey';
+            columns: ['giren_kullanici_id'];
+            isOneToOne: false;
+            referencedRelation: 'kullanici';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -236,6 +288,7 @@ export type Database = {
     };
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
+      yoklama_durumu: 'geldi' | 'gelmedi' | 'gec';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -254,6 +307,7 @@ export const Constants = {
   public: {
     Enums: {
       rol: ['super_admin', 'kurum_admin', 'ogretmen', 'veli'],
+      yoklama_durumu: ['geldi', 'gelmedi', 'gec'],
     },
   },
 } as const;

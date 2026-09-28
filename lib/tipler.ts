@@ -22,3 +22,9 @@ export type VeliOgrenci = Tables<'veli_ogrenci'>;
 
 // Öğretmen-sınıf atama tablosu
 export type OgretmenSinif = Tables<'ogretmen_sinif'>;
+
+export const YOKLAMA_DURUMLARI = Constants.public.Enums.yoklama_durumu;
+
+export type YoklamaDurumu = (typeof YOKLAMA_DURUMLARI)[number];
+
+export type Yoklama = Tables<'yoklama'>;
