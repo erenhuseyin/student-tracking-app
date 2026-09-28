@@ -5,8 +5,8 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Süper admin — yeni kurum ekleme akışı tamamlandı; sıradaki adım: Sınıf/öğrenci yönetimi (CRUD) — ya da önce ilk kurum admini daveti (bkz. Açık Sorular)
-- **Son güncelleme:** 2026-09-27
+- **Aktif adım:** Sınıf/öğrenci yönetimi (CRUD) tamamlandı; sıradaki adım: Yoklama alma — ya da önce ilk kurum admini daveti (bkz. Açık Sorular)
+- **Son güncelleme:** 2026-09-28
 
 ## Tamamlananlar
 
@@ -45,7 +45,13 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - `app/_layout.tsx`: `Stack.Protected` guard'ları `durum` + `kullanici?.rol`'e göre 6 gruba çıktı (auth, profil-yok, 4 rol)
   - Web'de **süper admin** akışı uçtan uca doğrulandı: giriş → `(super_admin)` ekranı, çıkış → login'e dönüş
   - **kurum_admin/ogretmen/veli ekranları test edilmedi** (test hesabı yok) — kod incelemesiyle doğrulandı, guard mantığı 4 rol için simetrik
-- [ ] Sınıf/öğrenci yönetimi (CRUD)
+- [x] Sınıf/öğrenci yönetimi (CRUD) — 2026-09-28 (kurum admini tarafı)
+  - `lib/siniflar.ts`, `lib/ogrenciler.ts`: tam CRUD (ekle/listele/düzenle/sil) — RLS (`sinif_kurum_admin`, `ogrenci_kurum_admin` politikaları, `for all`) zaten yeterli, Edge Function gerekmedi
+  - Ekranlar: `(kurum_admin)/index.tsx` (sınıf listesi + düzenle/sil), `yeni-sinif.tsx`, `sinif-duzenle/[id].tsx`, `sinif/[id].tsx` (öğrenci listesi + düzenle/sil), `yeni-ogrenci.tsx`, `ogrenci-duzenle/[id].tsx`
+  - `components/SilOnayButonu.tsx`: iki adımlı inline silme onayı ("Sil" → "Emin misiniz? Evet, sil / Vazgeç") — `Alert.alert` kullanılmadı (web'de tarayıcı `confirm()`'e sarılabilir)
+  - **Silme kısıtı:** `ogrenci.sinif_id` FK'sinde `on delete` belirtilmemiş (varsayılan `no action`) → öğrencisi olan sınıf silinemez; bu, `sinifSil`'de `23503` hata koduyla yakalanıp "Bu sınıfta öğrenci var, önce onları başka bir sınıfa taşıyın veya silin." mesajına çevrildi
+  - Öğrenci doğum tarihi elle `YYYY-AA-GG` girilir (native tarih seçici kapsam dışı)
+  - Web'de kurum admini test hesabıyla (`kurumadmin@test.local`) **tam CRUD döngüsü uçtan uca doğrulandı:** sınıf ekle → düzenle → öğrenci ekle → düzenle → öğrencili sınıfı silmeyi dene (doğru hata) → öğrenciyi sil → sınıfı sil (başarılı)
 - [ ] Yoklama alma
 - [ ] Veliye push bildirim
 - [ ] EAS build + Play Console internal testing
@@ -75,6 +81,7 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 - **Varsayılan Node 22** (`nvm alias default 22`, 2026-09-26). Artık her terminalde `nvm use 22` gerekmez; Node 16'ya bağımlı başka projeler varsa onlarda `nvm use 16` gerekir.
 - **`.env` URL'si:** `supabase-js` proje kök adresini (`https://<ref>.supabase.co`) ister; Dashboard'daki "Data API" adresi `/rest/v1/` ile biter ve **çalışmaz** (doğrulandı: 404). Bkz. `.env.example`.
 - **`.gitignore`:** `.env` eklendi (şablon yalnızca `.env*.local`'i ignore ediyordu); `.env.example` takip ediliyor.
+- **Kalıcı test verisi (2026-09-28):** `kurumadmin@test.local` / kurum "Test Okulu" — süper admin test hesabı (`admin@test.local`) gibi kalıcı bırakıldı, sonraki oturumlarda kurum admini ekranlarını test etmek için kullanılabilir. `kurum_id`'sini bulmak için: `select id from public.kurum where ad = 'Test Okulu';`.
 - **Görsel tasarım bilinçli olarak ertelendi (2026-09-27 karar):** Şu ana kadarki tüm ekranlar (login, kurum listesi/ekleme, rol ana sayfaları) işlevsel doğrulama için minimal/placeholder stille yazıldı — sabit renkler (`#208aef` vb.), tasarım sistemi/tema, ikon, marka kimliği yok. Gerçek görsel tasarım ayrı bir aşamada ele alınacak; o zamana kadar yeni ekranlar da aynı minimal desenle (mevcut stil dosyalarındaki gibi) yazılmaya devam edilecek, üstüne tasarım geldiğinde toplu güncellenecek.
 - **Mobilde canlı doğrulandı (2026-09-27):** `npx expo start` (LAN, Expo Go) ile gerçek bir telefonda login ekranı açıldı. Web'de test edilenlerin native tarafta da derlenip render olduğu doğrulandı; rol ekranları/kurum ekleme mobilde ayrıca test edilmedi (yalnızca login ekranı görüldü).
 
@@ -105,4 +112,5 @@ _(Serbest metin: bu oturumda ne yapıldı, bir sonraki oturuma nereden devam edi
 
 - 2026-09-25: Proje iskeleti kuruldu.
 - 2026-09-26: Supabase çekirdek şema + RLS yazıldı, Dashboard'dan uygulandı, izolasyon testi geçti (bir yetki yükseltme açığı testte bulunup kapatıldı). Node 22 artık varsayılan. Davet Edge Function ve hibrit tip yapısı eklendi (tipler CLI olmadığı için elle yazıldı).
-- 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, ilk süper admin (test hesabı) eklendi, web'de uçtan uca doğrulandı (giriş, kalıcı oturum, çıkış). Rol bazlı yönlendirme: 4 route grubu (`(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`). Süper admin — yeni kurum ekleme akışı: `lib/kurumlar.ts` + liste/form ekranları, Edge Function gerekmedi (RLS yeterli), web'de gerçek insert ile uçtan uca doğrulandı. Bir sonraki oturum: Sınıf/öğrenci yönetimi (CRUD) — kurum admini tarafı — ya da önce ilk kurum admini daveti (`davet-gonder`'ın ilk deploy'u, onay gerektirir).
+- 2026-09-27: Login ekranı + oturum durumu (`lib/oturum.tsx`, `Stack.Protected`) yazıldı, ilk süper admin (test hesabı) eklendi, web'de uçtan uca doğrulandı (giriş, kalıcı oturum, çıkış). Rol bazlı yönlendirme: 4 route grubu (`(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`). Süper admin — yeni kurum ekleme akışı: `lib/kurumlar.ts` + liste/form ekranları, Edge Function gerekmedi (RLS yeterli), web'de gerçek insert ile uçtan uca doğrulandı. Mobilde (Expo Go, LAN) login ekranı canlı doğrulandı.
+- 2026-09-28: Sınıf/öğrenci yönetimi (CRUD) — kurum admini tarafı — tamamlandı. `kurumadmin@test.local` test hesabı oluşturuldu (kalıcı bırakıldı, kurum: "Test Okulu"). Tam CRUD döngüsü web'de uçtan uca doğrulandı. Bir sonraki oturum: Yoklama alma — ya da önce ilk kurum admini daveti (`davet-gonder`'ın ilk deploy'u, onay gerektirir).
