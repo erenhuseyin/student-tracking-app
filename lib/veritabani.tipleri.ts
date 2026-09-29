@@ -106,6 +106,7 @@ export type Database = {
           kurum_id: string;
           olusturma_tarihi: string;
           sinif_id: string;
+          tckn: string | null;
         };
         Insert: {
           ad_soyad: string;
@@ -114,6 +115,7 @@ export type Database = {
           kurum_id: string;
           olusturma_tarihi?: string;
           sinif_id: string;
+          tckn?: string | null;
         };
         Update: {
           ad_soyad?: string;
@@ -122,6 +124,7 @@ export type Database = {
           kurum_id?: string;
           olusturma_tarihi?: string;
           sinif_id?: string;
+          tckn?: string | null;
         };
         Relationships: [
           {

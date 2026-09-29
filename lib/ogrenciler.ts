@@ -1,10 +1,13 @@
 // Öğrenci CRUD. RLS (ogrenci_kurum_admin politikası) yalnızca kurum_admin'in kendi
 // kurumundaki öğrencileri yönetmesine izin verir; kurum_id oturumdaki kullanıcıdan alınır.
 // dogum_tarihi biçimi: YYYY-AA-GG (native tarih seçici bu adımda kapsam dışı).
+import { FunctionsHttpError } from '@supabase/supabase-js';
+
 import { supabase } from '@/lib/supabase';
 import type { Ogrenci } from '@/lib/tipler';
 
 const TARIH_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TCKN_RE = /^[1-9][0-9]{10}$/;
 
 function hataMesajinaCevir(mesaj: string, kod?: string): string {
   if (kod === '23503') return 'Seçilen sınıf bulunamadı.';
@@ -67,4 +70,55 @@ export async function ogrenciGuncelle(id: string, adSoyad: string, dogumTarihi: 
 export async function ogrenciSil(id: string): Promise<void> {
   const { error } = await supabase.from('ogrenci').delete().eq('id', id);
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+}
+
+// Resmi TCKN doğrulama algoritması (biçim/checksum kontrolü — gerçek kişiye ait olup
+// olmadığını doğrulamaz). Edge Function'daki (tckn-hesap-olustur) aynı fonksiyonun kopyasıdır;
+// Deno ve React Native arasında paylaşılan bir paket olmadığı için burada tekrarlanır.
+export function tcknGecerliMi(tckn: string): boolean {
+  if (!TCKN_RE.test(tckn)) return false;
+  const d = tckn.split('').map(Number);
+  const tek = d[0] + d[2] + d[4] + d[6] + d[8];
+  const cift = d[1] + d[3] + d[5] + d[7];
+  const d10 = (tek * 7 - cift) % 10;
+  if (d10 !== d[9]) return false;
+  const toplam10 = d.slice(0, 10).reduce((a, b) => a + b, 0);
+  return toplam10 % 10 === d[10];
+}
+
+async function edgeFonksiyonuCagir(ad: string, istekGovdesi: Record<string, unknown>, varsayilanMesaj: string): Promise<void> {
+  const { error } = await supabase.functions.invoke(ad, { body: istekGovdesi });
+  if (error) {
+    let mesaj = varsayilanMesaj;
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const hataGovdesi = await error.context.json();
+        if (typeof hataGovdesi?.hata === 'string') mesaj = hataGovdesi.hata;
+      } catch {
+        // gövde JSON değilse varsayılan mesaj kalır
+      }
+    }
+    throw new Error(mesaj);
+  }
+}
+
+// Erişim: yalnızca süper admin ve kurum admini (kendi kurumu). Yetki kontrolü sunucudadır
+// (supabase/functions/tckn-hesap-olustur); burada yalnızca çağrı yapılır.
+export async function tcknAta(ogrenciId: string, tckn: string): Promise<void> {
+  if (!tcknGecerliMi(tckn)) throw new Error('Geçerli bir TCKN girin.');
+  await edgeFonksiyonuCagir('tckn-hesap-olustur', { ogrenci_id: ogrenciId, tckn }, 'TCKN atanamadı.');
+}
+
+// Erişim: yalnızca süper admin ve kurum admini (kendi kurumu). Yetki kontrolü sunucudadır
+// (supabase/functions/veli-pin-sifirla); burada yalnızca çağrı yapılır.
+export async function veliPininiSifirla(ogrenciId: string): Promise<void> {
+  await edgeFonksiyonuCagir('veli-pin-sifirla', { ogrenci_id: ogrenciId }, 'PIN sıfırlanamadı.');
+}
+
+// Supabase Dashboard'da minimum şifre uzunluğu 6'nın altına indirilemiyor (denendi, reddedildi).
+// 4 haneli PIN'i Auth'a göndermeden önce deterministik olarak uzatıyoruz. Edge Function'larda
+// (Deno) aynı dönüşümün kopyası kullanılır — paylaşılan paket yok. Güvenlik özelliğini değiştirmez
+// (PIN'in kendisi hâlâ 4 hane / 10.000 olasılık), yalnızca Auth'un teknik minimumunu karşılar.
+export function pinAuthSifresi(pin: string): string {
+  return pin + pin;
 }

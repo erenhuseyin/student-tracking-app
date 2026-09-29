@@ -178,6 +178,9 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
+# NOT: Dashboard bu değerin 6'nın altına inmesine izin vermiyor (denendi, reddedildi). Veli girişi
+# 4 haneli PIN kullanıyor (bkz. docs/ILERLEME.md) ama Auth'a gönderilmeden önce `pinAuthSifresi`
+# ile 8 haneye uzatılıyor (`pin + pin`); bu yüzden bu ayar 6'da (varsayılanında) kalabilir.
 minimum_password_length = 6
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
@@ -415,4 +418,10 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 
 [functions.davet-gonder]
+verify_jwt = true
+
+[functions.tckn-hesap-olustur]
+verify_jwt = true
+
+[functions.veli-pin-sifirla]
 verify_jwt = true

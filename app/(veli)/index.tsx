@@ -44,6 +44,10 @@ export default function VeliAnaSayfa() {
         />
       )}
 
+      <Pressable style={styles.pinLinki} onPress={() => router.push('/pin-degistir')}>
+        <Text style={styles.pinLinkiMetni}>PIN&apos;imi değiştir</Text>
+      </Pressable>
+
       <CikisYapButonu />
     </View>
   );
@@ -83,5 +87,12 @@ const styles = StyleSheet.create({
   hataMetni: {
     color: '#c62828',
     textAlign: 'center',
+  },
+  pinLinki: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  pinLinkiMetni: {
+    color: '#208aef',
   },
 });

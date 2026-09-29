@@ -468,6 +468,22 @@ select tst.esit('adminA kendi kurumunun yoklamasını günceller',
 select tst.esit('adminA B kurumunun yoklamasına yazamaz',
   tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000b','e0000000-0000-0000-0000-0000000000b1','2026-09-28','geldi','b0000000-0000-0000-0000-000000000002')$q$), 'hata:42501');
 
+-- ===========================================================================
+-- 12. TCKN: kolon yetkisi yalnızca service-role Edge Function'lara ait
+-- ===========================================================================
+-- adminA (kurum_admin) bile tckn'e yazamaz (kolon yetkisi yok, bkz. migration 20260928120200)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('adminA tckn güncelleyemez (kolon yetkisi yok)',
+  tst.dene($q$update public.ogrenci set tckn = '12345678901' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+select tst.esit('adminA tckn ile öğrenci insert edemez (kolon yetkisi yok)',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi, tckn) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01','12345678901')$q$), 'hata:42501');
+-- pozitif kontrol: tckn hariç kolonlarla insert hâlâ çalışıyor
+select tst.esit('adminA tcknsiz öğrenci ekleyebilir (pozitif)',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01')$q$), 'ok:1');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

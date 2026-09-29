@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -64,6 +65,10 @@ export default function Login() {
       >
         {gonderiliyor ? <ActivityIndicator color="#fff" /> : <Text style={styles.butonMetni}>Giriş Yap</Text>}
       </Pressable>
+
+      <Link href="/veli-giris" style={styles.altBaslik}>
+        Veli misiniz? TCKN ile giriş yapın
+      </Link>
     </View>
   );
 }

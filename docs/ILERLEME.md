@@ -5,39 +5,8 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Yoklama alma tamamlandı. **Sıradaki: Veli girişini TCKN+PIN'e çevirme — plan hazır (bkz. "Sıradaki İş" bölümü aşağıda), henüz uygulanmadı.**
-- **Son güncelleme:** 2026-09-28
-
-## Sıradaki İş: Veli Girişini TCKN + PIN'e Çevirme (plan hazır, kod yazılmadı)
-
-_(Bu bölüm, session temizliği öncesi hazırlanan uygulanmamış bir plan. Yeni oturum burayı okuyup doğrudan uygulamaya geçebilir.)_
-
-**Context:** Veliler düşük teknoloji okuryazarlığına sahip; e-posta+şifre (davet linki dahil) ve SMS OTP ikisi de fazla adım gerektiriyor (kullanıcı kararı, 2026-09-28). Yerine: veli, **öğrencinin TCKN'si + 4 haneli PIN** ile giriş yapar. Yeni öğrenciye TCKN atanınca PIN otomatik `1234` olur. Veli PIN'ini kendi değiştirebilir; **unutursa kurum admini (ve süper admin) sıfırlayıp tekrar `1234` yapabilir** — öğretmen bu yetkiye sahip değil (mevcut kural: öğretmenin veli üzerinde yazma yetkisi yok).
-
-**Neden sadece TCKN değil (tartışıldı, reddedildi):** TCKN gizli değil (yoklama kağıdı, sınıf listesi vb.), tek başına kimlik doğrulaması olamaz — TCKN'yi bilen herkes (veli olmayan biri dahil) çocuğun gelişim kaydına erişebilirdi. PIN eklenince TCKN yalnızca "kullanıcı adı" gibi davranır.
-
-**Bilinçli kabul edilen sonuç:** TCKN öğrenciye ait olduğu için "bir öğrencinin birden fazla velisi" ayrımı pratikte kalkıyor — aynı TCKN+PIN'i bilen herkes aynı "veli" görünümüne girer, ayrı ayrı loglanamaz. `veli_ogrenci` çoka-çok tablosu ve RLS mimarisi **değişmeden** kalıyor; bu yalnızca giriş deneyimini değiştiriyor, veri modelini değil. TCKN yalnızca **ilk kez atanır**, sonradan değiştirilemez (MVP sınırı) — yalnızca PIN sıfırlanabilir.
-
-**Teknik yaklaşım:** Supabase Auth email+şifre mekanizması arkada aynen kullanılır (RLS, `kullanici`/`veli_ogrenci` hiç değişmez). `email = {tckn}@veli.ogrencitakip.internal` (gerçek posta kutusu değil, yalnızca benzersiz kimlik), `password = PIN`.
-
-**Şifre politikası engeli:** `supabase/config.toml`'da `minimum_password_length = 6`; 4 haneli PIN bunu karşılamaz. **Kullanıcının yapması gereken:** Dashboard > Authentication > Policies (Password) ekranından minimum uzunluğu 4'e indirmesi (kod/migration değil, bir ayar). `config.toml` da tutarlılık için güncellenecek.
-
-### Yapılacaklar
-1. **Migration:** `ogrenci` tablosuna `tckn text unique` + `check (tckn is null or tckn ~ '^[0-9]{11}$')`. Kolon yetkisi: `tckn` istemciden (kurum_admin dahil) yazılamaz — yalnızca aşağıdaki Edge Function'lar (service role) yazar. Mevcut geniş `ogrenci` update yetkisi `grant update (kurum_id, sinif_id, ad_soyad, dogum_tarihi)` ile daraltılır.
-2. **Edge Function `tckn-hesap-olustur`:** girdi `{ogrenci_id, tckn}`. Yetki: `kurum_admin` (kendi kurumu) / `super_admin`. TCKN format + resmi TCKN checksum algoritmasıyla doğrulanır. Öğrencinin zaten TCKN'si varsa 409. Akış: `auth.admin.createUser({email, password:'1234', email_confirm:true})` → `kullanici` insert (`rol:'veli'`) → `veli_ogrenci` insert → `ogrenci.tckn` update. Herhangi bir adım düşerse auth kullanıcısı silinir (`davet-gonder`'daki `geriAl` deseni tekrar kullanılır).
-3. **Edge Function `veli-pin-sifirla`:** girdi `{ogrenci_id}` (ya da `veli_kullanici_id`). Yetki: `kurum_admin` (kendi kurumu) / `super_admin`. İlgili veli `auth.users` kaydını bulup `auth.admin.updateUserById(authId, {password:'1234'})`.
-4. **`lib/ogrenciler.ts`:** `tcknAta(ogrenciId, tckn)`, `veliPininiSifirla(ogrenciId)` — `lib/davet.ts`'deki hata-ayrıştırma deseniyle Edge Function'ları invoke eder.
-5. **Kurum admini ekranı:** `ogrenci-duzenle/[id].tsx`'e (veya sınıf detayına) "TCKN Ata" (TCKN boşsa input+buton, doluysa salt okunur) ve "Veli PIN'ini Sıfırla" (TCKN doluysa görünür) bölümleri.
-6. **`app/(auth)/veli-giris.tsx`** (yeni): TCKN (11 hane, numeric) + PIN (4 hane, numeric, gizli) iki alan. `signInWithPassword({email:`${tckn}@veli.ogrencitakip.internal`, password: pin})`. Hata: "TCKN veya PIN hatalı."
-7. **`(auth)/login.tsx`:** altına "Veli misiniz? TCKN ile giriş yapın" linki → `/veli-giris`.
-8. **`app/(veli)/pin-degistir.tsx`** (yeni): veli girişliyken kendi PIN'ini değiştirir (yeni PIN + tekrar, `supabase.auth.updateUser({password: yeniPin})` — ekstra Edge Function gerekmez, Supabase'in standart "kendi şifresini değiştirme" akışı). `(veli)/index.tsx`'e link eklenir.
-9. **`docs/proje-spesifikasyonu.md`** Bölüm 9'a bu kararı ve gerekçesini ekle.
-10. **Kapsam dışı:** TCKN değiştirme, öğrenci silinince orphan auth hesabının temizlenmesi, `davet-gonder`'ın kullanılmayan `veli` dalının temizliği.
-
-### Doğrulama planı
-- `tsc --noEmit`, `npx deno check` (iki yeni fonksiyon).
-- Migration + kolon kısıtı Dashboard'dan uygulanır (kullanıcı onayı gerekir, uzak DB değişikliği).
-- Web'de: mevcut test öğrencisi "Elif Kaya"ya **uydurma** (gerçek kişiye ait olmayan, yalnızca checksum'ı geçerli) bir TCKN atanır → `/veli-giris`'te TCKN+`1234` ile giriş → `(veli)` ekranı → PIN değiştir → eski PIN'le giriş reddedilmeli, yenisiyle başarılı olmalı → kurum admini PIN'i sıfırlar → tekrar `1234` ile girilebilmeli.
+- **Aktif adım:** Veli girişi TCKN+PIN'e çevrildi — **tamamlandı ve web'de uçtan uca doğrulandı.** Sıradaki: Veliye push bildirim.
+- **Son güncelleme:** 2026-09-29
 
 ## Tamamlananlar
 
@@ -92,6 +61,22 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - **Test sırasında bir test-script hatası bulundu (güvenlik açığı değil):** "sa kurum/kullanici/..." testleri sabit sayı bekliyordu, kalıcı test verisiyle (bkz. altta) çakıştı; testler artık "mevcut kalıcı veri + bu transaction'ın eklediği veri" bekleyecek şekilde düzeltildi (`set_config('tst.taban_...')` deseni)
   - Kalıcı test verisi genişledi: `ogretmen@test.local` (1-A sınıfına atanmış), `veli@test.local` (Elif Kaya'nın velisi), sınıf "1-A" + öğrenci "Elif Kaya" (Test Okulu'nda)
   - Web'de **tam uçtan uca doğrulandı:** kurum admini sınıf+öğrenci oluşturdu → öğretmen "Geldi" işaretledi → veli ekranında "2026-09-28 → Geldi" doğru göründü
+- [x] Veli girişini TCKN + PIN'e çevirme — 2026-09-28/29 (kod tamamlandı, **web'de uçtan uca doğrulandı**)
+  - Migration `20260928120200_ogrenci_tckn.sql`: `ogrenci.tckn text unique` + format check; `ogrenci` üzerinde `insert`/`update` yetkisi `kullanici`/`kurum` ile aynı desenle (`revoke` + kolon bazlı `grant`) daraltıldı — `tckn` istemciden (kurum_admin dahil) yazılamaz. Orijinal plan yalnızca UPDATE'i daraltmayı öneriyordu; aynı mantığın (tckn yalnızca Edge Function yazar) eksiksiz olması için INSERT'i de kapsayacak şekilde genişletildi.
+  - `supabase/functions/tckn-hesap-olustur/index.ts` (yeni): `davet-gonder`'daki CORS/yetki/`geriAl` iskeletini kullanır ama `inviteUserByEmail` yerine `auth.admin.createUser({email, password:'1234', email_confirm:true})` çağırır (gerçek e-posta/davet yok). TCKN resmi checksum algoritmasıyla doğrulanır. Yeni `kullanici.ad_soyad` değeri `"${ogrenci.ad_soyad} Velisi"` (gerçek veli adı toplanmıyor, MVP kararı).
+  - `supabase/functions/veli-pin-sifirla/index.ts` (yeni): veli hesabını `veli_ogrenci.veli_id` üzerinden DEĞİL, `ogrenci.tckn`'den türeyen e-postayla bulur (TCKN+PIN modeli zaten tüm velileri tek hesaba indirgiyor; eski davet tabanlı `veli_ogrenci` satırları varsa bile karışıklık olmasın diye). **Önemli:** `supabase-js`'in admin API'sinde e-postaya göre doğrudan arama (`getUserByEmail`) yok — yalnızca `listUsers`/`getUserById` var; bu yüzden `listUsers({page, perPage:1000})` ile sayfalanarak arama yapılıyor (en fazla 50 sayfa = 50.000 kullanıcı). MVP ölçeğinde kabul edilebilir, proje çok büyürse `kullanici` üzerinde bir e-posta ters index'i eklenerek tek sorguya indirgenebilir.
+  - `lib/ogrenciler.ts`: `tcknGecerliMi` (TCKN checksum, hem burada hem Edge Function'da — Deno/RN arasında paylaşılan paket yok), `tcknAta`, `veliPininiSifirla` — `lib/davet.ts`'nin `FunctionsHttpError` hata-ayrıştırma deseni kullanıldı.
+  - `lib/veritabani.tipleri.ts`: `ogrenci` tipine elle `tckn: string | null` eklendi (CLI codegen hâlâ çalışmıyor).
+  - `app/(kurum_admin)/ogrenci-duzenle/[id].tsx`: "TCKN Ata" (boşsa input+buton, doluysa salt okunur) ve "Veli PIN'ini Sıfırla" (yalnızca TCKN doluysa, iki adımlı inline onay) bölümleri eklendi. `SilOnayButonu` bileşeni doğrudan kullanılmadı (metni "Sil"e sabit); aynı onay deseni bu ekranda yerel olarak tekrarlandı.
+  - `app/(auth)/veli-giris.tsx` (yeni) + `login.tsx`'e link; `app/(veli)/pin-degistir.tsx` (yeni) + `(veli)/index.tsx`'e link.
+  - `docs/proje-spesifikasyonu.md` Bölüm 9'a karar eklendi.
+  - `supabase/tests/rls.test.sql`'e 12. bölüm eklendi: kurum_admin'in `tckn` kolonuna insert/update ile yazamadığını (42501) ve tckn'siz insert'in hâlâ çalıştığını (pozitif kontrol) doğrulayan testler — tam süit 2026-09-29'da Dashboard'da çalıştırıldı, **hepsi geçti** (bkz. aşağıda).
+  - Doğrulandı: `tsc --noEmit` temiz, her iki Edge Function `npx deno check`'ten geçti (yeni supabase-js sürümünde `admin.listUsers` sayfalama imzası `{page, perPage}` — `getUserByEmail` mevcut değil, bu deno check ile yakalandı).
+  - **Şifre politikası (2026-09-28, gerçekte denendi):** Dashboard, minimum şifre uzunluğunun 6'nın altına inmesine izin vermiyor ("must be greater or equal to 6" hatası) — plan'da yedek olarak öngörülen senaryo gerçekleşti. Bu yüzden `minimum_password_length` **6'da bırakıldı** (config.toml'daki geçici `4` değeri geri alındı); bunun yerine 4 haneli PIN, Auth'a gönderilmeden önce `pinAuthSifresi(pin) = pin + pin` ile 8 haneye uzatılıyor. Dört dokunma noktasının hepsinde (hesap oluşturma, PIN sıfırlama, veli-giriş, PIN değiştirme) tutarlı uygulandı — `lib/ogrenciler.ts`'de bir kopya (RN tarafı, `veli-giris.tsx`+`pin-degistir.tsx` içe aktarır), her iki Edge Function'da birer kopya daha (Deno/RN arasında paylaşılan paket yok). Kullanıcı hâlâ 4 haneli PIN girer/görür; dönüşüm görünmez. Güvenlik özelliği değişmedi (PIN hâlâ 4 hane/10.000 olasılık), yalnızca Auth'un teknik minimum uzunluğu karşılanıyor.
+  - **Edge Function deploy sorunu bulundu ve çözüldü (2026-09-29):** İlk uçtan uca testte "TCKN atanamadı" hatası alındı; ağ isteklerinde `tckn-hesap-olustur`'a yapılan çağrının 404 döndüğü görüldü — fonksiyon hiç deploy edilmemişti (yalnızca yerel dosya olarak duruyordu, CLI bu ortamda login değil). Supabase CLI login denendi, tarayıcı otomatik açılmadı; kullanıcı kararıyla **Dashboard > Edge Functions > Via Editor** üzerinden elle deploy edildi (kod panoya kopyalanıp yapıştırıldı, fonksiyon adı elle girildi). Her iki fonksiyon (`tckn-hesap-olustur`, `veli-pin-sifirla`) başarıyla deploy edildi. **Ders:** Bu ortamda CLI hâlâ login değil; yeni bir Edge Function eklenince Dashboard'dan elle deploy edilmesi gerektiği unutulmamalı (bkz. `davet-gonder`'ın da hâlâ deploy edilmemiş olması, aşağıdaki madde).
+  - **Migration Dashboard'a kullanıcı tarafından uygulandı (2026-09-29).**
+  - **Web'de tam uçtan uca doğrulandı (2026-09-29):** kurum admini "Elif Kaya"ya uydurma-ama-checksum'ı-geçerli TCKN (`12345678950`) atadı → `/veli-giris`'te TCKN+`1234` ile giriş → `(veli)` ekranında "Elif Kaya" göründü → PIN `5678` olarak değiştirildi → eski PIN (`1234`) "TCKN veya PIN hatalı" ile reddedildi → yeni PIN (`5678`) ile giriş başarılı → kurum admini "Veli PIN'ini Sıfırla" ile PIN'i sıfırladı → `1234` ile tekrar giriş başarılı. `supabase/tests/rls.test.sql` tam süiti (yeni 12. bölüm dahil) Dashboard SQL Editor'de tekrar çalıştırıldı — **"TÜM RLS TESTLERİ GEÇTİ"**.
+  - **Kalıcı test verisi genişledi:** "Elif Kaya"ya artık gerçek (uydurma ama geçerli) bir TCKN atanmış durumda kalıcı bırakıldı — `veli@test.local` (eski davet-akışlı hesap) ile birlikte artık **iki** veli hesabı var (TCKN+PIN modelinin bilinçli kabul edilen "çoklu veli ayrımı kalkıyor" sonucunu canlı örnekliyor). TCKN değiştirilemediği için (MVP sınırı) bu öğrenciyle ileride farklı bir TCKN denenemez.
 - [ ] Veliye push bildirim
 - [ ] EAS build + Play Console internal testing
 
@@ -128,6 +113,8 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
   - Hepsinin şifresi `Test1234!`. Bulmak için: `select id from public.kurum where ad = 'Test Okulu';` / `select ad_soyad, rol from public.kullanici where kurum_id = (select id from public.kurum where ad = 'Test Okulu') or rol = 'super_admin';`
 - **Görsel tasarım bilinçli olarak ertelendi (2026-09-27 karar):** Şu ana kadarki tüm ekranlar (login, kurum listesi/ekleme, rol ana sayfaları) işlevsel doğrulama için minimal/placeholder stille yazıldı — sabit renkler (`#208aef` vb.), tasarım sistemi/tema, ikon, marka kimliği yok. Gerçek görsel tasarım ayrı bir aşamada ele alınacak; o zamana kadar yeni ekranlar da aynı minimal desenle (mevcut stil dosyalarındaki gibi) yazılmaya devam edilecek, üstüne tasarım geldiğinde toplu güncellenecek.
 - **Mobilde canlı doğrulandı (2026-09-27):** `npx expo start` (LAN, Expo Go) ile gerçek bir telefonda login ekranı açıldı. Web'de test edilenlerin native tarafta da derlenip render olduğu doğrulandı; rol ekranları/kurum ekleme mobilde ayrıca test edilmedi (yalnızca login ekranı görüldü).
+- **Supabase Auth maliyeti (2026-09-28 karar, veli girişi tasarımını doğrulamak için tartışıldı):** Ücretsiz katman 50.000 MAU (yalnızca o ay giriş yapan benzersiz kullanıcı, kayıtlı toplam değil), Pro 100.000, aşımı $0.00325/MAU. TCKN+PIN modelinde öğrenci başına tek auth hesabı oluşturuluyor (birden fazla veli aynı kimliği paylaşıyor) — veli sayısıyla değil öğrenci sayısıyla ölçekleniyor, zaten en tasarruflu seçenek. Bu ölçekte (kurum başına 3-30 öğretmen, öğretmen başına 8-30 öğrenci) ücretsiz katmanı zorlamak yüzlerce kurum gerektirir; custom auth (kendi PIN-hash + JWT) alternatifi değerlendirilip session/refresh/RLS-claim karmaşıklığı gerekçesiyle reddedildi. **Karar: Supabase Auth ile devam.**
+- **`supabase-js` admin API'sinde `getUserByEmail` yok (2026-09-28, `veli-pin-sifirla` yazılırken `deno check` ile bulundu):** Yalnızca `listUsers({page, perPage})` ve `getUserById` var. E-postayla arama gerekiyorsa sayfalanarak (`listUsers`) yapılmalı. Bir sonraki admin-API ihtiyacında (örn. başka bir Edge Function) bu sınırlama akılda tutulmalı.
 
 ## Bilinen Sorunlar / Yarım Kalanlar
 
@@ -142,6 +129,7 @@ _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 - **İlk süper admin eklendi (test hesabı):** `admin@test.local` / `kullanici.ad_soyad = 'Test Admin'`, Dashboard > Authentication'dan oluşturuldu + yukarıdaki SQL ile `kullanici` satırı eklendi. Gerçek bir kurum/kullanıcı için ayrıca üretim hesabı açılmalı.
 - Dashboard > Advisors (Security) kontrolü yapılmadı; "RLS disabled" uyarısı olmaması beklenir.
 - Uygulama cihaz/simülatörde açılıp görsel olarak doğrulanmadı (yalnızca derleme/tip/doctor kontrolleri).
+- **`davet-gonder`'ın `veli` dalı artık ölü kod:** yeni veli hesapları yalnızca `tckn-hesap-olustur` ile oluşuyor; `davet-gonder`'ın `rol==='veli'` dalı temizlenmedi (kapsam dışı bırakıldı, bkz. plan).
 
 ## Açık Sorular (insan kararı bekleyen)
 
@@ -149,7 +137,6 @@ _(Claude Code'un kendi başına karar veremeyip kullanıcıya sorması gereken n
 
 - Özel SMTP: Supabase'in dahili e-posta servisinin saatlik gönderim limiti çok düşük; gerçek onboarding (davetler) öncesi özel SMTP ayarlanmalı, davet e-posta şablonu Türkçeleştirilmeli.
 - İlk kurum admini daveti: `(super_admin)/yeni-kurum.tsx`'e mi eklensin (kurum + admin tek form), yoksa kurum listesinde satır başına "Admin Davet Et" mi olsun? İkisi de `davet-gonder`'ın deploy edilmesini gerektiriyor.
-- **Veli girişi kararlaştırıldı: TCKN + 4 haneli PIN (2026-09-28).** SMS OTP fikri de (maliyet/sağlayıcı belirsizliği nedeniyle) elendi. Detaylı plan hazır, bkz. dosyanın başındaki "Sıradaki İş" bölümü — uygulanmayı bekliyor, karar verilmiş bir konu değil artık.
 
 ## Son Oturum Notu
 
@@ -161,3 +148,5 @@ _(Serbest metin: bu oturumda ne yapıldı, bir sonraki oturuma nereden devam edi
 - 2026-09-28: Sınıf/öğrenci yönetimi (CRUD) — kurum admini tarafı — tamamlandı. `kurumadmin@test.local` test hesabı oluşturuldu (kalıcı bırakıldı, kurum: "Test Okulu"). Tam CRUD döngüsü web'de uçtan uca doğrulandı.
 - 2026-09-28 (devam): Yoklama alma (öğretmen + veli görüntüleme) tamamlandı. `ogretmen@test.local` ve `veli@test.local` test hesapları eklendi (kalıcı). Test dosyasında kalıcı veriyle çakışan bir sayım hatası bulunup düzeltildi (güvenlik açığı değil). Web'de tam zincir uçtan uca doğrulandı: kurum admini sınıf/öğrenci oluşturdu → öğretmen yoklama işaretledi → veli gördü.
 - 2026-09-28 (devam 2): Veli girişi tartışıldı — önce TCKN ile ilişkisiz erişim (KVKK riski, reddedildi), sonra telefon+SMS OTP (maliyet/sağlayıcı belirsizliği, elendi), son karar: **TCKN + 4 haneli PIN** (varsayılan `1234`, veli değiştirebilir, kurum admini/süper admin sıfırlayabilir — öğretmen yetkisiz). Detaylı plan `docs/ILERLEME.md`'nin başındaki "Sıradaki İş" bölümüne yazıldı, **kod henüz yazılmadı**. Context yoğunluğu nedeniyle (Chrome MCP ekran görüntüleri) oturum burada kesiliyor. Bir sonraki oturum doğrudan "Sıradaki İş" bölümündeki 10 maddeyi uygulayabilir; adım 1'den (migration) başlanmalı, plan mode gerektirir (CLAUDE.md kuralı, çok dosyalı iş).
+- 2026-09-28 (devam 3): Önceki oturumun "Sıradaki İş" planı plan mode'da özetlenip onaylandı (araya Supabase Auth maliyeti tartışması girdi, bkz. Alınan Teknik Kararlar — sonuç: değişiklik yok). Tüm kod yazıldı: migration, iki yeni Edge Function (`tckn-hesap-olustur`, `veli-pin-sifirla`), `lib/ogrenciler.ts` eklemeleri, `ogrenci-duzenle` ekranı genişletmesi, `veli-giris.tsx` + `pin-degistir.tsx` (yeni ekranlar) ve ilgili linkler, `proje-spesifikasyonu.md` ve `rls.test.sql` güncellemeleri. `tsc --noEmit` ve her iki Edge Function için `npx deno check` temiz (bu sırada `getUserByEmail`'in gerçekte var olmadığı fark edilip `listUsers` sayfalamasına geçildi). Kullanıcı Dashboard'da minimum şifre uzunluğunu 4'e indirmeyi denedi, Dashboard reddetti ("must be greater or equal to 6") — plandaki yedek senaryo devreye alındı: PIN artık `pinAuthSifresi` ile Auth'a gönderilmeden önce 8 haneye uzatılıyor, `minimum_password_length` 6'da kaldı.
+- 2026-09-29: Kullanıcı migration'ı Dashboard'dan uyguladı. Web'de (Claude in Chrome, `npx expo start --web`) uçtan uca test başlatıldı; ilk denemede "TCKN atanamadı" hatası alındı — sebep, iki yeni Edge Function'ın hiç deploy edilmemiş olmasıydı (CLI hâlâ login değil, `supabase login` denendi ama tarayıcı otomatik açılmadı). Kullanıcı kararıyla Dashboard > Edge Functions > Via Editor'dan elle deploy edildi (kod panoya kopyalanıp yapıştırıldı). Sonrasında tam uçtan uca akış doğrulandı: TCKN ata (`12345678950`, uydurma) → `/veli-giris` ile `1234` girişi → `(veli)` ekranında doğru öğrenci → PIN `5678` olarak değiştirildi → eski PIN reddedildi → yeni PIN kabul edildi → kurum admini PIN'i sıfırladı → `1234` tekrar çalıştı. `rls.test.sql` tam süiti (12. bölüm dahil) Dashboard'da tekrar çalıştırıldı, **"TÜM RLS TESTLERİ GEÇTİ"**. Veli girişi TCKN+PIN özelliği tamamen bitti. Sıradaki iş: veliye push bildirim (Faz 1'in son maddesi) — henüz plan yok, bir sonraki oturum spesifikasyondan (Bölüm 7, Faz 1) başlayabilir.
