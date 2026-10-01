@@ -2,6 +2,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
+import { usePushBildirimKaydi } from '@/lib/bildirimler';
 import { OturumSaglayici, useOturum } from '@/lib/oturum';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -9,6 +10,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 function Yonlendirici() {
+  usePushBildirimKaydi();
   const { durum, kullanici } = useOturum();
   const rol = durum === 'hazir' ? kullanici?.rol : undefined;
 

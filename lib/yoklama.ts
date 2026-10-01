@@ -62,6 +62,11 @@ export async function yoklamaKaydet(
     .select()
     .single();
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+
+  // Bildirim en iyi çabadır (best-effort): yoklama kaydı zaten başarılı, bildirim
+  // gönderiminde yaşanan bir hata bu işlemi geçersiz kılmamalı — hata sessizce yutulur.
+  supabase.functions.invoke('yoklama-bildirim-gonder', { body: { ogrenci_id: ogrenciId, durum } }).catch(() => {});
+
   return data;
 }
 

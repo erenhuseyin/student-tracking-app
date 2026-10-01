@@ -35,6 +35,7 @@ export type Database = {
         Row: {
           ad_soyad: string;
           auth_id: string;
+          expo_push_token: string | null;
           id: string;
           kurum_id: string | null;
           olusturma_tarihi: string;
@@ -43,6 +44,7 @@ export type Database = {
         Insert: {
           ad_soyad: string;
           auth_id: string;
+          expo_push_token?: string | null;
           id?: string;
           kurum_id?: string | null;
           olusturma_tarihi?: string;
@@ -51,6 +53,7 @@ export type Database = {
         Update: {
           ad_soyad?: string;
           auth_id?: string;
+          expo_push_token?: string | null;
           id?: string;
           kurum_id?: string | null;
           olusturma_tarihi?: string;
@@ -281,6 +284,41 @@ export type Database = {
           },
         ];
       };
+      bildirim_log: {
+        Row: {
+          alici_kullanici_id: string;
+          gonderim_tarihi: string;
+          id: string;
+          kurum_id: string;
+          okundu_mu: boolean;
+          tip: Database['public']['Enums']['bildirim_tipi'];
+        };
+        Insert: {
+          alici_kullanici_id: string;
+          gonderim_tarihi?: string;
+          id?: string;
+          kurum_id: string;
+          okundu_mu?: boolean;
+          tip: Database['public']['Enums']['bildirim_tipi'];
+        };
+        Update: {
+          alici_kullanici_id?: string;
+          gonderim_tarihi?: string;
+          id?: string;
+          kurum_id?: string;
+          okundu_mu?: boolean;
+          tip?: Database['public']['Enums']['bildirim_tipi'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'bildirim_log_alici_ayni_kurum_fkey';
+            columns: ['alici_kullanici_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kullanici';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -292,6 +330,7 @@ export type Database = {
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
       yoklama_durumu: 'geldi' | 'gelmedi' | 'gec';
+      bildirim_tipi: 'yoklama' | 'gelisim_kaydi';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -311,6 +350,7 @@ export const Constants = {
     Enums: {
       rol: ['super_admin', 'kurum_admin', 'ogretmen', 'veli'],
       yoklama_durumu: ['geldi', 'gelmedi', 'gec'],
+      bildirim_tipi: ['yoklama', 'gelisim_kaydi'],
     },
   },
 } as const;

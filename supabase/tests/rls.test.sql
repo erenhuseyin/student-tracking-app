@@ -112,6 +112,10 @@ insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values
   ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-0000000000a2'),
   ('c0000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-0000000000b1');
 
+insert into public.bildirim_log (kurum_id, alici_kullanici_id, tip) values
+  ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', 'yoklama'),
+  ('c0000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000010', 'yoklama');
+
 -- ===========================================================================
 -- 1. ANON: hiçbir tabloya erişemez
 -- ===========================================================================
@@ -321,6 +325,12 @@ select tst.esit('ogretmen kendi ad_soyad update',
 -- başkasının satırını güncelleyemez
 select tst.esit('ogretmen başkasının ad_soyad update',
   tst.dene($q$update public.kullanici set ad_soyad = 'x' where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'ok:0');
+-- pozitif kontrol: kendi push token'ını güncelleyebilir (bkz. migration 20260930120000_bildirim)
+select tst.esit('ogretmen kendi expo_push_token update',
+  tst.dene($q$update public.kullanici set expo_push_token = 'ExponentPushToken[x]' where id = 'b0000000-0000-0000-0000-000000000004'$q$), 'ok:1');
+-- başkasının push token'ını güncelleyemez
+select tst.esit('ogretmen başkasının expo_push_token update',
+  tst.dene($q$update public.kullanici set expo_push_token = 'x' where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'ok:0');
 
 reset role;
 select tst.esit('ogrA0 rolü değişmedi', (select rol::text from public.kullanici where id = 'b0000000-0000-0000-0000-000000000004'), 'ogretmen');
@@ -483,6 +493,37 @@ select tst.esit('adminA tckn ile öğrenci insert edemez (kolon yetkisi yok)',
 -- pozitif kontrol: tckn hariç kolonlarla insert hâlâ çalışıyor
 select tst.esit('adminA tcknsiz öğrenci ekleyebilir (pozitif)',
   tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01')$q$), 'ok:1');
+
+-- ===========================================================================
+-- 13. BİLDİRİM_LOG: yalnızca alıcı ve kendi kurumundaki admin görebilir; istemci yazamaz
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA1 kendi bildirimini görür', (select count(*) from public.bildirim_log)::text, '1');
+select tst.esit('veliA1 bildirim insert edemez',
+  tst.dene($q$insert into public.bildirim_log (kurum_id, alici_kullanici_id, tip) values ('c0000000-0000-0000-0000-00000000000a','b0000000-0000-0000-0000-000000000008','yoklama')$q$), 'hata:42501');
+select tst.esit('veliA1 okundu_mu güncelleyemez',
+  tst.dene($q$update public.bildirim_log set okundu_mu = true$q$), 'hata:42501');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA2 (alıcı değil) hiçbir bildirim göremez', (select count(*) from public.bildirim_log)::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliB kendi bildirimini görür, A kurumununkini görmez', (select count(*) from public.bildirim_log)::text, '1');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('adminA yalnızca kendi kurumunun bildirimini görür', (select count(*) from public.bildirim_log)::text, '1');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;

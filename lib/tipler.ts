@@ -28,3 +28,9 @@ export const YOKLAMA_DURUMLARI = Constants.public.Enums.yoklama_durumu;
 export type YoklamaDurumu = (typeof YOKLAMA_DURUMLARI)[number];
 
 export type Yoklama = Tables<'yoklama'>;
+
+export const BILDIRIM_TIPLERI = Constants.public.Enums.bildirim_tipi;
+
+export type BildirimTipi = (typeof BILDIRIM_TIPLERI)[number];
+
+export type BildirimLog = Tables<'bildirim_log'>;

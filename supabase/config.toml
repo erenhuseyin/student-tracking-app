@@ -425,3 +425,6 @@ verify_jwt = true
 
 [functions.veli-pin-sifirla]
 verify_jwt = true
+
+[functions.yoklama-bildirim-gonder]
+verify_jwt = true
