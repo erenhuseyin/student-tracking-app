@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
 import { marka } from '@/lib/marka';
+import { renkler } from '@/lib/tema';
 
 export default function YanlisUygulama() {
   return (
@@ -32,6 +33,6 @@ const styles = StyleSheet.create({
   },
   aciklama: {
     textAlign: 'center',
-    color: '#444',
+    color: renkler.metinOrta,
   },
 });

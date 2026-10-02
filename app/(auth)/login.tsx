@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { marka } from '@/lib/marka';
 import { supabase } from '@/lib/supabase';
+import { renkler } from '@/lib/tema';
 
 function hataMesajinaCevir(mesaj: string): string {
   if (/invalid login credentials/i.test(mesaj)) return 'E-posta veya şifre hatalı.';
@@ -64,7 +65,7 @@ export default function Login() {
         onPress={girisYap}
         disabled={gonderiliyor}
       >
-        {gonderiliyor ? <ActivityIndicator color="#fff" /> : <Text style={styles.butonMetni}>Giriş Yap</Text>}
+        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Giriş Yap</Text>}
       </Pressable>
 
       <Link href="/veli-giris" style={styles.altBaslik}>
@@ -88,22 +89,22 @@ const styles = StyleSheet.create({
   },
   altBaslik: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginBottom: 12,
   },
   girdi: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: renkler.kenarlik,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
   },
   buton: {
-    backgroundColor: '#208aef',
+    backgroundColor: renkler.ana,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   butonMetni: {
-    color: '#fff',
+    color: renkler.anaUstu,
     fontWeight: '600',
     fontSize: 16,
   },

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { renkler } from '@/lib/tema';
+
 export function SilOnayButonu({ onSil }: { onSil: () => Promise<void> }) {
   const [onayBekleniyor, setOnayBekleniyor] = useState(false);
   const [siliniyor, setSiliniyor] = useState(false);
@@ -48,17 +50,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   onayMetni: {
-    color: '#666',
+    color: renkler.metinIkincil,
     fontSize: 13,
   },
   evetMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     fontWeight: '600',
   },
   vazgecMetni: {
-    color: '#666',
+    color: renkler.metinIkincil,
   },
   silMetni: {
-    color: '#c62828',
+    color: renkler.hata,
   },
 });

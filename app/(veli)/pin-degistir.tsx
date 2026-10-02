@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { pinAuthSifresi } from '@/lib/ogrenciler';
 import { supabase } from '@/lib/supabase';
+import { renkler } from '@/lib/tema';
 
 export default function PinDegistir() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function PinDegistir() {
       {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
 
       <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={kaydet} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color="#fff" /> : <Text style={styles.butonMetni}>Kaydet</Text>}
+        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Kaydet</Text>}
       </Pressable>
     </View>
   );
@@ -83,17 +84,17 @@ const styles = StyleSheet.create({
   },
   girdi: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: renkler.kenarlik,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
   },
   buton: {
-    backgroundColor: '#208aef',
+    backgroundColor: renkler.ana,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   butonMetni: {
-    color: '#fff',
+    color: renkler.anaUstu,
     fontWeight: '600',
     fontSize: 16,
   },

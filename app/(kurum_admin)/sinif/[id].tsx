@@ -6,6 +6,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { SilOnayButonu } from '@/components/SilOnayButonu';
 import { ogrencileriGetir, ogrenciSil } from '@/lib/ogrenciler';
 import { sinifGetir } from '@/lib/siniflar';
+import { renkler } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 
 export default function SinifDetay() {
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   },
   bosMetin: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginTop: 24,
   },
   satir: {
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: renkler.ayirici,
   },
   satirIcerik: {
     flex: 1,
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   satirAltMetni: {
-    color: '#666',
+    color: renkler.metinIkincil,
     fontSize: 13,
   },
   satirButonlari: {
@@ -126,20 +127,20 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   duzenleMetni: {
-    color: '#208aef',
+    color: renkler.ana,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     textAlign: 'center',
   },
   buton: {
-    backgroundColor: '#208aef',
+    backgroundColor: renkler.ana,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
   },
   butonMetni: {
-    color: '#fff',
+    color: renkler.anaUstu,
     fontWeight: '600',
     fontSize: 16,
   },

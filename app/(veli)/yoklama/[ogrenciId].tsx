@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { ogrenciGetir } from '@/lib/ogrenciler';
+import { renkler } from '@/lib/tema';
 import type { Ogrenci, Yoklama, YoklamaDurumu } from '@/lib/tipler';
 import { veliYoklamalariGetir } from '@/lib/yoklama';
 
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
   },
   bosMetin: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginTop: 24,
   },
   satir: {
@@ -85,17 +86,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: renkler.ayirici,
   },
   satirMetni: {
     fontSize: 16,
   },
   durumMetni: {
     fontWeight: '600',
-    color: '#333',
+    color: renkler.metin,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     textAlign: 'center',
   },
 });

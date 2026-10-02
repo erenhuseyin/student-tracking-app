@@ -2,6 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
+import { renkler } from '@/lib/tema';
 
 export default function ProfilYok() {
   return (
@@ -29,6 +30,6 @@ const styles = StyleSheet.create({
   },
   aciklama: {
     textAlign: 'center',
-    color: '#444',
+    color: renkler.metinOrta,
   },
 });

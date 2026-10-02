@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
 import { siniflariGetir } from '@/lib/siniflar';
+import { renkler } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
 
 export default function OgretmenAnaSayfa() {
@@ -71,19 +72,19 @@ const styles = StyleSheet.create({
   },
   bosMetin: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginTop: 24,
   },
   satir: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: renkler.ayirici,
   },
   satirMetni: {
     fontSize: 16,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     textAlign: 'center',
   },
 });

@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useOturum } from '@/lib/oturum';
+import { renkler } from '@/lib/tema';
 import type { YoklamaDurumu } from '@/lib/tipler';
 import { bugununTarihi, bugununYoklamasiniGetir, type OgrenciYoklamaSatiri, yoklamaKaydet } from '@/lib/yoklama';
 
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   },
   altBaslik: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginBottom: 12,
   },
   yukleniyor: {
@@ -124,13 +125,13 @@ const styles = StyleSheet.create({
   },
   bosMetin: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginTop: 24,
   },
   satir: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: renkler.ayirici,
     gap: 8,
   },
   satirMetni: {
@@ -142,24 +143,24 @@ const styles = StyleSheet.create({
   },
   durumButonu: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: renkler.kenarlik,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
   durumButonuSecili: {
-    backgroundColor: '#208aef',
-    borderColor: '#208aef',
+    backgroundColor: renkler.ana,
+    borderColor: renkler.ana,
   },
   durumMetni: {
-    color: '#333',
+    color: renkler.metin,
   },
   durumMetniSecili: {
-    color: '#fff',
+    color: renkler.anaUstu,
     fontWeight: '600',
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     textAlign: 'center',
   },
 });

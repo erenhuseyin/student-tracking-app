@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
 import { kurumlariGetir } from '@/lib/kurumlar';
+import { renkler } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
 
 export default function SuperAdminAnaSayfa() {
@@ -79,29 +80,29 @@ const styles = StyleSheet.create({
   },
   bosMetin: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginTop: 24,
   },
   satir: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: renkler.ayirici,
   },
   satirMetni: {
     fontSize: 16,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     textAlign: 'center',
   },
   buton: {
-    backgroundColor: '#208aef',
+    backgroundColor: renkler.ana,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
   },
   butonMetni: {
-    color: '#fff',
+    color: renkler.anaUstu,
     fontWeight: '600',
     fontSize: 16,
   },

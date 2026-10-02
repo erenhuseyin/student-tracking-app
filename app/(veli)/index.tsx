@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
 import { veliCocuklariniGetir } from '@/lib/ogrenciler';
+import { renkler } from '@/lib/tema';
 import type { Ogrenci } from '@/lib/tipler';
 
 export default function VeliAnaSayfa() {
@@ -73,19 +74,19 @@ const styles = StyleSheet.create({
   },
   bosMetin: {
     textAlign: 'center',
-    color: '#666',
+    color: renkler.metinIkincil,
     marginTop: 24,
   },
   satir: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: renkler.ayirici,
   },
   satirMetni: {
     fontSize: 16,
   },
   hataMetni: {
-    color: '#c62828',
+    color: renkler.hata,
     textAlign: 'center',
   },
   pinLinki: {
@@ -93,6 +94,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   pinLinkiMetni: {
-    color: '#208aef',
+    color: renkler.ana,
   },
 });
