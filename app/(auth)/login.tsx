@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { marka } from '@/lib/marka';
 import { supabase } from '@/lib/supabase';
 
 function hataMesajinaCevir(mesaj: string): string {
@@ -31,7 +32,7 @@ export default function Login() {
 
   return (
     <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Öğrenci Takip</Text>
+      <Text style={styles.baslik}>{marka.ad}</Text>
       <Text style={styles.altBaslik}>Hesabınızla giriş yapın</Text>
 
       <TextInput

@@ -2,10 +2,9 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { marka, veliEpostasi } from '@/lib/marka';
 import { pinAuthSifresi } from '@/lib/ogrenciler';
 import { supabase } from '@/lib/supabase';
-
-const VELI_EPOSTA_ALAN_ADI = 'veli.ogrencitakip.internal';
 
 export default function VeliGiris() {
   const [tckn, setTckn] = useState('');
@@ -21,7 +20,7 @@ export default function VeliGiris() {
     setGonderiliyor(true);
     setHata(null);
     const { error } = await supabase.auth.signInWithPassword({
-      email: `${tckn.trim()}@${VELI_EPOSTA_ALAN_ADI}`,
+      email: veliEpostasi(tckn.trim()),
       password: pinAuthSifresi(pin),
     });
     setGonderiliyor(false);
@@ -30,7 +29,7 @@ export default function VeliGiris() {
 
   return (
     <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Öğrenci Takip</Text>
+      <Text style={styles.baslik}>{marka.ad}</Text>
       <Text style={styles.altBaslik}>Veli girişi</Text>
 
       <TextInput

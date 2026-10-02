@@ -28,6 +28,9 @@ function Yonlendirici() {
       <Stack.Protected guard={durum === 'profil_yok'}>
         <Stack.Screen name="profil-yok" options={{ headerShown: false }} />
       </Stack.Protected>
+      <Stack.Protected guard={durum === 'yanlis_uygulama'}>
+        <Stack.Screen name="yanlis-uygulama" options={{ headerShown: false }} />
+      </Stack.Protected>
       <Stack.Protected guard={rol === 'super_admin'}>
         <Stack.Screen name="(super_admin)" options={{ headerShown: false }} />
       </Stack.Protected>
