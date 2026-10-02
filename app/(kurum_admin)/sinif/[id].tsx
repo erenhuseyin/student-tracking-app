@@ -73,7 +73,7 @@ export default function SinifDetay() {
         />
       )}
 
-      <Pressable style={styles.buton} onPress={() => router.push({ pathname: '/yeni-ogrenci', params: { sinifId: id } })}>
+      <Pressable style={styles.buton} onPress={() => router.push({ pathname: '/yeni-ogrenci', params: sinif ? { sinifId: id, kurumId: sinif.kurum_id } : { sinifId: id } })}>
         <Text style={styles.butonMetni}>Yeni Öğrenci Ekle</Text>
       </Pressable>
     </View>

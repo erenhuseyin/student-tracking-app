@@ -9,6 +9,7 @@ import { renkler } from '@/lib/tema';
 export default function YeniKurum() {
   const router = useRouter();
   const [ad, setAd] = useState('');
+  const [markaKodu, setMarkaKodu] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -16,7 +17,7 @@ export default function YeniKurum() {
     setGonderiliyor(true);
     setHata(null);
     try {
-      await kurumEkle(ad);
+      await kurumEkle(ad, markaKodu);
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
@@ -35,9 +36,22 @@ export default function YeniKurum() {
         value={ad}
         onChangeText={setAd}
         editable={!gonderiliyor}
-        onSubmitEditing={kaydet}
         autoFocus
       />
+      <TextInput
+        style={styles.girdi}
+        placeholder="Marka kodu (örn. ugur)"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={markaKodu}
+        onChangeText={setMarkaKodu}
+        editable={!gonderiliyor}
+        onSubmitEditing={kaydet}
+      />
+      <Text style={styles.aciklama}>
+        Marka kodu müşterinin uygulamasıyla eşleşir ve sonradan değiştirilemez. Şubeleri kurumun kendi yöneticisi
+        ekler.
+      </Text>
 
       {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
 
@@ -54,6 +68,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
     gap: 12,
+  },
+  aciklama: {
+    color: renkler.metinIkincil,
   },
   baslik: {
     fontSize: 24,

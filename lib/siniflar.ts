@@ -1,5 +1,6 @@
-// Sınıf CRUD. RLS (sinif_kurum_admin politikası) yalnızca kurum_admin'in kendi kurumundaki
-// sınıfları yönetmesine izin verir; kurum_id oturumdaki kullanıcıdan alınır.
+// Sınıf CRUD. RLS (sinif_kurum_admin politikası) kurum_admin'in yalnızca yönettiği kurumlardaki
+// (kendi kurumu + şubeleri) sınıfları yönetmesine izin verir. Kök admin birden çok kurumun
+// sınıfını görebildiği için liste ve ekleme hangi kurum için yapıldığını açıkça alır.
 import { supabase } from '@/lib/supabase';
 import type { Sinif } from '@/lib/tipler';
 
@@ -10,8 +11,10 @@ function hataMesajinaCevir(mesaj: string, kod?: string): string {
   return 'İşlem yapılamadı, lütfen tekrar deneyin.';
 }
 
-export async function siniflariGetir(): Promise<Sinif[]> {
-  const { data, error } = await supabase.from('sinif').select('*').order('ad');
+// kurumId verilmezse RLS'in izin verdiği tüm sınıflar döner (öğretmen: atandığı sınıflar).
+export async function siniflariGetir(kurumId?: string): Promise<Sinif[]> {
+  const sorgu = supabase.from('sinif').select('*').order('ad');
+  const { data, error } = await (kurumId ? sorgu.eq('kurum_id', kurumId) : sorgu);
   if (error) throw new Error(hataMesajinaCevir(error.message));
   return data;
 }

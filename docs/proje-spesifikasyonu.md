@@ -24,10 +24,10 @@ Bir eğitim kurumu için, öğretmenlerin öğrenci gelişimini kaydedebildiği,
 
 ## 4. Temel Veri Modeli
 
-- **kurum** — id, ad, ayarlar
+- **kurum** — id, ad, ayarlar, ust_kurum_id (şube ise ana kurumu), marka_kodu (yalnızca ana kurumda), ozellikler (müşteriye özel özellik bayrakları)
 - **sinif** — id, kurum_id, ad, dönem
 - **kullanici** — id, auth_id (Supabase auth), rol, kurum_id, ad_soyad
-- **ogrenci** — id, kurum_id, sinif_id, ad_soyad, doğum_tarihi
+- **ogrenci** — id, kurum_id, kok_kurum_id (otomatik), sinif_id, ad_soyad, doğum_tarihi, tckn (müşteri başına tekil)
 - **veli_ogrenci** — veli_id, ogrenci_id (çoka çok ilişki — bir veli birden fazla çocuk, bir öğrencinin birden fazla velisi olabilir)
 - **ogretmen_sinif** — ogretmen_id, sinif_id (atama tablosu)
 - **yoklama** — id, ogrenci_id, tarih, durum (geldi/gelmedi/geç), giren_kullanici_id
@@ -43,6 +43,8 @@ Bir eğitim kurumu için, öğretmenlerin öğrenci gelişimini kaydedebildiği,
 - **Ölçek varyasyonu:** Kurum başına 3-30 öğretmen, öğretmen başına 8-30 öğrenci aralığında değişkenlik var. Bu ölçekte performans sorunu beklenmez; sadece `sinif_id`, `ogretmen_id`, `kurum_id` üzerinde index'lerin baştan doğru kurulması yeterli.
 - **Kurum onboarding:** İleride self-servis kurum kaydı düşünülüyorsa (yeni kurum admin kendi kurumunu oluşturup üye olur), `kurum` tablosuna plan/abonelik durumu gibi alanlar eklenebilir — ilk fazda bu alan boş bırakılıp elle (süper admin üzerinden) kurum açılabilir.
 - **Süper admin paneli** bu yüzden MVP'de göz ardı edilmemeli; en azından "yeni kurum ekle" akışı ilk fazda olmalı.
+- **Kurum hiyerarşisi:** Bir müşteri (ana kurum) altında şubeler olabilir (Uğur Dershanesi → Bakırköy, Şirinevler). En fazla 2 seviye. Ana kurumun yöneticisi tüm şubeleri yönetir (şube açar, şube verisini görür ve düzenler); şube yöneticisi yalnızca kendi şubesini görür.
+- **Müşteriye özel uygulama (white-label):** Her müşteri Google Play'de kendi adı, ikonu ve rengiyle ayrı bir uygulamaya sahiptir. Uygulamalar aynı kod tabanından, `markalar/<kod>/` yapılandırmasıyla derlenir ve aynı backend'i kullanır. Bir müşterinin kullanıcısı başka müşterinin uygulamasından giriş yapamaz. Müşteriye özel ek özellikler kod çatallanarak değil, müşteri bazlı özellik bayraklarıyla açılır.
 
 ## 6. KVKK / Veri Gizliliği Notları
 
@@ -99,7 +101,13 @@ lib/
   supabase.ts
   auth.ts
   notifications.ts
+  marka.ts
+  tema.ts
 components/
+markalar/
+  <kod>/
+    marka.json
+    google-services.json
 supabase/
   migrations/
 ```
@@ -107,7 +115,8 @@ supabase/
 ## 9. Netleşen Kararlar
 
 - **Multi-tenant:** Ürün birden fazla kuruma satılacak şekilde tasarlanıyor (bkz. Bölüm 5).
+- **Kurum hiyerarşisi + müşteriye özel uygulama (2026-10-02).** Ana kurum → şube (2 seviye; sınırsız derinlik özyinelemeli RLS gerektirdiği için reddedildi). Yeni rol/tablo eklenmedi: kök kurumun `kurum_admin`'i ana kurum yöneticisidir ve şubelerde tam yetkilidir. Her müşteri = bir kök kurum + bir `marka_kodu` + bir uygulama (ayrı EAS projesi ve Android paketi, aynı Firebase projesi, aynı Supabase projesi). TCKN artık sistem genelinde değil **müşteri başına** tekildir (aynı çocuk iki müşteride bulunabilir); veli e-postası `{tckn}@{marka_kodu}.veli.internal` oldu, bu yüzden marka kodu atandıktan sonra değiştirilemez. Bugünkü uygulama `varsayilan` markasıdır. Kapsam dışı: kendi uygulaması olmayan müşterilerin ortak bir uygulamadan girmesi, bir öğrencinin aynı müşteride iki şubede olması, marka başına web dağıtımı.
 - **Ölçek:** Kurum başına 3-30 öğretmen, öğretmen başına 8-30 öğrenci aralığında değişkenlik bekleniyor.
 - **Platform:** Android ilk faz, iOS kesinlikle planda (Faz 1.5) — Expo seçimi zaten her ikisini de aynı kod tabanından kolaylaştırıyor.
 - **Veliye yoklama bildirimi: Expo Push API, sunucu tarafında (2026-09-30).** Öğretmen yoklama girdiğinde, istemci (`yoklamaKaydet`) kayıt başarılı olduktan sonra bir Edge Function'ı (`yoklama-bildirim-gonder`) çağırır; bu fonksiyon `veli_ogrenci` üzerinden velileri bulup Expo Push API'yi çağırır (Expo access token istemciye asla gitmez). DB trigger/`pg_net` webhook alternatifi reddedildi — projede hiç DB→HTTP altyapısı yok, mevcut "yetkilendirme = Edge Function" tutarlılığını bozardı. Her yoklama kaydı (öğretmenin bir önceki hatayı düzeltmesi dahil) bildirim gönderir — değişmemiş değer için dedup mantığı MVP'de yok. `bildirim_log`'a veli başına bir satır yazılır (okundu_mu alıcıya özel olduğu için). **Kritik dış kısıt:** Expo Go SDK 53'ten beri gerçek push alamıyor; cihazda test için EAS development build (Firebase FCM V1 + EAS hesabı, kullanıcının kendisinin yapması gereken harici adımlar) gerekiyor — bu proje henüz hiç EAS build çalıştırmadı. iOS (APNs) kapsam dışı, Faz 1.5'te.
-- **Veli girişi: TCKN + 4 haneli PIN (2026-09-28).** Veliler düşük teknoloji okuryazarlığına sahip; e-posta+şifre (davet linki dahil) ve SMS OTP ikisi de fazla adım gerektiriyor. TCKN tek başına yeterli değildir — gizli sayılmaz (yoklama kağıdı, sınıf listesi vb. yerlerde görünür); PIN eklenince TCKN yalnızca "kullanıcı adı" gibi davranır. Yeni öğrenciye TCKN atanınca PIN otomatik `1234` olur, veli kendi PIN'ini değiştirebilir, unutursa kurum admini/süper admin sıfırlayıp tekrar `1234` yapabilir (öğretmenin bu yetkisi yok). Kabul edilen sonuç: TCKN öğrenciye ait olduğu için "bir öğrencinin birden fazla velisi" ayrımı bu giriş yönteminde pratik olarak kalkıyor — aynı TCKN+PIN'i bilen herkes aynı "veli" görünümüne girer. `veli_ogrenci` çoka-çok tablosu ve RLS mimarisi **değişmedi**; bu yalnızca giriş deneyimini değiştiriyor, veri modelini değil. TCKN yalnızca ilk atamada yazılır (MVP sınırı) — sonradan değiştirilemez, yalnızca PIN sıfırlanabilir. Teknik olarak Supabase Auth email+şifre mekanizması arkada aynen kullanılıyor (`email = {tckn}@veli.ogrencitakip.internal`, `password = PIN`).
+- **Veli girişi: TCKN + 4 haneli PIN (2026-09-28).** Veliler düşük teknoloji okuryazarlığına sahip; e-posta+şifre (davet linki dahil) ve SMS OTP ikisi de fazla adım gerektiriyor. TCKN tek başına yeterli değildir — gizli sayılmaz (yoklama kağıdı, sınıf listesi vb. yerlerde görünür); PIN eklenince TCKN yalnızca "kullanıcı adı" gibi davranır. Yeni öğrenciye TCKN atanınca PIN otomatik `1234` olur, veli kendi PIN'ini değiştirebilir, unutursa kurum admini/süper admin sıfırlayıp tekrar `1234` yapabilir (öğretmenin bu yetkisi yok). Kabul edilen sonuç: TCKN öğrenciye ait olduğu için "bir öğrencinin birden fazla velisi" ayrımı bu giriş yönteminde pratik olarak kalkıyor — aynı TCKN+PIN'i bilen herkes aynı "veli" görünümüne girer. `veli_ogrenci` çoka-çok tablosu ve RLS mimarisi **değişmedi**; bu yalnızca giriş deneyimini değiştiriyor, veri modelini değil. TCKN yalnızca ilk atamada yazılır (MVP sınırı) — sonradan değiştirilemez, yalnızca PIN sıfırlanabilir. Teknik olarak Supabase Auth email+şifre mekanizması arkada aynen kullanılıyor (`email = {tckn}@{marka_kodu}.veli.internal`, `password = PIN`; 2026-10-02'de müşteri başına tekil olacak şekilde güncellendi).

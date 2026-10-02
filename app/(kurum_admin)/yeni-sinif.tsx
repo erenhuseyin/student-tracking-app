@@ -1,5 +1,5 @@
 // Erişim: yalnızca kurum_admin
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -9,21 +9,24 @@ import { renkler } from '@/lib/tema';
 
 export default function YeniSinif() {
   const router = useRouter();
+  // kurumId: kök admin bir şube için sınıf açıyorsa o şube; verilmezse kullanıcının kendi kurumu.
+  const { kurumId } = useLocalSearchParams<{ kurumId?: string }>();
   const { kullanici } = useOturum();
+  const hedefKurumId = kurumId ?? kullanici?.kurum_id;
   const [ad, setAd] = useState('');
   const [donem, setDonem] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
   const kaydet = async () => {
-    if (!kullanici?.kurum_id) {
+    if (!hedefKurumId) {
       setHata('Kurum bilgisi bulunamadı.');
       return;
     }
     setGonderiliyor(true);
     setHata(null);
     try {
-      await sinifEkle(kullanici.kurum_id, ad, donem);
+      await sinifEkle(hedefKurumId, ad, donem);
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

@@ -1,5 +1,6 @@
-// Öğrenci CRUD. RLS (ogrenci_kurum_admin politikası) yalnızca kurum_admin'in kendi
-// kurumundaki öğrencileri yönetmesine izin verir; kurum_id oturumdaki kullanıcıdan alınır.
+// Öğrenci CRUD. RLS (ogrenci_kurum_admin politikası) kurum_admin'in yalnızca yönettiği
+// kurumlardaki (kendi kurumu + şubeleri) öğrencileri yönetmesine izin verir. Yeni öğrencinin
+// kurum_id'si sınıfının kurumuyla aynı olmalıdır (bileşik FK).
 // dogum_tarihi biçimi: YYYY-AA-GG (native tarih seçici bu adımda kapsam dışı).
 import { FunctionsHttpError } from '@supabase/supabase-js';
 

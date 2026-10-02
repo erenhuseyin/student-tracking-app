@@ -8,6 +8,13 @@ import { kurumlariGetir } from '@/lib/kurumlar';
 import { renkler } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
 
+// Kök kurumlar ada göre, her kökün şubeleri hemen altında.
+function agacSirasinaDiz(kurumlar: Kurum[]): Kurum[] {
+  return kurumlar
+    .filter((k) => !k.ust_kurum_id)
+    .flatMap((kok) => [kok, ...kurumlar.filter((k) => k.ust_kurum_id === kok.id)]);
+}
+
 export default function SuperAdminAnaSayfa() {
   const router = useRouter();
   const [kurumlar, setKurumlar] = useState<Kurum[] | null>(null);
@@ -19,7 +26,7 @@ export default function SuperAdminAnaSayfa() {
       setHata(null);
       kurumlariGetir()
         .then((veri) => {
-          if (!iptalEdildi) setKurumlar(veri);
+          if (!iptalEdildi) setKurumlar(agacSirasinaDiz(veri));
         })
         .catch((e: Error) => {
           if (!iptalEdildi) setHata(e.message);
@@ -45,8 +52,11 @@ export default function SuperAdminAnaSayfa() {
           keyExtractor={(k) => k.id}
           ListEmptyComponent={<Text style={styles.bosMetin}>Henüz kurum yok.</Text>}
           renderItem={({ item }) => (
-            <View style={styles.satir}>
+            <View style={[styles.satir, item.ust_kurum_id ? styles.subeSatiri : null]}>
               <Text style={styles.satirMetni}>{item.ad}</Text>
+              {item.ust_kurum_id ? null : (
+                <Text style={styles.markaKodu}>{item.marka_kodu ?? 'marka kodu yok'}</Text>
+              )}
             </View>
           )}
         />
@@ -88,8 +98,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: renkler.ayirici,
   },
+  subeSatiri: {
+    paddingLeft: 24,
+  },
   satirMetni: {
     fontSize: 16,
+  },
+  markaKodu: {
+    color: renkler.metinIkincil,
+    marginTop: 2,
   },
   hataMetni: {
     color: renkler.hata,
