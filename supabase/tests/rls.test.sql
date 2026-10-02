@@ -525,6 +525,137 @@ set local role authenticated;
 
 select tst.esit('adminA yalnızca kendi kurumunun bildirimini görür', (select count(*) from public.bildirim_log)::text, '1');
 
+-- ===========================================================================
+-- 14. KURUM HİYERARŞİSİ: kök admin şubelerini yönetir, şube admini yalnızca kendi şubesini
+--   Kurum A'ya iki şube eklenir: A1 (adminA1, sinif sA1x, ogrenci oA1x) ve A2 (adminA2, sA2x, oA2x)
+--   Kimlikler: 12 adminA1, 13 adminA2
+-- ===========================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000012', 'authenticated', 'authenticated', 'admina1@test.local'),
+  ('a0000000-0000-0000-0000-000000000013', 'authenticated', 'authenticated', 'admina2@test.local');
+
+insert into public.kurum (id, ad, ust_kurum_id) values
+  ('c0000000-0000-0000-0000-0000000000a1', 'Şube A1', 'c0000000-0000-0000-0000-00000000000a'),
+  ('c0000000-0000-0000-0000-0000000000a2', 'Şube A2', 'c0000000-0000-0000-0000-00000000000a');
+
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad) values
+  ('b0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000012', 'kurum_admin', 'c0000000-0000-0000-0000-0000000000a1', 'adminA1'),
+  ('b0000000-0000-0000-0000-000000000013', 'a0000000-0000-0000-0000-000000000013', 'kurum_admin', 'c0000000-0000-0000-0000-0000000000a2', 'adminA2');
+
+insert into public.sinif (id, kurum_id, ad, donem) values
+  ('d0000000-0000-0000-0000-000000000a11', 'c0000000-0000-0000-0000-0000000000a1', 'sA1x', '2026'),
+  ('d0000000-0000-0000-0000-000000000a21', 'c0000000-0000-0000-0000-0000000000a2', 'sA2x', '2026');
+
+insert into public.ogrenci (id, kurum_id, sinif_id, ad_soyad, dogum_tarihi) values
+  ('e0000000-0000-0000-0000-000000000a11', 'c0000000-0000-0000-0000-0000000000a1', 'd0000000-0000-0000-0000-000000000a11', 'oA1x', '2020-02-01'),
+  ('e0000000-0000-0000-0000-000000000a21', 'c0000000-0000-0000-0000-0000000000a2', 'd0000000-0000-0000-0000-000000000a21', 'oA2x', '2020-02-02');
+
+insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values
+  ('c0000000-0000-0000-0000-0000000000a1', 'e0000000-0000-0000-0000-000000000a11', '2026-10-01', 'geldi', 'b0000000-0000-0000-0000-000000000012');
+
+-- 2 seviye sınırı (şema; postgres rolüyle)
+select tst.esit('şubenin altına şube açılamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-0000000000a1')$q$), 'hata:23514');
+select tst.esit('şubesi olan kurum şube yapılamaz',
+  tst.dene($q$update public.kurum set ust_kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'hata:23514');
+select tst.esit('kurum kendi üstü olamaz',
+  tst.dene($q$update public.kurum set ust_kurum_id = id where id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'hata:23514');
+
+-- adminA (kök admin): kendi kurumu + iki şube
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin kurum (kendi + 2 şube)', (select count(*) from public.kurum)::text, '3');
+select tst.esit('kök admin şube sınıflarını görür',
+  (select count(*) from public.sinif where kurum_id in ('c0000000-0000-0000-0000-0000000000a1','c0000000-0000-0000-0000-0000000000a2'))::text, '2');
+select tst.esit('kök admin şube öğrencilerini görür',
+  (select count(*) from public.ogrenci where kurum_id in ('c0000000-0000-0000-0000-0000000000a1','c0000000-0000-0000-0000-0000000000a2'))::text, '2');
+select tst.esit('kök admin şube kullanıcılarını görür',
+  (select count(*) from public.kullanici where kurum_id in ('c0000000-0000-0000-0000-0000000000a1','c0000000-0000-0000-0000-0000000000a2'))::text, '2');
+select tst.esit('kök admin şube yoklamasını görür',
+  (select count(*) from public.yoklama where kurum_id = 'c0000000-0000-0000-0000-0000000000a1')::text, '1');
+select tst.esit('kök admin şubeye sınıf ekler',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-0000000000a1','sA1y','2026')$q$), 'ok:1');
+select tst.esit('kök admin şube öğrencisini günceller',
+  tst.dene($q$update public.ogrenci set ad_soyad = 'oA2x-yeni' where id = 'e0000000-0000-0000-0000-000000000a21'$q$), 'ok:1');
+select tst.esit('kök admin şube adminini günceller',
+  tst.dene($q$update public.kullanici set ad_soyad = 'adminA1-yeni' where id = 'b0000000-0000-0000-0000-000000000012'$q$), 'ok:1');
+select tst.esit('kök admin şube açar (returning ile)',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('Şube A3', 'c0000000-0000-0000-0000-00000000000a') returning id$q$), 'ok:1');
+select tst.esit('kök admin şube adını değiştirir',
+  tst.dene($q$update public.kurum set ad = 'Şube A1 yeni' where id = 'c0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
+select tst.esit('kök admin şube ayarlarını günceller',
+  tst.dene($q$update public.kurum set ayarlar = '{"x":1}'::jsonb where id = 'c0000000-0000-0000-0000-0000000000a2'$q$), 'ok:1');
+select tst.esit('kök admin kendi adını hâlâ değiştiremez',
+  tst.dene($q$update public.kurum set ad = 'x' where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'hata:42501');
+select tst.esit('kök admin başka kurumun altına şube açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-00000000000b')$q$), 'hata:42501');
+select tst.esit('kök admin kök kurum açamaz',
+  tst.dene($q$insert into public.kurum (ad) values ('x')$q$), 'hata:42501');
+select tst.esit('kök admin boş şubeyi siler',
+  tst.dene($q$delete from public.kurum where ad = 'Şube A3'$q$), 'ok:1');
+select tst.esit('kök admin kendi kurumunu silemez',
+  tst.dene($q$delete from public.kurum where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
+select tst.esit('kök admin B sızıntısı yok', (
+  (select count(*) from public.kurum where id = 'c0000000-0000-0000-0000-00000000000b')
+  + (select count(*) from public.sinif where kurum_id = 'c0000000-0000-0000-0000-00000000000b')
+  + (select count(*) from public.ogrenci where kurum_id = 'c0000000-0000-0000-0000-00000000000b')
+)::text, '0');
+
+-- adminA1 (şube admini): yalnızca kendi şubesi; kökü okur ama yönetemez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000012","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini kurum (kendi + kök)', (select count(*) from public.kurum)::text, '2');
+select tst.esit('şube admini yalnızca kendi sınıfları', (select count(*) from public.sinif where kurum_id <> 'c0000000-0000-0000-0000-0000000000a1')::text, '0');
+select tst.esit('şube admini kendi sınıflarını görür', (select count(*) from public.sinif)::text, '2');
+select tst.esit('şube admini yalnızca kendi öğrencileri', (select count(*) from public.ogrenci)::text, '1');
+select tst.esit('şube admini yalnızca kendi kullanıcıları', (select count(*) from public.kullanici)::text, '1');
+select tst.esit('şube admini kardeş şubenin yoklamasını/verisini göremez',
+  (select count(*) from public.ogrenci where kurum_id = 'c0000000-0000-0000-0000-0000000000a2')::text, '0');
+select tst.esit('şube admini kardeş şubeye sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-0000000000a2','x','2026')$q$), 'hata:42501');
+select tst.esit('şube admini köke sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-00000000000a','x','2026')$q$), 'hata:42501');
+select tst.esit('şube admini kökü güncelleyemez',
+  tst.dene($q$update public.kurum set ayarlar = '{"x":2}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
+select tst.esit('şube admini kardeş şube açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-00000000000a')$q$), 'hata:42501');
+select tst.esit('şube admini kendi altına şube açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-0000000000a1')$q$), 'hata:23514');
+select tst.esit('şube admini kendi adını değiştiremez',
+  tst.dene($q$update public.kurum set ad = 'x' where id = 'c0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+select tst.esit('şube admini kendi şubesini silemez',
+  tst.dene($q$delete from public.kurum where id = 'c0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+
+-- adminA2: kardeş şubenin yoklamasını göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kardeş şube admini yoklamayı göremez', (select count(*) from public.yoklama)::text, '0');
+
+-- adminB: A'nın şubeleri başka müşteriye sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('adminB A şubelerini göremez',
+  (select count(*) from public.kurum where ust_kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '0');
+select tst.esit('adminB hâlâ yalnızca kendi kurumu', (select count(*) from public.kurum)::text, '1');
+
+-- ogrA1 (kök kurumun öğretmeni): şube verisini görmez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen şube sınıflarını görmez',
+  (select count(*) from public.sinif where kurum_id <> 'c0000000-0000-0000-0000-00000000000a')::text, '0');
+select tst.esit('öğretmen yalnızca kendi kurumunu okur', (select count(*) from public.kurum)::text, '1');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

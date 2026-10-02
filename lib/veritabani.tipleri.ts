@@ -16,20 +16,31 @@ export type Database = {
           ayarlar: Json;
           id: string;
           olusturma_tarihi: string;
+          ust_kurum_id: string | null;
         };
         Insert: {
           ad: string;
           ayarlar?: Json;
           id?: string;
           olusturma_tarihi?: string;
+          ust_kurum_id?: string | null;
         };
         Update: {
           ad?: string;
           ayarlar?: Json;
           id?: string;
           olusturma_tarihi?: string;
+          ust_kurum_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'kurum_ust_kurum_id_fkey';
+            columns: ['ust_kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       kullanici: {
         Row: {
