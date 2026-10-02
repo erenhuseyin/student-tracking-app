@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1081576391394",
+    "project_id": "student-tracking-app-44",
+    "storage_bucket": "student-tracking-app-44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1081576391394:android:7c6bfeabacaa56389b14bb",
+        "android_client_info": {
+          "package_name": "com.ergenecode.ogrencitakip"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC39EZDdPj96lg4EiXfIGVockizEDosUXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
