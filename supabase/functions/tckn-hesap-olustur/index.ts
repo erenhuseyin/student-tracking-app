@@ -3,12 +3,14 @@
 //
 // Neden sunucuda: `ogrenci.tckn` kolonuna istemciden yazma yetkisi yoktur (bkz. migration
 // 20260928120200_ogrenci_tckn) ve service_role anahtarı uygulamaya konamaz. Veli girişi
-// Supabase Auth email+şifre mekanizmasını arkada kullanır: email = `{tckn}@veli.ogrencitakip.internal`
+// Supabase Auth email+şifre mekanizmasını arkada kullanır: email = `{tckn}@{marka_kodu}.veli.internal`
 // (gerçek posta kutusu değil, yalnızca benzersiz kimlik), password = PIN (varsayılan '1234').
+// marka_kodu öğrencinin kök kurumundan (müşteriden) gelir: TCKN müşteri başına tekildir, aynı
+// çocuk iki farklı müşteride ayrı veli hesabıyla bulunabilir.
 //
 // Yetki matrisi:
 //   super_admin -> herhangi bir kurumun öğrencisine TCKN atayabilir
-//   kurum_admin -> yalnızca kendi kurumunun öğrencisine
+//   kurum_admin -> yalnızca yönettiği kurumların (kendi kurumu + şubeleri) öğrencisine
 //   ogretmen, veli -> 403
 //
 // TCKN yalnızca İLK ATAMADA yazılır (MVP sınırı) — öğrencide zaten TCKN varsa 409 döner.
@@ -23,7 +25,7 @@ const CORS_BASLIKLARI = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TCKN_RE = /^[1-9][0-9]{10}$/;
-const VELI_EPOSTA_ALAN_ADI = 'veli.ogrencitakip.internal';
+const VELI_EPOSTA_SONEKI = 'veli.internal';
 const VARSAYILAN_PIN = '1234';
 
 // Supabase Dashboard'da minimum şifre uzunluğu 6'nın altına indirilemiyor (denendi, reddedildi).
@@ -106,30 +108,42 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!UUID_RE.test(ogrenciId)) return hata(400, 'Geçersiz öğrenci.');
   if (!tcknGecerliMi(tckn)) return hata(400, 'Geçerli bir TCKN girin.');
 
-  // Bundan sonrası service_role ile (RLS'i aşar) — yetki kararı yukarıda verildi.
-  const servis = createClient(supabaseUrl, servisAnahtar, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  // 3. Öğrenci gerçekten var mı ve (kurum_admin ise) kendi kurumunda mı?
-  const { data: ogrenci, error: ogrenciHatasi } = await servis
+  // 3. Çağıranın bu öğrenciye erişimi var mı? RLS'in kendisi yetki katmanı: kullaniciClient
+  //    (anon key + çağıranın JWT'si) ile okunan satır, RLS'i geçen satırdır. Kurum admini için
+  //    bu, yönettiği kurumların (kendi kurumu + şubeleri) öğrencileridir.
+  const { data: ogrenci, error: ogrenciHatasi } = await kullaniciClient
     .from('ogrenci')
-    .select('id, kurum_id, ad_soyad, tckn')
+    .select('id, kurum_id, kok_kurum_id, ad_soyad, tckn')
     .eq('id', ogrenciId)
     .maybeSingle();
   if (ogrenciHatasi) {
     console.error('tckn-hesap-olustur: öğrenci okunamadı', ogrenciHatasi);
     return hata(500, 'İşlem şu an yapılamıyor.');
   }
-  if (!ogrenci) return hata(400, 'Öğrenci bulunamadı.');
-  if (cagiran.rol === 'kurum_admin' && ogrenci.kurum_id !== cagiran.kurum_id) {
-    return hata(403, 'Bu işlem için yetkiniz yok.');
-  }
+  if (!ogrenci) return hata(403, 'Bu işlem için yetkiniz yok.');
   if (ogrenci.tckn) return hata(409, 'Bu öğrenciye zaten bir TCKN atanmış.');
+
+  // Bundan sonrası service_role ile (RLS'i aşar) — yetki kararı yukarıda verildi.
+  const servis = createClient(supabaseUrl, servisAnahtar, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: kokKurum, error: kokKurumHatasi } = await servis
+    .from('kurum')
+    .select('marka_kodu')
+    .eq('id', ogrenci.kok_kurum_id)
+    .maybeSingle();
+  if (kokKurumHatasi) {
+    console.error('tckn-hesap-olustur: kök kurum okunamadı', kokKurumHatasi);
+    return hata(500, 'İşlem şu an yapılamıyor.');
+  }
+  if (!kokKurum?.marka_kodu) {
+    return hata(409, 'Bu kurum için marka kodu tanımlanmamış; önce süper admin tanımlamalı.');
+  }
 
   // 4. Hesap oluştur, ardından kullanici + veli_ogrenci + ogrenci.tckn güncellenir.
   //    Herhangi bir adım düşerse auth kullanıcısı silinir (FK cascade kullanici ve bağlarını da siler).
-  const email = `${tckn}@${VELI_EPOSTA_ALAN_ADI}`;
+  const email = `${tckn}@${kokKurum.marka_kodu}.${VELI_EPOSTA_SONEKI}`;
   const { data: yeniAuth, error: authHatasi } = await servis.auth.admin.createUser({
     email,
     password: pinAuthSifresi(VARSAYILAN_PIN),
@@ -173,7 +187,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (tcknHatasi) {
     if (tcknHatasi.code === '23505') {
       await geriAl();
-      return hata(409, 'Bu TCKN başka bir öğrenciye atanmış.');
+      return hata(409, 'Bu TCKN bu kurumda başka bir öğrenciye atanmış.');
     }
     console.error('tckn-hesap-olustur: ogrenci.tckn güncellenemedi', tcknHatasi);
     await geriAl();

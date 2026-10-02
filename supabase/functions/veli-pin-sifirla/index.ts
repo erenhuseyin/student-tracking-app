@@ -7,7 +7,7 @@
 //
 // Yetki matrisi:
 //   super_admin -> herhangi bir kurumun öğrencisinin velisini sıfırlayabilir
-//   kurum_admin -> yalnızca kendi kurumunun öğrencisinin velisini
+//   kurum_admin -> yalnızca yönettiği kurumların (kendi kurumu + şubeleri) öğrencisinin velisini
 //   ogretmen, veli -> 403
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -19,7 +19,7 @@ const CORS_BASLIKLARI = {
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const VELI_EPOSTA_ALAN_ADI = 'veli.ogrencitakip.internal';
+const VELI_EPOSTA_SONEKI = 'veli.internal';
 const VARSAYILAN_PIN = '1234';
 
 // Supabase Dashboard'da minimum şifre uzunluğu 6'nın altına indirilemiyor (denendi, reddedildi).
@@ -87,31 +87,41 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const ogrenciId = typeof govde.ogrenci_id === 'string' ? govde.ogrenci_id : '';
   if (!UUID_RE.test(ogrenciId)) return hata(400, 'Geçersiz öğrenci.');
 
-  // Bundan sonrası service_role ile (RLS'i aşar) — yetki kararı yukarıda verildi.
-  const servis = createClient(supabaseUrl, servisAnahtar, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  const { data: ogrenci, error: ogrenciHatasi } = await servis
+  // 3. Çağıranın bu öğrenciye erişimi var mı? RLS'in kendisi yetki katmanı: kullaniciClient
+  //    ile okunan satır, RLS'i geçen satırdır (kurum admini için kendi kurumu + şubeleri).
+  const { data: ogrenci, error: ogrenciHatasi } = await kullaniciClient
     .from('ogrenci')
-    .select('id, kurum_id, tckn')
+    .select('id, kurum_id, kok_kurum_id, tckn')
     .eq('id', ogrenciId)
     .maybeSingle();
   if (ogrenciHatasi) {
     console.error('veli-pin-sifirla: öğrenci okunamadı', ogrenciHatasi);
     return hata(500, 'İşlem şu an yapılamıyor.');
   }
-  if (!ogrenci) return hata(400, 'Öğrenci bulunamadı.');
-  if (cagiran.rol === 'kurum_admin' && ogrenci.kurum_id !== cagiran.kurum_id) {
-    return hata(403, 'Bu işlem için yetkiniz yok.');
-  }
+  if (!ogrenci) return hata(403, 'Bu işlem için yetkiniz yok.');
   if (!ogrenci.tckn) return hata(400, 'Bu öğrenciye henüz TCKN atanmamış.');
+
+  // Bundan sonrası service_role ile (RLS'i aşar) — yetki kararı yukarıda verildi.
+  const servis = createClient(supabaseUrl, servisAnahtar, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: kokKurum, error: kokKurumHatasi } = await servis
+    .from('kurum')
+    .select('marka_kodu')
+    .eq('id', ogrenci.kok_kurum_id)
+    .maybeSingle();
+  if (kokKurumHatasi) {
+    console.error('veli-pin-sifirla: kök kurum okunamadı', kokKurumHatasi);
+    return hata(500, 'İşlem şu an yapılamıyor.');
+  }
+  if (!kokKurum?.marka_kodu) return hata(404, 'Bu öğrenci için veli hesabı bulunamadı.');
 
   // GoTrue admin API'de e-postaya göre doğrudan arama yoktur (yalnızca listUsers/getUserById);
   // sayfalayarak aranır. MVP ölçeğinde (bkz. docs/ILERLEME.md maliyet tartışması) kabul edilebilir;
   // proje çok büyürse (~50 sayfa = 50.000 kullanıcı) bu, `kullanici` üzerinde e-posta tutan bir
   // ters index eklenerek tek sorguya indirgenebilir.
-  const email = `${ogrenci.tckn}@${VELI_EPOSTA_ALAN_ADI}`;
+  const email = `${ogrenci.tckn}@${kokKurum.marka_kodu}.${VELI_EPOSTA_SONEKI}`;
   const EN_FAZLA_SAYFA = 50;
   let veliAuthId: string | null = null;
   for (let sayfa = 1; sayfa <= EN_FAZLA_SAYFA; sayfa++) {

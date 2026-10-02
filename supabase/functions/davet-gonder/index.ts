@@ -6,7 +6,8 @@
 //
 // Yetki matrisi:
 //   super_admin -> yalnızca `kurum_admin` davet eder, hedef kurum gövdedeki kurum_id (zorunlu)
-//   kurum_admin -> `ogretmen`, `veli`, `kurum_admin` davet eder, hedef kurum HER ZAMAN kendi kurumu
+//   kurum_admin -> `ogretmen`, `veli`, `kurum_admin` davet eder; hedef kurum varsayılan olarak kendi
+//                  kurumu, gövdede kurum_id verilirse yalnızca kendi kurumu ya da bir şubesi olabilir
 //   ogretmen, veli -> 403
 // `super_admin` rolü API'den asla verilmez (ilk süper admin elle eklenir).
 
@@ -113,7 +114,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
     hedefKurumId = govde.kurum_id;
   } else if (cagiran.rol === 'kurum_admin') {
     if (!cagiran.kurum_id) return hata(403, 'Bu işlem için yetkiniz yok.');
-    hedefKurumId = cagiran.kurum_id; // gövdedeki kurum_id yok sayılır
+    hedefKurumId = cagiran.kurum_id;
+    if (govde.kurum_id !== undefined && govde.kurum_id !== cagiran.kurum_id) {
+      if (typeof govde.kurum_id !== 'string' || !UUID_RE.test(govde.kurum_id)) {
+        return hata(400, 'kurum_id geçerli bir UUID olmalı.');
+      }
+      // Yalnızca çağıranın şubesi olabilir. RLS okumaya güvenilmez: şube admini kendi kökünü
+      // de okuyabildiği için üst-alt ilişkisi burada açıkça kontrol edilir.
+      const { data: hedefKurum, error: hedefKurumHatasi } = await kullaniciClient
+        .from('kurum')
+        .select('id, ust_kurum_id')
+        .eq('id', govde.kurum_id)
+        .maybeSingle();
+      if (hedefKurumHatasi) {
+        console.error('davet-gonder: hedef kurum okunamadı', hedefKurumHatasi);
+        return hata(500, 'İşlem şu an yapılamıyor.');
+      }
+      if (!hedefKurum || hedefKurum.ust_kurum_id !== cagiran.kurum_id) {
+        return hata(403, 'Bu kuruma davet gönderme yetkiniz yok.');
+      }
+      hedefKurumId = hedefKurum.id;
+    }
   } else {
     return hata(403, 'Bu işlem için yetkiniz yok.');
   }

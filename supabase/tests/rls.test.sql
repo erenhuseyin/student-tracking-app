@@ -656,6 +656,71 @@ select tst.esit('öğretmen şube sınıflarını görmez',
   (select count(*) from public.sinif where kurum_id <> 'c0000000-0000-0000-0000-00000000000a')::text, '0');
 select tst.esit('öğretmen yalnızca kendi kurumunu okur', (select count(*) from public.kurum)::text, '1');
 
+-- ===========================================================================
+-- 15. MARKA KODU, ÖZELLİKLER VE MÜŞTERİ BAŞINA TCKN
+-- ===========================================================================
+-- adminA (kök admin): marka kodu ve özelliklere dokunamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin marka_kodu belirleyemez',
+  tst.dene($q$update public.kurum set marka_kodu = 'kurum-a' where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'hata:42501');
+select tst.esit('kök admin ozellikler değiştiremez',
+  tst.dene($q$update public.kurum set ozellikler = '{"x":true}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'hata:42501');
+select tst.esit('kök admin şubenin ozellikler''ini değiştiremez',
+  tst.dene($q$update public.kurum set ozellikler = '{"x":true}'::jsonb where id = 'c0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+select tst.esit('kök admin özellikli şube açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id, ozellikler) values ('x', 'c0000000-0000-0000-0000-00000000000a', '{"x":true}'::jsonb)$q$), 'hata:42501');
+select tst.esit('kök admin kok_kurum_id yazamaz (kolon yetkisi yok)',
+  tst.dene($q$update public.ogrenci set kok_kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+
+-- süper admin: marka kodunu bir kez atar, özellikleri değiştirir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('sa marka_kodu atar',
+  tst.dene($q$update public.kurum set marka_kodu = 'kurum-a' where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:1');
+select tst.esit('sa atanmış marka_kodu''nu değiştiremez',
+  tst.dene($q$update public.kurum set marka_kodu = 'kurum-a2' where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'hata:23514');
+select tst.esit('sa aynı marka_kodu''nu ikinci kuruma veremez',
+  tst.dene($q$update public.kurum set marka_kodu = 'kurum-a' where id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'hata:23505');
+select tst.esit('sa şubeye marka_kodu veremez',
+  tst.dene($q$update public.kurum set marka_kodu = 'sube-a1' where id = 'c0000000-0000-0000-0000-0000000000a1'$q$), 'hata:23514');
+select tst.esit('sa geçersiz biçimli marka_kodu veremez',
+  tst.dene($q$update public.kurum set marka_kodu = 'Kurum B!' where id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'hata:23514');
+select tst.esit('sa ozellikler değiştirir',
+  tst.dene($q$update public.kurum set ozellikler = '{"gelisim_kaydi":true}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:1');
+select tst.esit('sa marka kodlu kurum açar',
+  tst.dene($q$insert into public.kurum (ad, marka_kodu) values ('Kurum D', 'kurum-d')$q$), 'ok:1');
+
+-- şube admini kökün marka kodunu ve özelliklerini okuyabilir (uygulama bunu kullanır)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000012","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini kökün marka kodunu okur',
+  (select marka_kodu from public.kurum where id = 'c0000000-0000-0000-0000-00000000000a'), 'kurum-a');
+
+-- TCKN müşteri başına tekil (şema; postgres rolüyle)
+reset role;
+
+select tst.esit('şube öğrencisinin kökü ana kurum',
+  (select kok_kurum_id::text from public.ogrenci where id = 'e0000000-0000-0000-0000-000000000a11'), 'c0000000-0000-0000-0000-00000000000a');
+select tst.esit('kök öğrencisinin kökü kendi kurumu',
+  (select kok_kurum_id::text from public.ogrenci where id = 'e0000000-0000-0000-0000-0000000000b1'), 'c0000000-0000-0000-0000-00000000000b');
+select tst.esit('A öğrencisine tckn',
+  tst.dene($q$update public.ogrenci set tckn = '11111111110' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
+select tst.esit('aynı tckn başka müşteride (B) kullanılabilir',
+  tst.dene($q$update public.ogrenci set tckn = '11111111110' where id = 'e0000000-0000-0000-0000-0000000000b1'$q$), 'ok:1');
+select tst.esit('aynı tckn aynı müşterinin şubesinde kullanılamaz',
+  tst.dene($q$update public.ogrenci set tckn = '11111111110' where id = 'e0000000-0000-0000-0000-000000000a11'$q$), 'hata:23505');
+select tst.esit('kok_kurum_id elle bozulamaz (trigger düzeltir)',
+  tst.dene($q$update public.ogrenci set kok_kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'e0000000-0000-0000-0000-000000000a11'$q$), 'ok:1');
+select tst.esit('kok_kurum_id hâlâ ana kurum',
+  (select kok_kurum_id::text from public.ogrenci where id = 'e0000000-0000-0000-0000-000000000a11'), 'c0000000-0000-0000-0000-00000000000a');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 
