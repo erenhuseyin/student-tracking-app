@@ -66,6 +66,7 @@ export default function SuperAdminAnaSayfa() {
               baslik={k.ad}
               altBaslik={k.marka_kodu ? `Marka kodu: ${k.marka_kodu}` : 'Marka kodu yok'}
               sol={<Ikon ad="business-outline" boyut={26} renk={renkler.anaParlak} />}
+              onPress={() => router.push(`/kurum/${k.id}`)}
             />
           )
         }

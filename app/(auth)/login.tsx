@@ -62,6 +62,12 @@ export default function Login() {
         />
         <HataMesaji mesaj={hata} />
         <Buton baslik="Giriş Yap" onPress={girisYap} yukleniyor={gonderiliyor} />
+        <Buton
+          tur="metin"
+          baslik="Davet kodum var / Şifremi unuttum"
+          onPress={() => router.replace('/kod-ile-giris')}
+          pasif={gonderiliyor}
+        />
       </Kart>
 
       <Buton
