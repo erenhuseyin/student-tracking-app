@@ -31,6 +31,16 @@ export default function KurumAdminAnaSayfa() {
             <Buton tur="ikincil" ikon="business-outline" baslik="Şubeler" onPress={() => router.push('/subeler')} />
           </View>
         ) : null}
+        {kokKurumMu ? (
+          <View style={styles.altButon}>
+            <Buton
+              tur="ikincil"
+              ikon="pricetags-outline"
+              baslik="Gelişim Kategorileri"
+              onPress={() => router.push('/gelisim-kategorileri')}
+            />
+          </View>
+        ) : null}
       </View>
     </Ekran>
   );
@@ -39,9 +49,12 @@ export default function KurumAdminAnaSayfa() {
 const styles = StyleSheet.create({
   altButonlar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: bosluk.m,
   },
+  // İki sütun; tek kalan buton satırı doldurur.
   altButon: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '40%',
   },
 });

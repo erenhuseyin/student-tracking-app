@@ -61,7 +61,7 @@ export default function VeliAnaSayfa() {
             altBaslik="Bugün"
             sol={<Avatar ad={o.ad_soyad} boyut={48} />}
             sag={<DurumRozeti durum={o.yoklama_durumu} />}
-            onPress={() => router.push(`/yoklama/${o.id}`)}
+            onPress={() => router.push(`/cocuk/${o.id}`)}
           />
         )}
       />

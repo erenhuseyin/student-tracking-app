@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
 
 type Props<T extends string> = {
-  etiket: string;
+  // Verilmezse yalnızca seçenek satırı çizilir (ör. ekran içi görünüm değiştirici).
+  etiket?: string;
   secenekler: { deger: T; etiket: string }[];
   secili: T;
   onSec: (deger: T) => void;
@@ -14,7 +15,7 @@ type Props<T extends string> = {
 export function Secenekler<T extends string>({ etiket, secenekler, secili, onSec, pasif = false }: Props<T>) {
   return (
     <View style={styles.kapsayici}>
-      <Text style={yazi.etiket}>{etiket}</Text>
+      {etiket ? <Text style={yazi.etiket}>{etiket}</Text> : null}
       <View style={styles.satir}>
         {secenekler.map((s) => {
           const seciliMi = s.deger === secili;
