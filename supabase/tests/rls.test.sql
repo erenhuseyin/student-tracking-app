@@ -819,7 +819,8 @@ select tst.esit('pasif şube admini sınıf ekleyemez',
 -- ===========================================================================
 -- 17. GELİŞİM KAYDI VE KATEGORİLERİ
 --   Kategori müşteri (kök kurum) düzeyindedir: katA (Kurum A), katB (Kurum B) + her kök kuruma
---   otomatik eklenen 4 varsayılan. ogrA0, sA1'e de atanır (aynı sınıfın ikinci öğretmeni).
+--   otomatik eklenen 4 varsayılan. sA1'e ikinci bir öğretmen eklenir: 15 ogrA1b (ogrA0 kullanılamaz,
+--   9. bölümde kurum_admin yapıldı).
 --   16. bölümde pasifleştirilen adminA1 ve ogrA1x burada yeniden aktifleştirilir.
 --   Kayıtlar: g1 = ogrA1 -> oA1 | g2 = adminA -> oA1x (şube A1)
 -- ===========================================================================
@@ -841,8 +842,12 @@ insert into public.gelisim_kategorisi (id, kurum_id, ad, sira) values
   ('f0000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-00000000000a', 'katA', 10),
   ('f0000000-0000-0000-0000-00000000000b', 'c0000000-0000-0000-0000-00000000000b', 'katB', 10);
 
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000015', 'authenticated', 'authenticated', 'ogra1b@test.local');
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad) values
+  ('b0000000-0000-0000-0000-000000000015', 'a0000000-0000-0000-0000-000000000015', 'ogretmen', 'c0000000-0000-0000-0000-00000000000a', 'ogrA1b');
 insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values
-  ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-0000000000a1');
+  ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000015', 'd0000000-0000-0000-0000-0000000000a1');
 
 -- ogrA1 (sA1: oA1, oA2)
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
@@ -881,9 +886,9 @@ select tst.esit('öğretmen kategori güncelleyemez',
 select tst.esit('öğretmen kategori silemez',
   tst.dene($q$delete from public.gelisim_kategorisi where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
 
--- ogrA0 (aynı sınıfın ikinci öğretmeni): görür ama başkasının kaydını değiştiremez
+-- ogrA1b (aynı sınıfın ikinci öğretmeni): görür ama başkasının kaydını değiştiremez
 reset role;
-select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000015","role":"authenticated"}', true);
 set local role authenticated;
 
 select tst.esit('aynı sınıfın öğretmeni kaydı görür', (select count(*) from public.gelisim_kaydi)::text, '1');
