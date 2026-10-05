@@ -1,13 +1,20 @@
-import { Link } from 'expo-router';
+// Erişim: oturumu olmayan herkes. Veli, çocuğunun TCKN'si + 4 haneli PIN ile girer.
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { marka, veliEpostasi } from '@/lib/marka';
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { Girdi } from '@/components/Girdi';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
+import { MarkaBasligi } from '@/components/MarkaBasligi';
+import { PinGirdisi } from '@/components/PinGirdisi';
+import { veliEpostasi } from '@/lib/marka';
 import { pinAuthSifresi } from '@/lib/ogrenciler';
 import { supabase } from '@/lib/supabase';
-import { renkler } from '@/lib/tema';
 
 export default function VeliGiris() {
+  const router = useRouter();
   const [tckn, setTckn] = useState('');
   const [pin, setPin] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -29,85 +36,30 @@ export default function VeliGiris() {
   };
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>{marka.ad}</Text>
-      <Text style={styles.altBaslik}>Veli girişi</Text>
+    <Ekran kaydirilabilir baslikCubugusuz ortala>
+      <MarkaBasligi altBaslik="Veli girişi" />
 
-      <TextInput
-        style={styles.girdi}
-        placeholder="TCKN"
-        keyboardType="number-pad"
-        maxLength={11}
-        value={tckn}
-        onChangeText={setTckn}
-        editable={!gonderiliyor}
+      <Kart>
+        <Girdi
+          etiket="Çocuğunuzun TC kimlik numarası"
+          keyboardType="number-pad"
+          maxLength={11}
+          value={tckn}
+          onChangeText={setTckn}
+          editable={!gonderiliyor}
+          buyuk
+        />
+        <PinGirdisi etiket="PIN (4 hane)" deger={pin} onDegis={setPin} pasif={gonderiliyor} onTamamla={girisYap} />
+        <HataMesaji mesaj={hata} />
+        <Buton baslik="Giriş Yap" onPress={girisYap} yukleniyor={gonderiliyor} buyuk />
+      </Kart>
+
+      <Buton
+        tur="metin"
+        baslik="Personel misiniz? E-posta ile giriş"
+        onPress={() => router.replace('/login')}
+        pasif={gonderiliyor}
       />
-      <TextInput
-        style={styles.girdi}
-        placeholder="PIN"
-        secureTextEntry
-        keyboardType="number-pad"
-        maxLength={4}
-        value={pin}
-        onChangeText={setPin}
-        editable={!gonderiliyor}
-        onSubmitEditing={girisYap}
-      />
-
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={girisYap} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Giriş Yap</Text>}
-      </Pressable>
-
-      <Link href="/login" style={styles.altBaslik}>
-        Personel misiniz? E-posta ile giriş yapın
-      </Link>
-    </View>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  altBaslik: {
-    textAlign: 'center',
-    color: renkler.metinIkincil,
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

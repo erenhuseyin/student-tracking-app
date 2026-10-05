@@ -1,10 +1,15 @@
 // Erişim: yalnızca super_admin
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Text } from 'react-native';
 
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { Girdi } from '@/components/Girdi';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
 import { kurumEkle } from '@/lib/kurumlar';
-import { renkler } from '@/lib/tema';
+import { yazi } from '@/lib/tema';
 
 export default function YeniKurum() {
   const router = useRouter();
@@ -27,81 +32,28 @@ export default function YeniKurum() {
   };
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Yeni Kurum</Text>
+    <Ekran kaydirilabilir>
+      <Stack.Screen options={{ title: 'Yeni Kurum' }} />
 
-      <TextInput
-        style={styles.girdi}
-        placeholder="Kurum adı"
-        value={ad}
-        onChangeText={setAd}
-        editable={!gonderiliyor}
-        autoFocus
-      />
-      <TextInput
-        style={styles.girdi}
-        placeholder="Marka kodu (örn. ugur)"
-        autoCapitalize="none"
-        autoCorrect={false}
-        value={markaKodu}
-        onChangeText={setMarkaKodu}
-        editable={!gonderiliyor}
-        onSubmitEditing={kaydet}
-      />
-      <Text style={styles.aciklama}>
-        Marka kodu müşterinin uygulamasıyla eşleşir ve sonradan değiştirilemez. Şubeleri kurumun kendi yöneticisi
-        ekler.
-      </Text>
-
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={kaydet} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Kaydet</Text>}
-      </Pressable>
-    </View>
+      <Kart>
+        <Girdi etiket="Kurum adı" value={ad} onChangeText={setAd} editable={!gonderiliyor} autoFocus />
+        <Girdi
+          etiket="Marka kodu"
+          placeholder="örn. ugur"
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={markaKodu}
+          onChangeText={setMarkaKodu}
+          editable={!gonderiliyor}
+          onSubmitEditing={kaydet}
+        />
+        <Text style={yazi.kucuk}>
+          Marka kodu müşterinin uygulamasıyla eşleşir ve sonradan değiştirilemez. Şubeleri kurumun kendi yöneticisi
+          ekler.
+        </Text>
+        <HataMesaji mesaj={hata} />
+        <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
+      </Kart>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  aciklama: {
-    color: renkler.metinIkincil,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

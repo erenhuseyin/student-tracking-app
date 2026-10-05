@@ -20,6 +20,25 @@ export function bugununTarihi(): string {
   return `${yil}-${ay}-${gun}`;
 }
 
+export const YOKLAMA_ETIKETLERI: Record<YoklamaDurumu, string> = {
+  geldi: 'Geldi',
+  gelmedi: 'Gelmedi',
+  gec: 'Geç',
+};
+
+// 'YYYY-AA-GG' -> '5 Ekim Pazartesi' (yıl, bu yıl değilse eklenir). Tarih yerel gün olarak
+// yorumlanır; `new Date('YYYY-AA-GG')` UTC varsaydığı için bileşenlerden kurulur.
+export function tarihiBicimle(tarih: string): string {
+  const [yil, ay, gun] = tarih.split('-').map(Number);
+  const d = new Date(yil, ay - 1, gun);
+  return d.toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'long',
+    year: yil === new Date().getFullYear() ? undefined : 'numeric',
+  });
+}
+
 export type OgrenciYoklamaSatiri = Ogrenci & { yoklama_durumu: YoklamaDurumu | null };
 
 // Sınıftaki öğrencileri, bugüne ait yoklama durumlarıyla birlikte getirir.
@@ -45,6 +64,22 @@ export async function bugununYoklamasiniGetir(sinifId: string): Promise<OgrenciY
 
   const durumHaritasi = new Map(yoklamalar.map((y) => [y.ogrenci_id, y.durum]));
   return ogrenciler.map((o) => ({ ...o, yoklama_durumu: durumHaritasi.get(o.id) ?? null }));
+}
+
+// Velinin çocukları, bugüne ait yoklama durumlarıyla. RLS (ogrenci_veli_oku, yoklama_veli_oku)
+// yalnızca velinin kendi çocuklarını döndürdüğü için ek filtre gerekmez.
+export async function veliCocuklariniBugunkuYoklamaylaGetir(): Promise<OgrenciYoklamaSatiri[]> {
+  const { data: cocuklar, error: cocukHatasi } = await supabase.from('ogrenci').select('*').order('ad_soyad');
+  if (cocukHatasi) throw new Error(hataMesajinaCevir(cocukHatasi.message));
+
+  const { data: yoklamalar, error: yoklamaHatasi } = await supabase
+    .from('yoklama')
+    .select('ogrenci_id, durum')
+    .eq('tarih', bugununTarihi());
+  if (yoklamaHatasi) throw new Error(hataMesajinaCevir(yoklamaHatasi.message));
+
+  const durumHaritasi = new Map(yoklamalar.map((y) => [y.ogrenci_id, y.durum]));
+  return cocuklar.map((o) => ({ ...o, yoklama_durumu: durumHaritasi.get(o.id) ?? null }));
 }
 
 export async function yoklamaKaydet(

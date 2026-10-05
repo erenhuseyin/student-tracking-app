@@ -1,10 +1,18 @@
 // Erişim: yalnızca kurum_admin
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Text } from 'react-native';
 
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { Girdi } from '@/components/Girdi';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
+import { OnayButonu } from '@/components/OnayButonu';
+import { TarihGirdisi } from '@/components/TarihGirdisi';
+import { Yukleniyor } from '@/components/Yukleniyor';
 import { ogrenciGetir, ogrenciGuncelle, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
-import { renkler } from '@/lib/tema';
+import { yazi } from '@/lib/tema';
 
 export default function OgrenciDuzenle() {
   const router = useRouter();
@@ -20,8 +28,6 @@ export default function OgrenciDuzenle() {
   const [tcknGonderiliyor, setTcknGonderiliyor] = useState(false);
   const [tcknHata, setTcknHata] = useState<string | null>(null);
 
-  const [pinOnayBekleniyor, setPinOnayBekleniyor] = useState(false);
-  const [pinGonderiliyor, setPinGonderiliyor] = useState(false);
   const [pinHata, setPinHata] = useState<string | null>(null);
   const [pinBasarili, setPinBasarili] = useState(false);
 
@@ -71,182 +77,70 @@ export default function OgrenciDuzenle() {
     }
   };
 
-  const pinSifirlaTikla = async () => {
-    setPinGonderiliyor(true);
+  const pinSifirla = async () => {
     setPinHata(null);
+    setPinBasarili(false);
     try {
       await veliPininiSifirla(id);
       setPinBasarili(true);
-      setPinOnayBekleniyor(false);
     } catch (e) {
       setPinHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
-    } finally {
-      setPinGonderiliyor(false);
     }
   };
 
-  if (yukleniyor) {
-    return <ActivityIndicator style={styles.yukleniyor} />;
-  }
-
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Öğrenciyi Düzenle</Text>
+    <Ekran kaydirilabilir>
+      <Stack.Screen options={{ title: 'Öğrenciyi Düzenle' }} />
 
-      <TextInput style={styles.girdi} placeholder="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} />
-      <TextInput
-        style={styles.girdi}
-        placeholder="Doğum tarihi (YYYY-AA-GG)"
-        value={dogumTarihi}
-        onChangeText={setDogumTarihi}
-        editable={!gonderiliyor}
-        onSubmitEditing={kaydet}
-      />
+      {yukleniyor ? (
+        <Yukleniyor />
+      ) : (
+        <>
+          <Kart>
+            <Text style={yazi.altBaslik}>Bilgiler</Text>
+            <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} />
+            <TarihGirdisi etiket="Doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
+            <HataMesaji mesaj={hata} />
+            <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
+          </Kart>
 
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={kaydet} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Kaydet</Text>}
-      </Pressable>
-
-      <View style={styles.bolum}>
-        <Text style={styles.bolumBasligi}>TCKN</Text>
-        {tckn ? (
-          <Text style={styles.salt}>{tckn} (değiştirilemez)</Text>
-        ) : (
-          <>
-            <TextInput
-              style={styles.girdi}
-              placeholder="11 haneli TCKN"
-              value={tcknGirdisi}
-              onChangeText={setTcknGirdisi}
-              keyboardType="number-pad"
-              maxLength={11}
-              editable={!tcknGonderiliyor}
-            />
-            {tcknHata ? <Text style={styles.hataMetni}>{tcknHata}</Text> : null}
-            <Pressable
-              style={[styles.buton, tcknGonderiliyor && styles.butonPasif]}
-              onPress={tcknAtaTikla}
-              disabled={tcknGonderiliyor}
-            >
-              {tcknGonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>TCKN Ata</Text>}
-            </Pressable>
-          </>
-        )}
-      </View>
-
-      {tckn ? (
-        <View style={styles.bolum}>
-          <Text style={styles.bolumBasligi}>Veli PIN&apos;i</Text>
-          {pinBasarili ? (
-            <Text style={styles.basariMetni}>PIN &quot;1234&quot; olarak sıfırlandı.</Text>
-          ) : pinOnayBekleniyor ? (
-            <View style={styles.onaySatiri}>
-              <Text style={styles.onayMetni}>Emin misiniz? PIN &quot;1234&quot; olacak.</Text>
-              {pinGonderiliyor ? (
-                <ActivityIndicator size="small" />
-              ) : (
-                <>
-                  <Pressable onPress={pinSifirlaTikla}>
-                    <Text style={styles.evetMetni}>Evet, sıfırla</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setPinOnayBekleniyor(false)}>
-                    <Text style={styles.vazgecMetni}>Vazgeç</Text>
-                  </Pressable>
-                </>
-              )}
-            </View>
-          ) : (
-            <Pressable onPress={() => setPinOnayBekleniyor(true)}>
-              <Text style={styles.sifirlaMetni}>Veli PIN&apos;ini Sıfırla</Text>
-            </Pressable>
-          )}
-          {pinHata ? <Text style={styles.hataMetni}>{pinHata}</Text> : null}
-        </View>
-      ) : null}
-    </View>
+          <Kart>
+            <Text style={yazi.altBaslik}>Veli girişi</Text>
+            {tckn ? (
+              <>
+                <Girdi etiket="TCKN (değiştirilemez)" value={tckn} editable={false} />
+                <Text style={yazi.kucuk}>
+                  Veli bu TCKN ve PIN ile giriş yapar. PIN unutulursa sıfırlayın; yeni PIN &quot;1234&quot; olur.
+                </Text>
+                <HataMesaji mesaj={pinBasarili ? 'PIN "1234" olarak sıfırlandı.' : null} tur="basari" />
+                <HataMesaji mesaj={pinHata} />
+                <OnayButonu
+                  etiket="Veli PIN'ini Sıfırla"
+                  soru={'Emin misiniz? PIN "1234" olacak.'}
+                  onayEtiketi="Evet, sıfırla"
+                  onOnay={pinSifirla}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={yazi.kucuk}>
+                  TCKN atanınca veli hesabı açılır ve PIN &quot;1234&quot; olur. TCKN sonradan değiştirilemez.
+                </Text>
+                <Girdi
+                  etiket="Öğrencinin TC kimlik numarası"
+                  value={tcknGirdisi}
+                  onChangeText={setTcknGirdisi}
+                  keyboardType="number-pad"
+                  maxLength={11}
+                  editable={!tcknGonderiliyor}
+                />
+                <HataMesaji mesaj={tcknHata} />
+                <Buton tur="ikincil" baslik="TCKN Ata" onPress={tcknAtaTikla} yukleniyor={tcknGonderiliyor} />
+              </>
+            )}
+          </Kart>
+        </>
+      )}
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  yukleniyor: {
-    flex: 1,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  bolum: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: renkler.ayirici,
-    gap: 10,
-  },
-  bolumBasligi: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: renkler.metinIkincil,
-  },
-  salt: {
-    fontSize: 16,
-  },
-  basariMetni: {
-    color: renkler.basari,
-  },
-  onaySatiri: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  onayMetni: {
-    color: renkler.metinIkincil,
-    fontSize: 13,
-  },
-  evetMetni: {
-    color: renkler.hata,
-    fontWeight: '600',
-  },
-  vazgecMetni: {
-    color: renkler.metinIkincil,
-  },
-  sifirlaMetni: {
-    color: renkler.hata,
-  },
-});

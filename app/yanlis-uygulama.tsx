@@ -1,38 +1,23 @@
 // Erişim: hesabı başka bir müşterinin uygulamasına ait olan herkes (bkz. lib/oturum.tsx,
 // durum: yanlis_uygulama). Süper admin bu ekrana düşmez.
-import { StyleSheet, Text, View } from 'react-native';
-
-import { CikisYapButonu } from '@/components/CikisYapButonu';
+import { BosDurum } from '@/components/BosDurum';
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
 import { marka } from '@/lib/marka';
-import { renkler } from '@/lib/tema';
+import { useOturum } from '@/lib/oturum';
 
 export default function YanlisUygulama() {
+  const { cikisYap } = useOturum();
+
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Bu hesap bu uygulamaya ait değil</Text>
-      <Text style={styles.aciklama}>
-        Hesabınız {marka.ad} uygulamasına kayıtlı değil. Lütfen kurumunuzun kendi uygulamasını kullanın.
-      </Text>
-      <CikisYapButonu />
-    </View>
+    <Ekran baslikCubugusuz ortala>
+      <BosDurum
+        ikon="swap-horizontal-outline"
+        baslik="Bu hesap bu uygulamaya ait değil"
+        aciklama={`Hesabınız ${marka.ad} uygulamasına kayıtlı değil. Lütfen kurumunuzun kendi uygulamasını kullanın.`}
+      >
+        <Buton tur="ikincil" ikon="log-out-outline" baslik="Çıkış Yap" onPress={cikisYap} />
+      </BosDurum>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 24,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  aciklama: {
-    textAlign: 'center',
-    color: renkler.metinOrta,
-  },
-});

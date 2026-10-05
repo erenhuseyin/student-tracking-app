@@ -1,9 +1,12 @@
 // Erişim: yalnızca ogretmen
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CikisYapButonu } from '@/components/CikisYapButonu';
+import { Ekran } from '@/components/Ekran';
+import { Ikon } from '@/components/Ikon';
+import { Liste } from '@/components/Liste';
+import { ListeSatiri } from '@/components/ListeSatiri';
 import { siniflariGetir } from '@/lib/siniflar';
 import { renkler } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
@@ -24,67 +27,24 @@ export default function OgretmenAnaSayfa() {
   );
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Sınıflarım</Text>
+    <Ekran>
+      <Stack.Screen options={{ title: 'Sınıflarım', headerRight: () => <CikisYapButonu /> }} />
 
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      {siniflar === null && !hata ? (
-        <ActivityIndicator style={styles.yukleniyor} />
-      ) : (
-        <FlatList
-          style={styles.liste}
-          data={siniflar ?? []}
-          keyExtractor={(s) => s.id}
-          ListEmptyComponent={<Text style={styles.bosMetin}>Henüz size atanmış sınıf yok.</Text>}
-          renderItem={({ item }) => (
-            <Pressable style={styles.satir} onPress={() => router.push(`/yoklama/${item.id}`)}>
-              <Text style={styles.satirMetni}>
-                {item.ad} — {item.donem}
-              </Text>
-            </Pressable>
-          )}
-        />
-      )}
-
-      <CikisYapButonu />
-    </View>
+      <Liste
+        veri={siniflar}
+        hata={hata}
+        anahtar={(s) => s.id}
+        bosIkon="school-outline"
+        bosBaslik="Henüz size atanmış sınıf yok"
+        satir={(s) => (
+          <ListeSatiri
+            baslik={s.ad}
+            altBaslik={`${s.donem} · Yoklama al`}
+            sol={<Ikon ad="school-outline" boyut={26} renk={renkler.ana} />}
+            onPress={() => router.push(`/yoklama/${s.id}`)}
+          />
+        )}
+      />
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  yukleniyor: {
-    marginTop: 24,
-  },
-  liste: {
-    flex: 1,
-  },
-  bosMetin: {
-    textAlign: 'center',
-    color: renkler.metinIkincil,
-    marginTop: 24,
-  },
-  satir: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: renkler.ayirici,
-  },
-  satirMetni: {
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-    textAlign: 'center',
-  },
-});

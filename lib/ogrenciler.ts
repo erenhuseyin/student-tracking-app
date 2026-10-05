@@ -21,20 +21,12 @@ function girdiyiDogrula(adSoyad: string, dogumTarihi: string): { ad_soyad: strin
   const temizAd = adSoyad.trim();
   const temizTarih = dogumTarihi.trim();
   if (!temizAd) throw new Error('Ad soyad gerekli.');
-  if (!TARIH_RE.test(temizTarih)) throw new Error('Doğum tarihi YYYY-AA-GG biçiminde olmalı (örn. 2015-09-20).');
+  if (!TARIH_RE.test(temizTarih)) throw new Error('Doğum tarihini gün, ay ve yıl olarak girin (örn. 20 / 09 / 2015).');
   return { ad_soyad: temizAd, dogum_tarihi: temizTarih };
 }
 
 export async function ogrencileriGetir(sinifId: string): Promise<Ogrenci[]> {
   const { data, error } = await supabase.from('ogrenci').select('*').eq('sinif_id', sinifId).order('ad_soyad');
-  if (error) throw new Error(hataMesajinaCevir(error.message));
-  return data;
-}
-
-// Veli, RLS (ogrenci_veli_oku politikası) sayesinde yalnızca kendi çocuklarını görür;
-// bu yüzden ek bir veli_id filtresi gerekmez.
-export async function veliCocuklariniGetir(): Promise<Ogrenci[]> {
-  const { data, error } = await supabase.from('ogrenci').select('*').order('ad_soyad');
   if (error) throw new Error(hataMesajinaCevir(error.message));
   return data;
 }

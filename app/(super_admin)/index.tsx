@@ -1,11 +1,16 @@
 // Erişim: yalnızca super_admin
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Buton } from '@/components/Buton';
 import { CikisYapButonu } from '@/components/CikisYapButonu';
+import { Ekran } from '@/components/Ekran';
+import { Ikon } from '@/components/Ikon';
+import { Liste } from '@/components/Liste';
+import { ListeSatiri } from '@/components/ListeSatiri';
 import { kurumlariGetir } from '@/lib/kurumlar';
-import { renkler } from '@/lib/tema';
+import { bosluk, renkler } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
 
 // Kök kurumlar ada göre, her kökün şubeleri hemen altında.
@@ -38,89 +43,41 @@ export default function SuperAdminAnaSayfa() {
   );
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Kurumlar</Text>
+    <Ekran>
+      <Stack.Screen options={{ title: 'Kurumlar', headerRight: () => <CikisYapButonu /> }} />
 
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      {kurumlar === null && !hata ? (
-        <ActivityIndicator style={styles.yukleniyor} />
-      ) : (
-        <FlatList
-          style={styles.liste}
-          data={kurumlar ?? []}
-          keyExtractor={(k) => k.id}
-          ListEmptyComponent={<Text style={styles.bosMetin}>Henüz kurum yok.</Text>}
-          renderItem={({ item }) => (
-            <View style={[styles.satir, item.ust_kurum_id ? styles.subeSatiri : null]}>
-              <Text style={styles.satirMetni}>{item.ad}</Text>
-              {item.ust_kurum_id ? null : (
-                <Text style={styles.markaKodu}>{item.marka_kodu ?? 'marka kodu yok'}</Text>
-              )}
+      <Liste
+        veri={kurumlar}
+        hata={hata}
+        anahtar={(k) => k.id}
+        bosIkon="business-outline"
+        bosBaslik="Henüz kurum yok"
+        satir={(k) =>
+          k.ust_kurum_id ? (
+            <View style={styles.sube}>
+              <ListeSatiri
+                baslik={k.ad}
+                altBaslik="Şube"
+                sol={<Ikon ad="git-branch-outline" renk={renkler.metinIkincil} />}
+              />
             </View>
-          )}
-        />
-      )}
+          ) : (
+            <ListeSatiri
+              baslik={k.ad}
+              altBaslik={k.marka_kodu ? `Marka kodu: ${k.marka_kodu}` : 'Marka kodu yok'}
+              sol={<Ikon ad="business-outline" boyut={26} renk={renkler.ana} />}
+            />
+          )
+        }
+      />
 
-      <Pressable style={styles.buton} onPress={() => router.push('/yeni-kurum')}>
-        <Text style={styles.butonMetni}>Yeni Kurum Ekle</Text>
-      </Pressable>
-      <CikisYapButonu />
-    </View>
+      <Buton ikon="add" baslik="Yeni Kurum Ekle" onPress={() => router.push('/yeni-kurum')} />
+    </Ekran>
   );
 }
 
 const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  yukleniyor: {
-    marginTop: 24,
-  },
-  liste: {
-    flex: 1,
-  },
-  bosMetin: {
-    textAlign: 'center',
-    color: renkler.metinIkincil,
-    marginTop: 24,
-  },
-  satir: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: renkler.ayirici,
-  },
-  subeSatiri: {
-    paddingLeft: 24,
-  },
-  satirMetni: {
-    fontSize: 16,
-  },
-  markaKodu: {
-    color: renkler.metinIkincil,
-    marginTop: 2,
-  },
-  hataMetni: {
-    color: renkler.hata,
-    textAlign: 'center',
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
+  sube: {
+    marginLeft: bosluk.xl,
   },
 });

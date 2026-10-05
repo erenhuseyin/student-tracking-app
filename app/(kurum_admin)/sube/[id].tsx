@@ -1,12 +1,12 @@
 // Erişim: yalnızca kök kurumun kurum_admin'i (RLS: şube admini başka şubeyi okuyamaz).
 // Kök admin bir şubenin sınıflarını burada yönetir.
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
+import { Ekran } from '@/components/Ekran';
+import { HataMesaji } from '@/components/HataMesaji';
 import { SinifListesi } from '@/components/SinifListesi';
 import { kurumGetir } from '@/lib/kurumlar';
-import { renkler } from '@/lib/tema';
 
 export default function SubeDetay() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,27 +28,9 @@ export default function SubeDetay() {
   }, [id]);
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>{ad ?? 'Şube'}</Text>
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : <SinifListesi kurumId={id} />}
-    </View>
+    <Ekran>
+      <Stack.Screen options={{ title: ad ?? 'Şube' }} />
+      {hata ? <HataMesaji mesaj={hata} /> : <SinifListesi kurumId={id} />}
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  hataMetni: {
-    color: renkler.hata,
-    textAlign: 'center',
-  },
-});

@@ -1,5 +1,6 @@
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { usePushBildirimKaydi } from '@/lib/bildirimler';
@@ -21,29 +22,32 @@ function Yonlendirici() {
   }, [durum]);
 
   return (
-    <Stack>
-      <Stack.Protected guard={durum === 'oturum_yok'}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={durum === 'profil_yok'}>
-        <Stack.Screen name="profil-yok" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={durum === 'yanlis_uygulama'}>
-        <Stack.Screen name="yanlis-uygulama" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={rol === 'super_admin'}>
-        <Stack.Screen name="(super_admin)" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={rol === 'kurum_admin'}>
-        <Stack.Screen name="(kurum_admin)" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={rol === 'ogretmen'}>
-        <Stack.Screen name="(ogretmen)" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={rol === 'veli'}>
-        <Stack.Screen name="(veli)" options={{ headerShown: false }} />
-      </Stack.Protected>
-    </Stack>
+    <>
+      <StatusBar style="dark" />
+      <Stack>
+        <Stack.Protected guard={durum === 'oturum_yok'}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={durum === 'profil_yok'}>
+          <Stack.Screen name="profil-yok" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={durum === 'yanlis_uygulama'}>
+          <Stack.Screen name="yanlis-uygulama" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={rol === 'super_admin'}>
+          <Stack.Screen name="(super_admin)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={rol === 'kurum_admin'}>
+          <Stack.Screen name="(kurum_admin)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={rol === 'ogretmen'}>
+          <Stack.Screen name="(ogretmen)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={rol === 'veli'}>
+          <Stack.Screen name="(veli)" options={{ headerShown: false }} />
+        </Stack.Protected>
+      </Stack>
+    </>
   );
 }
 

@@ -41,7 +41,7 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: gorsel('icon.png'),
   scheme: marka.scheme,
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'light',
   ios: {
     icon: './assets/expo.icon',
   },

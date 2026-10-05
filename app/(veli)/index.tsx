@@ -1,99 +1,76 @@
 // Erişim: yalnızca veli
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { CikisYapButonu } from '@/components/CikisYapButonu';
-import { veliCocuklariniGetir } from '@/lib/ogrenciler';
+import { DurumRozeti } from '@/components/DurumRozeti';
+import { Ekran } from '@/components/Ekran';
+import { IkonButon } from '@/components/IkonButon';
+import { Liste } from '@/components/Liste';
+import { ListeSatiri } from '@/components/ListeSatiri';
 import { renkler } from '@/lib/tema';
-import type { Ogrenci } from '@/lib/tipler';
+import { type OgrenciYoklamaSatiri, veliCocuklariniBugunkuYoklamaylaGetir } from '@/lib/yoklama';
 
 export default function VeliAnaSayfa() {
   const router = useRouter();
-  const [cocuklar, setCocuklar] = useState<Ogrenci[] | null>(null);
+  const [cocuklar, setCocuklar] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       setHata(null);
       // RLS (ogrenci_veli_oku politikası) yalnızca velinin bağlı olduğu öğrencileri döndürür.
-      veliCocuklariniGetir()
+      veliCocuklariniBugunkuYoklamaylaGetir()
         .then(setCocuklar)
         .catch((e: Error) => setHata(e.message));
     }, []),
   );
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Çocuklarım</Text>
+    <Ekran>
+      <Stack.Screen
+        options={{
+          title: 'Çocuklarım',
+          headerRight: () => (
+            <View style={styles.baslikEylemleri}>
+              <IkonButon
+                ikon="key-outline"
+                etiket="PIN'imi değiştir"
+                renk={renkler.metinIkincil}
+                onPress={() => router.push('/pin-degistir')}
+              />
+              <CikisYapButonu />
+            </View>
+          ),
+        }}
+      />
 
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      {cocuklar === null && !hata ? (
-        <ActivityIndicator style={styles.yukleniyor} />
-      ) : (
-        <FlatList
-          style={styles.liste}
-          data={cocuklar ?? []}
-          keyExtractor={(o) => o.id}
-          ListEmptyComponent={<Text style={styles.bosMetin}>Bağlı bir çocuk bulunamadı.</Text>}
-          renderItem={({ item }) => (
-            <Pressable style={styles.satir} onPress={() => router.push(`/yoklama/${item.id}`)}>
-              <Text style={styles.satirMetni}>{item.ad_soyad}</Text>
-            </Pressable>
-          )}
-        />
-      )}
-
-      <Pressable style={styles.pinLinki} onPress={() => router.push('/pin-degistir')}>
-        <Text style={styles.pinLinkiMetni}>PIN&apos;imi değiştir</Text>
-      </Pressable>
-
-      <CikisYapButonu />
-    </View>
+      <Liste
+        veri={cocuklar}
+        hata={hata}
+        anahtar={(o) => o.id}
+        bosIkon="people-outline"
+        bosBaslik="Bağlı bir çocuk bulunamadı"
+        bosAciklama="Lütfen kurumunuzun yöneticisiyle iletişime geçin."
+        satir={(o) => (
+          <ListeSatiri
+            buyuk
+            baslik={o.ad_soyad}
+            altBaslik="Bugün"
+            sol={<Avatar ad={o.ad_soyad} boyut={48} />}
+            sag={<DurumRozeti durum={o.yoklama_durumu} />}
+            onPress={() => router.push(`/yoklama/${o.id}`)}
+          />
+        )}
+      />
+    </Ekran>
   );
 }
 
 const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  yukleniyor: {
-    marginTop: 24,
-  },
-  liste: {
-    flex: 1,
-  },
-  bosMetin: {
-    textAlign: 'center',
-    color: renkler.metinIkincil,
-    marginTop: 24,
-  },
-  satir: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: renkler.ayirici,
-  },
-  satirMetni: {
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-    textAlign: 'center',
-  },
-  pinLinki: {
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  pinLinkiMetni: {
-    color: renkler.ana,
+  baslikEylemleri: {
+    flexDirection: 'row',
   },
 });

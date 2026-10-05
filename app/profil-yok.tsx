@@ -1,35 +1,21 @@
 // Erişim: auth hesabı olup `kullanici` satırı olmayan herkes (bkz. lib/oturum.tsx, durum: profil_yok).
-import { StyleSheet, Text, View } from 'react-native';
-
-import { CikisYapButonu } from '@/components/CikisYapButonu';
-import { renkler } from '@/lib/tema';
+import { BosDurum } from '@/components/BosDurum';
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { useOturum } from '@/lib/oturum';
 
 export default function ProfilYok() {
+  const { cikisYap } = useOturum();
+
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Hesabınız bulunamadı</Text>
-      <Text style={styles.aciklama}>
-        Bu hesap sisteme kayıtlı değil. Lütfen kurumunuzun yöneticisiyle iletişime geçin.
-      </Text>
-      <CikisYapButonu />
-    </View>
+    <Ekran baslikCubugusuz ortala>
+      <BosDurum
+        ikon="person-circle-outline"
+        baslik="Hesabınız bulunamadı"
+        aciklama="Bu hesap sisteme kayıtlı değil. Lütfen kurumunuzun yöneticisiyle iletişime geçin."
+      >
+        <Buton tur="ikincil" ikon="log-out-outline" baslik="Çıkış Yap" onPress={cikisYap} />
+      </BosDurum>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 24,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  aciklama: {
-    textAlign: 'center',
-    color: renkler.metinOrta,
-  },
-});

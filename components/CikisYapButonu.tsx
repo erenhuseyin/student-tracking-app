@@ -1,28 +1,9 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-
+// Başlık çubuğunun sağında duran çıkış ikonu (rol ana ekranları).
+import { IkonButon } from '@/components/IkonButon';
 import { useOturum } from '@/lib/oturum';
 import { renkler } from '@/lib/tema';
 
 export function CikisYapButonu() {
   const { cikisYap } = useOturum();
-
-  return (
-    <Pressable style={styles.buton} onPress={cikisYap}>
-      <Text style={styles.metin}>Çıkış Yap</Text>
-    </Pressable>
-  );
+  return <IkonButon ikon="log-out-outline" etiket="Çıkış yap" renk={renkler.metinIkincil} onPress={cikisYap} />;
 }
-
-const styles = StyleSheet.create({
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginTop: 8,
-  },
-  metin: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-  },
-});

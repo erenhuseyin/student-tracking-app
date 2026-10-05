@@ -1,10 +1,14 @@
 // Erişim: yalnızca kurum_admin
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { Girdi } from '@/components/Girdi';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
+import { Yukleniyor } from '@/components/Yukleniyor';
 import { sinifGetir, sinifGuncelle } from '@/lib/siniflar';
-import { renkler } from '@/lib/tema';
 
 export default function SinifDuzenle() {
   const router = useRouter();
@@ -47,73 +51,20 @@ export default function SinifDuzenle() {
     }
   };
 
-  if (yukleniyor) {
-    return <ActivityIndicator style={styles.yukleniyor} />;
-  }
-
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Sınıfı Düzenle</Text>
+    <Ekran kaydirilabilir>
+      <Stack.Screen options={{ title: 'Sınıfı Düzenle' }} />
 
-      <TextInput style={styles.girdi} placeholder="Sınıf adı" value={ad} onChangeText={setAd} editable={!gonderiliyor} />
-      <TextInput
-        style={styles.girdi}
-        placeholder="Dönem"
-        value={donem}
-        onChangeText={setDonem}
-        editable={!gonderiliyor}
-        onSubmitEditing={kaydet}
-      />
-
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={kaydet} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Kaydet</Text>}
-      </Pressable>
-    </View>
+      {yukleniyor ? (
+        <Yukleniyor />
+      ) : (
+        <Kart>
+          <Girdi etiket="Sınıf adı" value={ad} onChangeText={setAd} editable={!gonderiliyor} />
+          <Girdi etiket="Dönem" value={donem} onChangeText={setDonem} editable={!gonderiliyor} onSubmitEditing={kaydet} />
+          <HataMesaji mesaj={hata} />
+          <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
+        </Kart>
+      )}
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  yukleniyor: {
-    flex: 1,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

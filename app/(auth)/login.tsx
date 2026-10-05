@@ -1,10 +1,14 @@
-import { Link } from 'expo-router';
+// Erişim: oturumu olmayan herkes. Personel (süper admin, kurum admini, öğretmen) e-posta + şifre ile girer.
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { marka } from '@/lib/marka';
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { Girdi } from '@/components/Girdi';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
+import { MarkaBasligi } from '@/components/MarkaBasligi';
 import { supabase } from '@/lib/supabase';
-import { renkler } from '@/lib/tema';
 
 function hataMesajinaCevir(mesaj: string): string {
   if (/invalid login credentials/i.test(mesaj)) return 'E-posta veya şifre hatalı.';
@@ -14,6 +18,7 @@ function hataMesajinaCevir(mesaj: string): string {
 }
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -32,90 +37,41 @@ export default function Login() {
   };
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>{marka.ad}</Text>
-      <Text style={styles.altBaslik}>Hesabınızla giriş yapın</Text>
+    <Ekran kaydirilabilir baslikCubugusuz ortala>
+      <MarkaBasligi altBaslik="Personel girişi" />
 
-      <TextInput
-        style={styles.girdi}
-        placeholder="E-posta"
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        editable={!gonderiliyor}
+      <Kart>
+        <Girdi
+          etiket="E-posta"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          editable={!gonderiliyor}
+        />
+        <Girdi
+          etiket="Şifre"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="password"
+          value={sifre}
+          onChangeText={setSifre}
+          editable={!gonderiliyor}
+          onSubmitEditing={girisYap}
+        />
+        <HataMesaji mesaj={hata} />
+        <Buton baslik="Giriş Yap" onPress={girisYap} yukleniyor={gonderiliyor} />
+      </Kart>
+
+      <Buton
+        tur="ikincil"
+        ikon="people-outline"
+        baslik="Veliyim — TCKN ile giriş"
+        onPress={() => router.replace('/veli-giris')}
+        pasif={gonderiliyor}
+        buyuk
       />
-      <TextInput
-        style={styles.girdi}
-        placeholder="Şifre"
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="password"
-        value={sifre}
-        onChangeText={setSifre}
-        editable={!gonderiliyor}
-        onSubmitEditing={girisYap}
-      />
-
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable
-        style={[styles.buton, gonderiliyor && styles.butonPasif]}
-        onPress={girisYap}
-        disabled={gonderiliyor}
-      >
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Giriş Yap</Text>}
-      </Pressable>
-
-      <Link href="/veli-giris" style={styles.altBaslik}>
-        Veli misiniz? TCKN ile giriş yapın
-      </Link>
-    </View>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  altBaslik: {
-    textAlign: 'center',
-    color: renkler.metinIkincil,
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

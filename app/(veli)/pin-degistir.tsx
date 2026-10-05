@@ -1,11 +1,14 @@
 // Erişim: yalnızca veli (kendi PIN'ini değiştirir)
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
+import { PinGirdisi } from '@/components/PinGirdisi';
 import { pinAuthSifresi } from '@/lib/ogrenciler';
 import { supabase } from '@/lib/supabase';
-import { renkler } from '@/lib/tema';
 
 export default function PinDegistir() {
   const router = useRouter();
@@ -35,77 +38,21 @@ export default function PinDegistir() {
   };
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>PIN&apos;imi Değiştir</Text>
+    <Ekran kaydirilabilir>
+      <Stack.Screen options={{ title: 'PIN\'imi Değiştir' }} />
 
-      <TextInput
-        style={styles.girdi}
-        placeholder="Yeni PIN"
-        secureTextEntry
-        keyboardType="number-pad"
-        maxLength={4}
-        value={yeniPin}
-        onChangeText={setYeniPin}
-        editable={!gonderiliyor}
-      />
-      <TextInput
-        style={styles.girdi}
-        placeholder="Yeni PIN (tekrar)"
-        secureTextEntry
-        keyboardType="number-pad"
-        maxLength={4}
-        value={yeniPinTekrar}
-        onChangeText={setYeniPinTekrar}
-        editable={!gonderiliyor}
-        onSubmitEditing={kaydet}
-      />
-
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={kaydet} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Kaydet</Text>}
-      </Pressable>
-    </View>
+      <Kart>
+        <PinGirdisi etiket="Yeni PIN" deger={yeniPin} onDegis={setYeniPin} pasif={gonderiliyor} />
+        <PinGirdisi
+          etiket="Yeni PIN (tekrar)"
+          deger={yeniPinTekrar}
+          onDegis={setYeniPinTekrar}
+          pasif={gonderiliyor}
+          onTamamla={kaydet}
+        />
+        <HataMesaji mesaj={hata} />
+        <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} buyuk />
+      </Kart>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

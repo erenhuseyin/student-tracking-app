@@ -1,11 +1,15 @@
 // Erişim: yalnızca kurum_admin
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Buton } from '@/components/Buton';
+import { Ekran } from '@/components/Ekran';
+import { Girdi } from '@/components/Girdi';
+import { HataMesaji } from '@/components/HataMesaji';
+import { Kart } from '@/components/Kart';
+import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { useOturum } from '@/lib/oturum';
 import { ogrenciEkle } from '@/lib/ogrenciler';
-import { renkler } from '@/lib/tema';
 
 export default function YeniOgrenci() {
   const router = useRouter();
@@ -36,72 +40,15 @@ export default function YeniOgrenci() {
   };
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Yeni Öğrenci</Text>
+    <Ekran kaydirilabilir>
+      <Stack.Screen options={{ title: 'Yeni Öğrenci' }} />
 
-      <TextInput
-        style={styles.girdi}
-        placeholder="Ad soyad"
-        value={adSoyad}
-        onChangeText={setAdSoyad}
-        editable={!gonderiliyor}
-        autoFocus
-      />
-      <TextInput
-        style={styles.girdi}
-        placeholder="Doğum tarihi (YYYY-AA-GG)"
-        value={dogumTarihi}
-        onChangeText={setDogumTarihi}
-        editable={!gonderiliyor}
-        onSubmitEditing={kaydet}
-      />
-
-      {hata ? <Text style={styles.hataMetni}>{hata}</Text> : null}
-
-      <Pressable style={[styles.buton, gonderiliyor && styles.butonPasif]} onPress={kaydet} disabled={gonderiliyor}>
-        {gonderiliyor ? <ActivityIndicator color={renkler.anaUstu} /> : <Text style={styles.butonMetni}>Kaydet</Text>}
-      </Pressable>
-    </View>
+      <Kart>
+        <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} autoFocus />
+        <TarihGirdisi etiket="Doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
+        <HataMesaji mesaj={hata} />
+        <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
+      </Kart>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  girdi: {
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  hataMetni: {
-    color: renkler.hata,
-  },
-  buton: {
-    backgroundColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  butonPasif: {
-    opacity: 0.6,
-  },
-  butonMetni: {
-    color: renkler.anaUstu,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

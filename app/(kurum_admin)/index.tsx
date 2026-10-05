@@ -1,12 +1,14 @@
 // Erişim: yalnızca kurum_admin. Kendi kurumunun sınıflarını yönetir; kurumu kök (müşteri)
 // ise ayrıca şubelerine geçebilir.
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Text } from 'react-native';
 
+import { Buton } from '@/components/Buton';
 import { CikisYapButonu } from '@/components/CikisYapButonu';
+import { Ekran } from '@/components/Ekran';
 import { SinifListesi } from '@/components/SinifListesi';
 import { useOturum } from '@/lib/oturum';
-import { renkler } from '@/lib/tema';
+import { yazi } from '@/lib/tema';
 
 export default function KurumAdminAnaSayfa() {
   const router = useRouter();
@@ -14,48 +16,15 @@ export default function KurumAdminAnaSayfa() {
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
 
   return (
-    <View style={styles.kapsayici}>
-      <Text style={styles.baslik}>Sınıflarım</Text>
-      {kurum ? <Text style={styles.altBaslik}>{kurum.ad}</Text> : null}
+    <Ekran>
+      <Stack.Screen options={{ title: 'Sınıflar', headerRight: () => <CikisYapButonu /> }} />
 
+      {kurum ? <Text style={yazi.altBaslik}>{kurum.ad}</Text> : null}
       {kurum ? <SinifListesi kurumId={kurum.id} /> : null}
 
       {kokKurumMu ? (
-        <Pressable style={styles.ikincilButon} onPress={() => router.push('/subeler')}>
-          <Text style={styles.ikincilButonMetni}>Şubeler</Text>
-        </Pressable>
+        <Buton tur="ikincil" ikon="business-outline" baslik="Şubeler" onPress={() => router.push('/subeler')} />
       ) : null}
-      <CikisYapButonu />
-    </View>
+    </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    padding: 24,
-    gap: 12,
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  altBaslik: {
-    textAlign: 'center',
-    color: renkler.metinIkincil,
-  },
-  ikincilButon: {
-    borderWidth: 1,
-    borderColor: renkler.ana,
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  ikincilButonMetni: {
-    color: renkler.ana,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});
