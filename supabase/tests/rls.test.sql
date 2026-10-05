@@ -129,6 +129,8 @@ select tst.esit('anon sinif', tst.dene('select 1 from public.sinif'), 'hata:4250
 select tst.esit('anon ogrenci', tst.dene('select 1 from public.ogrenci'), 'hata:42501');
 select tst.esit('anon veli_ogrenci', tst.dene('select 1 from public.veli_ogrenci'), 'hata:42501');
 select tst.esit('anon ogretmen_sinif', tst.dene('select 1 from public.ogretmen_sinif'), 'hata:42501');
+select tst.esit('anon gelisim_kategorisi', tst.dene('select 1 from public.gelisim_kategorisi'), 'hata:42501');
+select tst.esit('anon gelisim_kaydi', tst.dene('select 1 from public.gelisim_kaydi'), 'hata:42501');
 
 -- ===========================================================================
 -- 2. GHOST: auth kullanıcısı var ama kullanici kaydı yok -> hiçbir şey göremez
@@ -813,6 +815,208 @@ select tst.esit('pasif şube admini sınıf göremez', (select count(*) from pub
 select tst.esit('pasif şube admini kurum göremez', (select count(*) from public.kurum)::text, '0');
 select tst.esit('pasif şube admini sınıf ekleyemez',
   tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-0000000000a1', 'x', '2026')$q$), 'hata:42501');
+
+-- ===========================================================================
+-- 17. GELİŞİM KAYDI VE KATEGORİLERİ
+--   Kategori müşteri (kök kurum) düzeyindedir: katA (Kurum A), katB (Kurum B) + her kök kuruma
+--   otomatik eklenen 4 varsayılan. ogrA0, sA1'e de atanır (aynı sınıfın ikinci öğretmeni).
+--   16. bölümde pasifleştirilen adminA1 ve ogrA1x burada yeniden aktifleştirilir.
+--   Kayıtlar: g1 = ogrA1 -> oA1 | g2 = adminA -> oA1x (şube A1)
+-- ===========================================================================
+reset role;
+
+update public.kullanici set aktif = true
+  where id in ('b0000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000014');
+
+select tst.esit('kök kuruma varsayılan kategoriler eklendi (A)',
+  (select count(*) from public.gelisim_kategorisi where kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '4');
+select tst.esit('süper adminin açtığı kök kuruma varsayılan kategoriler eklendi (D)',
+  (select count(*) from public.gelisim_kategorisi g join public.kurum k on k.id = g.kurum_id where k.ad = 'Kurum D')::text, '4');
+select tst.esit('şubeye varsayılan kategori eklenmez',
+  (select count(*) from public.gelisim_kategorisi where kurum_id = 'c0000000-0000-0000-0000-0000000000a1')::text, '0');
+select tst.esit('şubede kategori tanımlanamaz',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-0000000000a1', 'x')$q$), 'hata:23514');
+
+insert into public.gelisim_kategorisi (id, kurum_id, ad, sira) values
+  ('f0000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-00000000000a', 'katA', 10),
+  ('f0000000-0000-0000-0000-00000000000b', 'c0000000-0000-0000-0000-00000000000b', 'katB', 10);
+
+insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values
+  ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-0000000000a1');
+
+-- ogrA1 (sA1: oA1, oA2)
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA1 kendi öğrencisine gelişim kaydı girer',
+  tst.dene($q$insert into public.gelisim_kaydi (id, kurum_id, ogrenci_id, kategori_id, not_metni, olcek_degeri, giren_kullanici_id) values ('9a000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','f0000000-0000-0000-0000-00000000000a','iyi gidiyor',4,'b0000000-0000-0000-0000-000000000005')$q$), 'ok:1');
+select tst.esit('ogrA1 atanmadığı öğrenciye (oA3) kayıt giremez',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a3','f0000000-0000-0000-0000-00000000000a','x','b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('ogrA1 başkası adına (giren_kullanici_id sahte) kayıt giremez',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','f0000000-0000-0000-0000-00000000000a','x','b0000000-0000-0000-0000-000000000006')$q$), 'hata:42501');
+select tst.esit('başka müşterinin kategorisi kayda bağlanamaz (bileşik FK)',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','f0000000-0000-0000-0000-00000000000b','x','b0000000-0000-0000-0000-000000000005')$q$), 'hata:23503');
+select tst.esit('ölçek 0 reddedilir',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, olcek_degeri, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','f0000000-0000-0000-0000-00000000000a','x',0,'b0000000-0000-0000-0000-000000000005')$q$), 'hata:23514');
+select tst.esit('ölçek 6 reddedilir',
+  tst.dene($q$update public.gelisim_kaydi set olcek_degeri = 6 where id = '9a000000-0000-0000-0000-000000000001'$q$), 'hata:23514');
+select tst.esit('boş not reddedilir',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = '   ' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'hata:23514');
+select tst.esit('ogrA1 kendi kaydını günceller (ölçek boşaltılabilir)',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = 'çok iyi', olcek_degeri = null where id = '9a000000-0000-0000-0000-000000000001'$q$), 'ok:1');
+select tst.esit('kok_kurum_id istemciden yazılamaz',
+  tst.dene($q$update public.gelisim_kaydi set kok_kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'hata:42501');
+select tst.esit('foto_yolu istemciden yazılamaz',
+  tst.dene($q$update public.gelisim_kaydi set foto_yolu = 'x.jpg' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'hata:42501');
+select tst.esit('giren_kullanici_id sonradan değiştirilemez',
+  tst.dene($q$update public.gelisim_kaydi set giren_kullanici_id = 'b0000000-0000-0000-0000-000000000006' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'hata:42501');
+select tst.esit('kayıt başka öğrenciye taşınamaz',
+  tst.dene($q$update public.gelisim_kaydi set ogrenci_id = 'e0000000-0000-0000-0000-0000000000a2' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'hata:42501');
+select tst.esit('öğretmen müşterisinin kategorilerini görür (4 varsayılan + katA)',
+  (select count(*) from public.gelisim_kategorisi)::text, '5');
+select tst.esit('öğretmen kategori ekleyemez',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'x')$q$), 'hata:42501');
+select tst.esit('öğretmen kategori güncelleyemez',
+  tst.dene($q$update public.gelisim_kategorisi set ad = 'x' where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
+select tst.esit('öğretmen kategori silemez',
+  tst.dene($q$delete from public.gelisim_kategorisi where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
+
+-- ogrA0 (aynı sınıfın ikinci öğretmeni): görür ama başkasının kaydını değiştiremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('aynı sınıfın öğretmeni kaydı görür', (select count(*) from public.gelisim_kaydi)::text, '1');
+select tst.esit('aynı sınıfın öğretmeni başkasının kaydını güncelleyemez',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = 'x' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'ok:0');
+select tst.esit('aynı sınıfın öğretmeni başkasının kaydını silemez',
+  tst.dene($q$delete from public.gelisim_kaydi where id = '9a000000-0000-0000-0000-000000000001'$q$), 'ok:0');
+
+-- ogrA2 (sA2): başka sınıfın kaydını hiç göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000006","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA2 başka sınıfın gelişim kaydını göremez', (select count(*) from public.gelisim_kaydi)::text, '0');
+
+-- veliA1 (oA1, oA2): okur, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA1 çocuğunun gelişim kaydını görür', (select count(*) from public.gelisim_kaydi)::text, '1');
+select tst.esit('veli kategorileri görür', (select count(*) from public.gelisim_kategorisi)::text, '5');
+select tst.esit('veli gelişim kaydı giremez',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','f0000000-0000-0000-0000-00000000000a','x','b0000000-0000-0000-0000-000000000008')$q$), 'hata:42501');
+select tst.esit('veli gelişim kaydı güncelleyemez',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = 'x'$q$), 'ok:0');
+select tst.esit('veli gelişim kaydı silemez',
+  tst.dene($q$delete from public.gelisim_kaydi$q$), 'ok:0');
+
+-- veliA2 (yalnızca oA2): oA1'in kaydını göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA2 başka çocuğun gelişim kaydını göremez', (select count(*) from public.gelisim_kaydi)::text, '0');
+
+-- veliB / adminB: A müşterisinden hiçbir şey sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliB A gelişim kaydını göremez', (select count(*) from public.gelisim_kaydi)::text, '0');
+select tst.esit('veliB A kategorilerini göremez',
+  (select count(*) from public.gelisim_kategorisi where kurum_id <> 'c0000000-0000-0000-0000-00000000000b')::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('adminB A gelişim kaydını göremez', (select count(*) from public.gelisim_kaydi)::text, '0');
+select tst.esit('adminB A kategorilerini göremez',
+  (select count(*) from public.gelisim_kategorisi where kurum_id <> 'c0000000-0000-0000-0000-00000000000b')::text, '0');
+select tst.esit('adminB A kurumuna kategori ekleyemez',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'x')$q$), 'hata:42501');
+select tst.esit('adminB A kategorisini silemez',
+  tst.dene($q$delete from public.gelisim_kategorisi where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
+
+-- adminA (kök admin): kategorileri ve yönettiği kurumların tüm kayıtlarını yönetir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin öğretmenin kaydını günceller',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = 'admin düzeltti' where id = '9a000000-0000-0000-0000-000000000001'$q$), 'ok:1');
+select tst.esit('kök admin şube öğrencisine kayıt girer',
+  tst.dene($q$insert into public.gelisim_kaydi (id, kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('9a000000-0000-0000-0000-000000000002','c0000000-0000-0000-0000-0000000000a1','e0000000-0000-0000-0000-000000000a11','f0000000-0000-0000-0000-00000000000a','şube kaydı','b0000000-0000-0000-0000-000000000002')$q$), 'ok:1');
+select tst.esit('şube kaydının müşterisi ana kurum',
+  (select kok_kurum_id::text from public.gelisim_kaydi where id = '9a000000-0000-0000-0000-000000000002'), 'c0000000-0000-0000-0000-00000000000a');
+select tst.esit('kök admin başkası adına kayıt giremez',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a','e0000000-0000-0000-0000-0000000000a1','f0000000-0000-0000-0000-00000000000a','x','b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('kök admin kategori ekler',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'Spor') returning id$q$), 'ok:1');
+select tst.esit('aynı adla ikinci kategori eklenemez',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'Spor')$q$), 'hata:23505');
+select tst.esit('kök admin kategoriyi yeniden adlandırır ve pasifleştirir',
+  tst.dene($q$update public.gelisim_kategorisi set ad = 'Beden Eğitimi', aktif = false where ad = 'Spor'$q$), 'ok:1');
+select tst.esit('kategori başka kuruma taşınamaz',
+  tst.dene($q$update public.gelisim_kategorisi set kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'hata:42501');
+select tst.esit('kullanılan kategori silinemez',
+  tst.dene($q$delete from public.gelisim_kategorisi where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'hata:23503');
+select tst.esit('kök admin kullanılmayan kategoriyi siler',
+  tst.dene($q$delete from public.gelisim_kategorisi where ad = 'Beden Eğitimi'$q$), 'ok:1');
+select tst.esit('kök admin başka müşteriye kategori ekleyemez',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000b', 'x')$q$), 'hata:42501');
+
+-- adminA1 (şube admini): kendi şubesinin kaydını yönetir, kategorileri yalnızca okur
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000012","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini yalnızca kendi şubesinin kaydını görür', (select count(*) from public.gelisim_kaydi)::text, '1');
+select tst.esit('şube admini müşterinin kategorilerini görür', (select count(*) from public.gelisim_kategorisi)::text, '5');
+select tst.esit('şube admini kategori ekleyemez',
+  tst.dene($q$insert into public.gelisim_kategorisi (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'x')$q$), 'hata:42501');
+select tst.esit('şube admini kategori güncelleyemez',
+  tst.dene($q$update public.gelisim_kategorisi set aktif = false where id = 'f0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
+select tst.esit('şube admini kendi şubesinin kaydını günceller',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = 'şube admini düzeltti' where id = '9a000000-0000-0000-0000-000000000002'$q$), 'ok:1');
+
+-- adminA2 (kardeş şube): hiçbir kayıt göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kardeş şube admini gelişim kaydı göremez', (select count(*) from public.gelisim_kaydi)::text, '0');
+select tst.esit('kardeş şube admini başka şubeye kayıt giremez',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-0000000000a1','e0000000-0000-0000-0000-000000000a11','f0000000-0000-0000-0000-00000000000a','x','b0000000-0000-0000-0000-000000000013')$q$), 'hata:42501');
+
+-- ogrA1x (şube A1 öğretmeni, sA1x): ana kurumun kategorisiyle kayıt girer
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000014","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube öğretmeni öğrencisinin kaydını görür', (select count(*) from public.gelisim_kaydi)::text, '1');
+select tst.esit('şube öğretmeni adminin kaydını değiştiremez',
+  tst.dene($q$update public.gelisim_kaydi set not_metni = 'x' where id = '9a000000-0000-0000-0000-000000000002'$q$), 'ok:0');
+select tst.esit('şube öğretmeni ana kurumun kategorisiyle kayıt girer',
+  tst.dene($q$insert into public.gelisim_kaydi (kurum_id, ogrenci_id, kategori_id, not_metni, giren_kullanici_id) values ('c0000000-0000-0000-0000-0000000000a1','e0000000-0000-0000-0000-000000000a11','f0000000-0000-0000-0000-00000000000a','şube öğretmeni','b0000000-0000-0000-0000-000000000014')$q$), 'ok:1');
+
+-- ogrA1 kendi kaydını siler
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA1 kendi kaydını siler',
+  tst.dene($q$delete from public.gelisim_kaydi where id = '9a000000-0000-0000-0000-000000000001'$q$), 'ok:1');
+
+-- Öğrenci silinince gelişim kayıtları da silinir (şema; postgres rolüyle)
+reset role;
+delete from public.yoklama where ogrenci_id = 'e0000000-0000-0000-0000-000000000a11';
+delete from public.ogrenci where id = 'e0000000-0000-0000-0000-000000000a11';
+select tst.esit('öğrenci silinince gelişim kayıtları da silinir',
+  (select count(*) from public.gelisim_kaydi where ogrenci_id = 'e0000000-0000-0000-0000-000000000a11')::text, '0');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
