@@ -11,6 +11,8 @@
 -- aktif: personel silinmez (yoklama.giren_kullanici_id FK'si engeller), pasifleştirilir.
 -- sifre_belirlendi: daveti kabul edip şifresini belirledi mi ("davet bekliyor" göstergesi).
 -- son_kod_gonderim: kod e-postası için kişi başına bekleme süresi.
+-- kod_deneme_sayisi: son koddan beri yanlış girilen kod sayısı; sınır aşılınca yeni kod gerekir
+--   (6 haneli kodun deneme-yanılmayla bulunmasını engeller). Yeni kod gönderilince sıfırlanır.
 --
 -- Bu kolonlara istemci yazamaz: kullanici üzerindeki update yetkisi kolon bazlıdır
 -- (ad_soyad, rol, expo_push_token — bkz. 20260930120000_bildirim.sql) ve değişmedi.
@@ -18,7 +20,8 @@ alter table public.kullanici
   add column eposta text,
   add column aktif boolean not null default true,
   add column sifre_belirlendi boolean not null default false,
-  add column son_kod_gonderim timestamptz;
+  add column son_kod_gonderim timestamptz,
+  add column kod_deneme_sayisi integer not null default 0;
 
 update public.kullanici k
 set eposta = lower(u.email), sifre_belirlendi = true
