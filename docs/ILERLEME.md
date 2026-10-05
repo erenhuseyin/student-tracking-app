@@ -5,14 +5,22 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Görsel tasarım **kodu yazıldı (2026-10-05), ekranda henüz kimse görmedi** — kullanıcı web'de ve telefonda dört rolle gezip onaylamalı/düzeltme istemeli. Ardından Faz 1'in son maddesi: EAS build (preview/production) + Play Console internal testing.
-- **Son güncelleme:** 2026-10-05 (tasarım)
+- **Aktif adım:** Kullanıcı yönetimi (plan mode'da planlanıyor). Yayın ertelendi: kullanıcı 2026-10-05'te "Play Store için erken, önce geliştirelim ve kurumsal kimliği yansıtalım" dedi.
+- **Son güncelleme:** 2026-10-05 (yol haritası)
 
-### Sıradaki İş (bir sonraki oturum bu sırayla ilerlemeli)
+### Sıradaki İş (2026-10-05'te kullanıcıyla kararlaştırılan sıra)
 
-1. ~~Hiyerarşi/marka değişikliklerini canlıya al ve doğrula~~ — **yapıldı (2026-10-03/05).** Kullanıcı iki migration'ı uyguladı, `tckn-hesap-olustur` + `veli-pin-sifirla`'yı yeniden deploy etti, Elif Kaya'nın eski veli hesabını sildi. Doğrulananlar: DB'de `Test Okulu.marka_kodu = varsayilan` ve `ogrenci.kok_kurum_id` dolu (SQL çıktısı görüldü); `tckn-hesap-olustur` kurum admini JWT'siyle çağrıldı → 200, hesap `12345678950@varsayilan.veli.internal` olarak açıldı; bu hesapla giriş yapılıp yalnızca Elif Kaya ve Test Okulu'nun göründüğü REST ile doğrulandı; telefonda (development build, yeniden derlenmeden) veli TCKN+PIN girişi + öğretmenin yoklama girmesi → **gerçek push alındı**. `rls.test.sql` tam süiti (14-15. bölümler dahil) kullanıcı tarafından çalıştırıldı, **geçti** (2026-10-05'te bildirildi). **Doğrulanmayanlar:** şube akışı (şube aç → şubede sınıf/öğrenci → şube admini izolasyonu) ve `MARKA=deneme` ile yanlış uygulama ekranı hiç denenmedi.
-2. **Görsel tasarımı gözle doğrula** — kod yazıldı, `typecheck` + `lint` + `expo export --platform web` temiz; yalnızca iki giriş ekranı headless Chrome ekran görüntüsüyle görüldü, **oturum gerektiren ekranların hiçbiri çalışırken görülmedi.** `npx expo start --dev-client --clear` → dört test hesabıyla her ekran. Özellikle bakılacaklar: (a) ikonlar telefondaki mevcut development build'de görünüyor mu (`@expo/vector-icons` yeni eklendi; görünmezse yeni build gerekir), (b) `PinGirdisi` (4 kutu, görünmez TextInput) Android'de klavyeyi açıyor ve rakam alıyor mu, (c) başlık çubuğundaki geri oku ve sağdaki ikonlar, (d) satırdaki sil onayı ("Emin misiniz? Evet, sil / Vazgeç") dar ekranda taşıyor mu, (e) `TarihGirdisi` ile öğrenci ekle/düzenle.
-3. **Faz 1 son madde:** EAS build (preview/production) + Play Console internal testing.
+İlk müşteri: **Genç Hareket** (resmi eğitim kurumu); uygulama `ergenecode` geliştirici hesabından yayınlanacak.
+
+1. **Kullanıcı yönetimi** — kurum admininin öğretmen ekleyip sınıfa atayabilmesi, kök adminin şube admini atayabilmesi. Şu an hepsi Dashboard + SQL ile elle; bu olmadan kurum uygulamayı kendi başına kullanamaz.
+2. **Gelişim kaydı (Faz 2)** — kategori + not + opsiyonel foto; veli zaman çizelgesi + push.
+3. **Veli girişi güvenliği** — ilk girişte PIN değiştirme zorunluluğu, deneme sınırı.
+4. **`genchareket` markası** — ayrı marka (`markalar/genchareket/`, önerilen paket `com.ergenecode.genchareket`, ayrı EAS projesi + Firebase Android uygulaması, DB'de gerçek kök kurum). Yeşil-altın palet oraya taşınır, `varsayilan` nötr renge döner ve test/demo ortamı olarak kalır. Logo kullanıcıdan bekleniyor. **Karar gerekçesi:** `varsayilan` kodu "Test Okulu"na bağlı ve değiştirilemez; çevirmek test verisini gerçek müşteriyle karıştırır ve deneme ortamını yok eder.
+5. **Duyurular** (Faz 3'ten öne alınabilir).
+6. **KVKK + mağaza hazırlığı** — aydınlatma/açık rıza, gizlilik politikası, veri silme yolu, inceleme için demo hesap, veri güvenliği formu, hedef kitle beyanı (güncel Play politika metinleri doğrulanmadı).
+7. **EAS build + Play Console internal testing.**
+
+Ayrıca bekleyen: tasarımın oturum gerektiren ekranlarını kullanıcının gözle kontrolü (yalnızca giriş ekranları headless Chrome ile görüldü). Şube izolasyonu 2026-10-05'te doğrulandı: `subeadmin@test.local` (şube: "Genç Hareket Sancaktepe", Test Okulu altında test şubesi; şifre `Test1234!`) Test Okulu'nun öğrencisini görmüyor.
 
 ### Tasarım planı için notlar (2026-10-03, kullanıcıyla konuşuldu)
 
