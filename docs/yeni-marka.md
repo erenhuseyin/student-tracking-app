@@ -44,6 +44,10 @@ Yapılandırma dinamik (`app.config.ts`) olduğu için komut proje kimliğini do
 
 İki dosya da gereklidir: service account anahtarı sunucunun push göndermesi, `google-services.json` cihazın token alması içindir.
 
+## 3b. E-posta (personel daveti)
+
+Personel davet ve şifre kodları `personel-yonet` Edge Function'ından EmailJS ile gider; kurulum proje genelinde tektir (marka başına değil), e-postadaki kurum adı kök kurumun `ad`'ından gelir. İlk kurulumda unutulmaması gerekenler: EmailJS'te **Account > Security > "Allow EmailJS API for non-browser applications"** açık olmalı (kapalıysa hesap açılır ama e-posta gitmez), şablonda To Email `{{alici_eposta}}` olmalı, dört `EMAILJS_*` değeri Supabase > Edge Functions > Secrets'ta durmalı.
+
 ## 4. Build profilleri
 
 `eas.json`'a marka için profiller ekle:
