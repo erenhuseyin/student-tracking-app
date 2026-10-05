@@ -5,12 +5,12 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** Kurum hiyerarşisi + müşteriye özel uygulama altyapısı — **kod yazıldı ve commit edildi, ama veritabanına HENÜZ UYGULANMADI ve hiçbir parçası çalışan sistemde test edilmedi** (bkz. "Bilinen Sorunlar" en üst madde: kullanıcının yapması gereken 5 adım). Sıra: (1) bu adımları uygula + uçtan uca doğrula, (2) **görsel tasarım için ayrı plan** (tema belirteçleri hazır), (3) Faz 1'in son maddesi: EAS build (preview/production) + Play Console internal testing.
-- **Son güncelleme:** 2026-10-03
+- **Aktif adım:** Görsel tasarım planı (plan mode). Hiyerarşi/marka altyapısı **canlıya alındı** (2026-10-05); ardından Faz 1'in son maddesi: EAS build (preview/production) + Play Console internal testing.
+- **Son güncelleme:** 2026-10-05
 
 ### Sıradaki İş (bir sonraki oturum bu sırayla ilerlemeli)
 
-1. **Hiyerarşi/marka değişikliklerini canlıya al ve doğrula** — "Bilinen Sorunlar"ın ilk maddesindeki 5 adım (kullanıcı yapar, Claude rehberlik eder). Sıra kritik: önce migration'lar, sonra Edge Function'lar (yeni kod `kok_kurum_id`/`marka_kodu` okuyor; migration'dan önce deploy edilirse hata verir).
+1. ~~Hiyerarşi/marka değişikliklerini canlıya al ve doğrula~~ — **yapıldı (2026-10-03/05).** Kullanıcı iki migration'ı uyguladı, `tckn-hesap-olustur` + `veli-pin-sifirla`'yı yeniden deploy etti, Elif Kaya'nın eski veli hesabını sildi. Doğrulananlar: DB'de `Test Okulu.marka_kodu = varsayilan` ve `ogrenci.kok_kurum_id` dolu (SQL çıktısı görüldü); `tckn-hesap-olustur` kurum admini JWT'siyle çağrıldı → 200, hesap `12345678950@varsayilan.veli.internal` olarak açıldı; bu hesapla giriş yapılıp yalnızca Elif Kaya ve Test Okulu'nun göründüğü REST ile doğrulandı; telefonda (development build, yeniden derlenmeden) veli TCKN+PIN girişi + öğretmenin yoklama girmesi → **gerçek push alındı**. **Doğrulanmayanlar:** `rls.test.sql` tam süitinin (14-15. bölümler dahil) sonucu kullanıcı tarafından bildirilmedi — tasarımdan önce/sonra çalıştırılıp teyit edilmeli; şube akışı (şube aç → şubede sınıf/öğrenci → şube admini izolasyonu) ve `MARKA=deneme` ile yanlış uygulama ekranı hiç denenmedi.
 2. **Görsel tasarım planı** (plan mode, CLAUDE.md kuralı) — kapsamı aşağıda.
 3. **Faz 1 son madde:** EAS build (preview/production) + Play Console internal testing.
 
@@ -176,7 +176,7 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 
 _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
 
-- **ÖNCE BU: hiyerarşi/marka değişiklikleri DB'ye uygulanmadı (2026-10-02).** Uygulama kodu yeni şemayı bekliyor; migration'lar uygulanana kadar süper admin dışındaki herkes girişte "Bu hesap bu uygulamaya ait değil" ekranına düşer (kök kurumun `marka_kodu`'su okunamadığı için). Kullanıcının sırayla yapması gerekenler:
+- **ÇÖZÜLDÜ (2026-10-05), yalnızca 2. adımın (RLS test süiti) sonucu teyit edilmedi — bkz. "Sıradaki İş" 1. madde. Kayıt için eski metin:** hiyerarşi/marka değişiklikleri DB'ye uygulanmadı (2026-10-02). Uygulama kodu yeni şemayı bekliyor; migration'lar uygulanana kadar süper admin dışındaki herkes girişte "Bu hesap bu uygulamaya ait değil" ekranına düşer (kök kurumun `marka_kodu`'su okunamadığı için). Kullanıcının sırayla yapması gerekenler:
   1. Dashboard SQL Editor'de `20261002120000_kurum_hiyerarsi.sql`, ardından `20261002120100_marka_ve_tckn.sql`.
   2. `supabase/tests/rls.test.sql` tam süitini çalıştır ("TÜM RLS TESTLERİ GEÇTİ" beklenir). 14. ve 15. bölümler hiç çalıştırılmadı; bir test düşerse hata mesajındaki etiketle birlikte Claude'a ver.
   3. Dashboard > Edge Functions'tan `tckn-hesap-olustur` ve `veli-pin-sifirla` kodunu yerel dosyalarla değiştirip deploy et. Neden: sunucudaki eski kod veli hesabını eski e-posta şemasıyla açıyor (yeni uygulama o hesapla giriş yapamaz) ve şube öğrencileri için ana kurum adminine 403 veriyor. `davet-gonder` atlanabilir (hiç deploy edilmedi, hiçbir ekran çağırmıyor). `yoklama-bildirim-gonder` değişmedi, yeniden deploy gerekmez (yetkiyi zaten RLS'e tabi okumayla veriyor).
