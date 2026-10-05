@@ -87,6 +87,8 @@ const styles = StyleSheet.create({
   girdi: {
     ...yazi.govde,
     flex: 1,
+    // Web'de <input> kendi iç genişliğinin altına inmez ve üç alan kartın dışına taşar.
+    minWidth: 0,
     minHeight: dokunmaAlani.normal,
     backgroundColor: renkler.yuzey,
     borderWidth: 1,
