@@ -34,3 +34,8 @@ export const BILDIRIM_TIPLERI = Constants.public.Enums.bildirim_tipi;
 export type BildirimTipi = (typeof BILDIRIM_TIPLERI)[number];
 
 export type BildirimLog = Tables<'bildirim_log'>;
+
+// Müşteri (kök kurum) düzeyinde tanımlanır; şubeler ortak kullanır.
+export type GelisimKategorisi = Tables<'gelisim_kategorisi'>;
+
+export type GelisimKaydi = Tables<'gelisim_kaydi'>;

@@ -9,9 +9,10 @@ import { Kart } from '@/components/Kart';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { ogrenciGetir } from '@/lib/ogrenciler';
+import { tarihiBicimle } from '@/lib/tarih';
 import { bosluk, yazi, yoklamaRenkleri } from '@/lib/tema';
 import { type Ogrenci, type Yoklama, YOKLAMA_DURUMLARI } from '@/lib/tipler';
-import { tarihiBicimle, veliYoklamalariGetir, YOKLAMA_ETIKETLERI } from '@/lib/yoklama';
+import { veliYoklamalariGetir, YOKLAMA_ETIKETLERI } from '@/lib/yoklama';
 
 export default function VeliYoklamaGecmisi() {
   const { ogrenciId } = useLocalSearchParams<{ ogrenciId: string }>();

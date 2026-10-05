@@ -1,6 +1,7 @@
 // Yoklama: öğretmen girer/günceller, veli okur. RLS (yoklama_ogretmen_yaz/guncelle/oku,
 // yoklama_veli_oku politikaları) yetkiyi zaten sınırlıyor.
 import { supabase } from '@/lib/supabase';
+import { bugununTarihi } from '@/lib/tarih';
 import type { Ogrenci, Yoklama, YoklamaDurumu } from '@/lib/tipler';
 
 function hataMesajinaCevir(mesaj: string, kod?: string): string {
@@ -10,34 +11,11 @@ function hataMesajinaCevir(mesaj: string, kod?: string): string {
   return 'İşlem yapılamadı, lütfen tekrar deneyin.';
 }
 
-// Bugünün tarihi, yerel saatle YYYY-AA-GG (Date.toISOString() UTC kullandığı için gece
-// yarısına yakın saatlerde yanlış günü verebilir; bu yüzden yerel bileşenlerden kurulur).
-export function bugununTarihi(): string {
-  const d = new Date();
-  const yil = d.getFullYear();
-  const ay = String(d.getMonth() + 1).padStart(2, '0');
-  const gun = String(d.getDate()).padStart(2, '0');
-  return `${yil}-${ay}-${gun}`;
-}
-
 export const YOKLAMA_ETIKETLERI: Record<YoklamaDurumu, string> = {
   geldi: 'Geldi',
   gelmedi: 'Gelmedi',
   gec: 'Geç',
 };
-
-// 'YYYY-AA-GG' -> '5 Ekim Pazartesi' (yıl, bu yıl değilse eklenir). Tarih yerel gün olarak
-// yorumlanır; `new Date('YYYY-AA-GG')` UTC varsaydığı için bileşenlerden kurulur.
-export function tarihiBicimle(tarih: string): string {
-  const [yil, ay, gun] = tarih.split('-').map(Number);
-  const d = new Date(yil, ay - 1, gun);
-  return d.toLocaleDateString('tr-TR', {
-    day: 'numeric',
-    month: 'long',
-    weekday: 'long',
-    year: yil === new Date().getFullYear() ? undefined : 'numeric',
-  });
-}
 
 export type OgrenciYoklamaSatiri = Ogrenci & { yoklama_durumu: YoklamaDurumu | null };
 

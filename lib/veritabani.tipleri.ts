@@ -354,6 +354,122 @@ export type Database = {
           },
         ];
       };
+      gelisim_kategorisi: {
+        Row: {
+          ad: string;
+          aktif: boolean;
+          id: string;
+          kurum_id: string;
+          olusturma_tarihi: string;
+          sira: number;
+        };
+        Insert: {
+          ad: string;
+          aktif?: boolean;
+          id?: string;
+          kurum_id: string;
+          olusturma_tarihi?: string;
+          sira?: number;
+        };
+        Update: {
+          ad?: string;
+          aktif?: boolean;
+          id?: string;
+          kurum_id?: string;
+          olusturma_tarihi?: string;
+          sira?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'gelisim_kategorisi_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      gelisim_kaydi: {
+        Row: {
+          foto_yolu: string | null;
+          giren_kullanici_id: string;
+          guncelleme_tarihi: string;
+          id: string;
+          kategori_id: string;
+          kok_kurum_id: string;
+          kurum_id: string;
+          not_metni: string;
+          ogrenci_id: string;
+          olcek_degeri: number | null;
+          olusturma_tarihi: string;
+          tarih: string;
+        };
+        Insert: {
+          foto_yolu?: string | null;
+          giren_kullanici_id: string;
+          guncelleme_tarihi?: string;
+          id?: string;
+          kategori_id: string;
+          kok_kurum_id?: string;
+          kurum_id: string;
+          not_metni: string;
+          ogrenci_id: string;
+          olcek_degeri?: number | null;
+          olusturma_tarihi?: string;
+          tarih?: string;
+        };
+        Update: {
+          foto_yolu?: string | null;
+          giren_kullanici_id?: string;
+          guncelleme_tarihi?: string;
+          id?: string;
+          kategori_id?: string;
+          kok_kurum_id?: string;
+          kurum_id?: string;
+          not_metni?: string;
+          ogrenci_id?: string;
+          olcek_degeri?: number | null;
+          olusturma_tarihi?: string;
+          tarih?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'gelisim_kaydi_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'gelisim_kaydi_kok_kurum_id_fkey';
+            columns: ['kok_kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'gelisim_kaydi_ogrenci_ayni_kurum_fkey';
+            columns: ['ogrenci_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'ogrenci';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+          {
+            foreignKeyName: 'gelisim_kaydi_kategori_ayni_musteri_fkey';
+            columns: ['kategori_id', 'kok_kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'gelisim_kategorisi';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+          {
+            foreignKeyName: 'gelisim_kaydi_giren_kullanici_id_fkey';
+            columns: ['giren_kullanici_id'];
+            isOneToOne: false;
+            referencedRelation: 'kullanici';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

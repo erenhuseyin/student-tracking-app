@@ -12,7 +12,7 @@ import { OnayButonu } from '@/components/OnayButonu';
 import { ogrencileriGetir, ogrenciSil } from '@/lib/ogrenciler';
 import { sinifGetir } from '@/lib/siniflar';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
-import { tarihiBicimle } from '@/lib/yoklama';
+import { tarihiBicimle } from '@/lib/tarih';
 
 export default function SinifDetay() {
   const router = useRouter();
