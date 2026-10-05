@@ -16,7 +16,18 @@ type MarkaDosyasi = {
   scheme: string;
   androidPackage: string;
   easProjectId: string;
-  renkler: { ana: string; ikonArkaplan: string };
+  renkler: {
+    ana: string;
+    ikonArkaplan: string;
+    // İsteğe bağlı; verilmezse lib/tema.ts varsayılanı kullanılır (anaSoluk `ana`dan türetilir).
+    anaParlak?: string;
+    anaSoluk?: string;
+    vurgu?: string;
+    vurguKoyu?: string;
+    vurguSoluk?: string;
+    zemin?: string;
+    ayirici?: string;
+  };
 };
 
 const kod = process.env.MARKA ?? 'varsayilan';

@@ -5,7 +5,18 @@ import Constants from 'expo-constants';
 export type Marka = {
   kod: string;
   ad: string;
-  renkler: { ana: string; ikonArkaplan: string };
+  renkler: {
+    ana: string;
+    ikonArkaplan: string;
+    // İsteğe bağlı; verilmezse lib/tema.ts varsayılanı kullanılır (anaSoluk `ana`dan türetilir).
+    anaParlak?: string;
+    anaSoluk?: string;
+    vurgu?: string;
+    vurguKoyu?: string;
+    vurguSoluk?: string;
+    zemin?: string;
+    ayirici?: string;
+  };
 };
 
 const ham = Constants.expoConfig?.extra?.marka as Marka | undefined;

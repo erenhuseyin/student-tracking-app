@@ -21,16 +21,25 @@ function solukTon(hex: string, oran = 0.88): string {
   return `#${kanal(16)}${kanal(8)}${kanal(0)}`;
 }
 
+const m = marka.renkler;
+
+// Markaya göre değişenler: ana (buton, başlık; üstünde beyaz yazı okunmalı), anaParlak (büyük
+// vurgu: ikon, rozet — küçük metinde kullanılmaz, kontrastı yetmez), vurgu (süsleme, ayraç),
+// vurguKoyu (etiket gibi küçük metin vurgusu), zemin ve soluk tonlar. Metin ve durum renkleri ortaktır.
 export const renkler = {
-  zemin: '#F4F6F8',
+  zemin: m.zemin ?? '#F4F6F8',
   yuzey: '#FFFFFF',
-  ana: marka.renkler.ana,
+  ana: m.ana,
   anaUstu: '#FFFFFF',
-  anaSoluk: solukTon(marka.renkler.ana),
-  metin: '#1F2933',
-  metinIkincil: '#616E7C',
-  kenarlik: '#CBD2D9',
-  ayirici: '#E4E7EB',
+  anaParlak: m.anaParlak ?? m.ana,
+  anaSoluk: m.anaSoluk ?? solukTon(m.ana),
+  vurgu: m.vurgu ?? '#CBD2D9',
+  vurguKoyu: m.vurguKoyu ?? '#5A5A5A',
+  vurguSoluk: m.vurguSoluk ?? '#EEF1F4',
+  metin: '#1F1F1F',
+  metinIkincil: '#5A5A5A',
+  kenarlik: '#C9C5BC',
+  ayirici: m.ayirici ?? '#E4E7EB',
   hata: '#C62828',
   hataSoluk: '#FDECEC',
   basari: '#2E7D32',
@@ -51,7 +60,7 @@ export const yazi = {
   altBaslik: { fontSize: 18, fontWeight: '600', color: renkler.metin },
   govde: { fontSize: 16, color: renkler.metin },
   kucuk: { fontSize: 14, color: renkler.metinIkincil },
-  etiket: { fontSize: 13, fontWeight: '600', color: renkler.metinIkincil },
+  etiket: { fontSize: 13, fontWeight: '600', color: renkler.vurguKoyu },
 } as const satisfies Record<string, TextStyle>;
 
 export const golge: ViewStyle = {

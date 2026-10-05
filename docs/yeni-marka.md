@@ -17,7 +17,11 @@ Her müşteri Google Play'de kendi adı, ikonu ve rengiyle ayrı bir uygulamaya 
 | `scheme` | Derin bağlantı şeması, cihazda tekil |
 | `androidPackage` | Play Store uygulama kimliği, **yayından sonra değiştirilemez** |
 | `easProjectId` | 2. adımda dolar |
-| `renkler.ana` | Marka rengi (butonlar, splash, bildirim ikonu) |
+| `renkler.ana` | Ana marka rengi: butonlar, başlık çubuğu, splash, bildirim ikonu. **Üstünde beyaz yazı okunabilmeli** (kontrast en az 4.5:1) — parlak bir logo rengi yerine koyu türevini ver |
+| `renkler.anaParlak` | İsteğe bağlı. Büyük vurgular (ikon, rozet). Küçük metinde kullanılmaz. Verilmezse `ana` |
+| `renkler.anaSoluk` | İsteğe bağlı. Avatar ve ikon zemini. Verilmezse `ana`dan türetilir |
+| `renkler.vurgu` / `vurguKoyu` / `vurguSoluk` | İsteğe bağlı ikincil renk: süsleme-ayraç / etiket metni / öne çıkan kart zemini |
+| `renkler.zemin` / `ayirici` | İsteğe bağlı. Ekran zemini ve ince çizgi rengi |
 | `renkler.ikonArkaplan` | Android uyarlanabilir ikon arka planı |
 
 Görseller isteğe bağlıdır; klasöre konmayan görsel için `assets/images/` altındaki ortak görsel kullanılır: `icon.png`, `android-icon-foreground.png`, `android-icon-background.png`, `android-icon-monochrome.png`, `splash-icon.png`, `favicon.png`.

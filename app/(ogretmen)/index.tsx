@@ -40,7 +40,7 @@ export default function OgretmenAnaSayfa() {
           <ListeSatiri
             baslik={s.ad}
             altBaslik={`${s.donem} · Yoklama al`}
-            sol={<Ikon ad="school-outline" boyut={26} renk={renkler.ana} />}
+            sol={<Ikon ad="school-outline" boyut={26} renk={renkler.anaParlak} />}
             onPress={() => router.push(`/yoklama/${s.id}`)}
           />
         )}

@@ -50,7 +50,7 @@ export default function Subeler() {
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}
-            sol={<Ikon ad="business-outline" boyut={26} renk={renkler.ana} />}
+            sol={<Ikon ad="business-outline" boyut={26} renk={renkler.anaParlak} />}
             onPress={() => router.push(`/sube/${s.id}`)}
             sag={
               <OnayButonu

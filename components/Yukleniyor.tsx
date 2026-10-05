@@ -5,7 +5,7 @@ import { bosluk, renkler } from '@/lib/tema';
 export function Yukleniyor() {
   return (
     <View style={styles.kapsayici}>
-      <ActivityIndicator size="large" color={renkler.ana} />
+      <ActivityIndicator size="large" color={renkler.anaParlak} />
     </View>
   );
 }

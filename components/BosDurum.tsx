@@ -16,7 +16,7 @@ export function BosDurum({ ikon, baslik, aciklama, children }: Props) {
   return (
     <View style={styles.kapsayici}>
       <View style={styles.ikonZemini}>
-        <Ikon ad={ikon} boyut={32} renk={renkler.ana} />
+        <Ikon ad={ikon} boyut={32} renk={renkler.anaParlak} />
       </View>
       <Text style={[yazi.altBaslik, styles.ortali]}>{baslik}</Text>
       {aciklama ? <Text style={[yazi.kucuk, styles.ortali]}>{aciklama}</Text> : null}

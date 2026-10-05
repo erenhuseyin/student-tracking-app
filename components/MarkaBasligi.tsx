@@ -12,6 +12,7 @@ export function MarkaBasligi({ altBaslik }: { altBaslik: string }) {
         <Ikon ad="school" boyut={36} renk={renkler.anaUstu} />
       </View>
       <Text style={[yazi.baslik, styles.ortali]}>{marka.ad}</Text>
+      <View style={styles.ayrac} />
       <Text style={[yazi.kucuk, styles.ortali]}>{altBaslik}</Text>
     </View>
   );
@@ -31,6 +32,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: bosluk.s,
+  },
+  ayrac: {
+    width: 40,
+    height: 3,
+    borderRadius: yaricap.tam,
+    backgroundColor: renkler.vurgu,
   },
   ortali: {
     textAlign: 'center',

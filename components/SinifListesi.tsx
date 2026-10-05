@@ -46,7 +46,7 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
           <ListeSatiri
             baslik={s.ad}
             altBaslik={s.donem}
-            sol={<Ikon ad="school-outline" boyut={26} renk={renkler.ana} />}
+            sol={<Ikon ad="school-outline" boyut={26} renk={renkler.anaParlak} />}
             onPress={() => router.push(`/sinif/${s.id}`)}
             sag={
               <>

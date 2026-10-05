@@ -7,7 +7,14 @@
   "androidPackage": "com.ergenecode.ogrencitakip",
   "easProjectId": "238b87a6-fa82-44b9-9dbd-304631fa0b0a",
   "renkler": {
-    "ana": "#208AEF",
-    "ikonArkaplan": "#E6F4FE"
+    "ana": "#1E6B2A",
+    "anaParlak": "#3DAA35",
+    "anaSoluk": "#EAF4E8",
+    "vurgu": "#A08A64",
+    "vurguKoyu": "#7A6440",
+    "vurguSoluk": "#F3EEE5",
+    "zemin": "#FAF8F4",
+    "ayirici": "#E4DDCF",
+    "ikonArkaplan": "#EAF4E8"
   }
 }

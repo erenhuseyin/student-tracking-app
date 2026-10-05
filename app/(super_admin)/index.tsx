@@ -65,7 +65,7 @@ export default function SuperAdminAnaSayfa() {
             <ListeSatiri
               baslik={k.ad}
               altBaslik={k.marka_kodu ? `Marka kodu: ${k.marka_kodu}` : 'Marka kodu yok'}
-              sol={<Ikon ad="business-outline" boyut={26} renk={renkler.ana} />}
+              sol={<Ikon ad="business-outline" boyut={26} renk={renkler.anaParlak} />}
             />
           )
         }
