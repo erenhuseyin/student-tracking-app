@@ -39,9 +39,9 @@ export default function OgretmenAnaSayfa() {
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}
-            altBaslik={`${s.donem} · Yoklama al`}
+            altBaslik={`${s.donem} · Yoklama ve gelişim`}
             sol={<Ikon ad="school-outline" boyut={26} renk={renkler.anaParlak} />}
-            onPress={() => router.push(`/yoklama/${s.id}`)}
+            onPress={() => router.push(`/sinifim/${s.id}`)}
           />
         )}
       />
