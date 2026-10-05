@@ -51,30 +51,45 @@ export type Database = {
       kullanici: {
         Row: {
           ad_soyad: string;
+          aktif: boolean;
           auth_id: string;
+          eposta: string | null;
           expo_push_token: string | null;
           id: string;
+          kod_deneme_sayisi: number;
           kurum_id: string | null;
           olusturma_tarihi: string;
           rol: Database['public']['Enums']['rol'];
+          sifre_belirlendi: boolean;
+          son_kod_gonderim: string | null;
         };
         Insert: {
           ad_soyad: string;
           auth_id: string;
+          aktif?: boolean;
+          eposta?: string | null;
           expo_push_token?: string | null;
           id?: string;
+          kod_deneme_sayisi?: number;
           kurum_id?: string | null;
           olusturma_tarihi?: string;
           rol: Database['public']['Enums']['rol'];
+          sifre_belirlendi?: boolean;
+          son_kod_gonderim?: string | null;
         };
         Update: {
           ad_soyad?: string;
           auth_id?: string;
+          aktif?: boolean;
+          eposta?: string | null;
           expo_push_token?: string | null;
           id?: string;
+          kod_deneme_sayisi?: number;
           kurum_id?: string | null;
           olusturma_tarihi?: string;
           rol?: Database['public']['Enums']['rol'];
+          sifre_belirlendi?: boolean;
+          son_kod_gonderim?: string | null;
         };
         Relationships: [
           {

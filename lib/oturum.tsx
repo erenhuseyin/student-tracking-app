@@ -78,6 +78,16 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
 
       const { kullanici: satir, hata } = await kullaniciSatirinaGetir(yeniSession.user.id);
       if (iptalEdildi) return;
+      // Pasifleştirilmiş hesap: RLS zaten hiçbir veri döndürmez (bkz. 20261006120000); kullanıcıya
+      // boş ekranlar yerine açık bir mesaj gösterilir.
+      if (satir && !satir.aktif) {
+        setKullanici(null);
+        setKurum(null);
+        setKokKurum(null);
+        setHataMesaji('Hesabınız kapatılmış. Lütfen kurumunuzun yöneticisiyle iletişime geçin.');
+        setDurum('profil_yok');
+        return;
+      }
       if (!satir || !satir.kurum_id) {
         setKullanici(satir);
         setKurum(null);

@@ -2,8 +2,7 @@
 // kurumlardaki (kendi kurumu + şubeleri) öğrencileri yönetmesine izin verir. Yeni öğrencinin
 // kurum_id'si sınıfının kurumuyla aynı olmalıdır (bileşik FK).
 // dogum_tarihi biçimi: YYYY-AA-GG (native tarih seçici bu adımda kapsam dışı).
-import { FunctionsHttpError } from '@supabase/supabase-js';
-
+import { edgeFonksiyonuCagir } from '@/lib/edge';
 import { supabase } from '@/lib/supabase';
 import type { Ogrenci } from '@/lib/tipler';
 
@@ -77,22 +76,6 @@ export function tcknGecerliMi(tckn: string): boolean {
   if (d10 !== d[9]) return false;
   const toplam10 = d.slice(0, 10).reduce((a, b) => a + b, 0);
   return toplam10 % 10 === d[10];
-}
-
-async function edgeFonksiyonuCagir(ad: string, istekGovdesi: Record<string, unknown>, varsayilanMesaj: string): Promise<void> {
-  const { error } = await supabase.functions.invoke(ad, { body: istekGovdesi });
-  if (error) {
-    let mesaj = varsayilanMesaj;
-    if (error instanceof FunctionsHttpError) {
-      try {
-        const hataGovdesi = await error.context.json();
-        if (typeof hataGovdesi?.hata === 'string') mesaj = hataGovdesi.hata;
-      } catch {
-        // gövde JSON değilse varsayılan mesaj kalır
-      }
-    }
-    throw new Error(mesaj);
-  }
 }
 
 // Erişim: yalnızca süper admin ve kurum admini (kendi kurumu). Yetki kontrolü sunucudadır
