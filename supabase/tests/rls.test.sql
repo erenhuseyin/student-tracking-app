@@ -721,6 +721,99 @@ select tst.esit('kok_kurum_id elle bozulamaz (trigger düzeltir)',
 select tst.esit('kok_kurum_id hâlâ ana kurum',
   (select kok_kurum_id::text from public.ogrenci where id = 'e0000000-0000-0000-0000-000000000a11'), 'c0000000-0000-0000-0000-00000000000a');
 
+-- ===========================================================================
+-- 16. PERSONEL YÖNETİMİ: e-posta görünürlüğü, korunan kolonlar, sınıf ataması, pasif kullanıcı
+--   Şube A1'e bir öğretmen eklenir: 14 ogrA1x (atamasız)
+-- ===========================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000014', 'authenticated', 'authenticated', 'ogra1x@test.local');
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad, eposta) values
+  ('b0000000-0000-0000-0000-000000000014', 'a0000000-0000-0000-0000-000000000014', 'ogretmen', 'c0000000-0000-0000-0000-0000000000a1', 'ogrA1x', 'ogra1x@test.local');
+update public.kullanici set eposta = 'ogra1@test.local' where id = 'b0000000-0000-0000-0000-000000000005';
+update public.kullanici set eposta = 'ogrb@test.local' where id = 'b0000000-0000-0000-0000-000000000007';
+
+-- adminA (kök admin)
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin kendi öğretmeninin e-postasını okur',
+  (select eposta from public.kullanici where id = 'b0000000-0000-0000-0000-000000000005'), 'ogra1@test.local');
+select tst.esit('kök admin şube öğretmeninin e-postasını okur',
+  (select eposta from public.kullanici where id = 'b0000000-0000-0000-0000-000000000014'), 'ogra1x@test.local');
+select tst.esit('kök admin başka kurumun öğretmenini göremez',
+  (select count(*) from public.kullanici where id = 'b0000000-0000-0000-0000-000000000007')::text, '0');
+select tst.esit('admin eposta yazamaz',
+  tst.dene($q$update public.kullanici set eposta = 'x@test.local' where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'hata:42501');
+select tst.esit('admin aktif yazamaz',
+  tst.dene($q$update public.kullanici set aktif = false where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'hata:42501');
+select tst.esit('admin sifre_belirlendi yazamaz',
+  tst.dene($q$update public.kullanici set sifre_belirlendi = true where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'hata:42501');
+select tst.esit('admin personelin adını değiştirir',
+  tst.dene($q$update public.kullanici set ad_soyad = 'ogrA1 yeni' where id = 'b0000000-0000-0000-0000-000000000005'$q$), 'ok:1');
+select tst.esit('kök admin şube öğretmenini şube sınıfına atar',
+  tst.dene($q$insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values ('c0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000a11')$q$), 'ok:1');
+select tst.esit('şube öğretmeni başka şubenin sınıfına atanamaz (bileşik FK)',
+  tst.dene($q$insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values ('c0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000a21')$q$), 'hata:23503');
+select tst.esit('kök admin atamayı kaldırır',
+  tst.dene($q$delete from public.ogretmen_sinif where ogretmen_id = 'b0000000-0000-0000-0000-000000000014'$q$), 'ok:1');
+
+-- adminA1 (şube admini)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000012","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini kendi öğretmenini görür',
+  (select count(*) from public.kullanici where id = 'b0000000-0000-0000-0000-000000000014')::text, '1');
+select tst.esit('şube admini kök kurum personelini göremez',
+  (select count(*) from public.kullanici where kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '0');
+select tst.esit('şube admini kendi öğretmenini kendi sınıfına atar',
+  tst.dene($q$insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values ('c0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000a11')$q$), 'ok:1');
+select tst.esit('şube admini başka şubeye atama yazamaz',
+  tst.dene($q$insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values ('c0000000-0000-0000-0000-0000000000a2', 'b0000000-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000a21')$q$), 'hata:42501');
+
+-- ogrA1x: atandığı sınıfı görür; öğretmen veli satırında e-posta göremez (velide eposta null)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000014","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube öğretmeni atandığı sınıfı görür', (select count(*) from public.sinif)::text, '1');
+select tst.esit('şube öğretmeni öğrencisini görür', (select count(*) from public.ogrenci)::text, '1');
+
+reset role;
+select tst.esit('veli satırlarında eposta boş',
+  (select count(*) from public.kullanici where rol = 'veli' and eposta is not null and id::text like 'b0000000-%')::text, '0');
+
+-- Pasifleştirme (service role'ün yaptığını postgres rolüyle taklit eder)
+update public.kullanici set aktif = false where id = 'b0000000-0000-0000-0000-000000000014';
+
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000014","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('pasif öğretmen sınıf göremez', (select count(*) from public.sinif)::text, '0');
+select tst.esit('pasif öğretmen öğrenci göremez', (select count(*) from public.ogrenci)::text, '0');
+select tst.esit('pasif öğretmen atama göremez', (select count(*) from public.ogretmen_sinif)::text, '0');
+select tst.esit('pasif öğretmen yoklama göremez', (select count(*) from public.yoklama)::text, '0');
+select tst.esit('pasif öğretmen yalnızca kendi satırını görür', (select count(*) from public.kullanici)::text, '1');
+select tst.esit('pasif öğretmen kendi satırında aktif=false okur',
+  (select aktif::text from public.kullanici where id = 'b0000000-0000-0000-0000-000000000014'), 'false');
+select tst.esit('pasif öğretmen yoklama yazamaz',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-0000000000a1', 'e0000000-0000-0000-0000-000000000a11', '2026-10-02', 'geldi', 'b0000000-0000-0000-0000-000000000014')$q$), 'hata:42501');
+select tst.esit('pasif öğretmen kendini aktifleştiremez',
+  tst.dene($q$update public.kullanici set aktif = true where id = 'b0000000-0000-0000-0000-000000000014'$q$), 'hata:42501');
+
+-- Pasif kurum admini yönetim yetkisini kaybeder
+reset role;
+update public.kullanici set aktif = false where id = 'b0000000-0000-0000-0000-000000000012';
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000012","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('pasif şube admini sınıf göremez', (select count(*) from public.sinif)::text, '0');
+select tst.esit('pasif şube admini kurum göremez', (select count(*) from public.kurum)::text, '0');
+select tst.esit('pasif şube admini sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-0000000000a1', 'x', '2026')$q$), 'hata:42501');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 
