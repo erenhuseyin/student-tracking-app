@@ -1,8 +1,9 @@
 // İsteğe bağlı 1-5 puan seçici. Seçili puana tekrar dokunulunca puan kaldırılır (null).
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { OLCEK_DEGERLERI } from '@/lib/gelisim';
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Props = {
   etiket: string;
@@ -12,9 +13,11 @@ type Props = {
 };
 
 export function OlcekSecici({ etiket, deger, onDegis, pasif = false }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   return (
     <View style={styles.kapsayici}>
-      <Text style={yazi.etiket}>{etiket}</Text>
+      <Text style={styles.etiket}>{etiket}</Text>
       <View style={styles.satir}>
         {OLCEK_DEGERLERI.map((n) => {
           const secili = n === deger;
@@ -37,34 +40,39 @@ export function OlcekSecici({ etiket, deger, onDegis, pasif = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    gap: bosluk.xs,
-  },
-  satir: {
-    flexDirection: 'row',
-    gap: bosluk.s,
-  },
-  secenek: {
-    flex: 1,
-    minHeight: dokunmaAlani.normal,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    backgroundColor: renkler.yuzey,
-  },
-  secili: {
-    backgroundColor: renkler.ana,
-    borderColor: renkler.ana,
-  },
-  metin: {
-    ...yazi.govde,
-    fontWeight: '600',
-    color: renkler.metinIkincil,
-  },
-  seciliMetin: {
-    color: renkler.anaUstu,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      gap: t.bosluk.xs,
+    },
+    etiket: {
+      ...t.yazi.etiket,
+    },
+    satir: {
+      flexDirection: 'row',
+      gap: t.bosluk.s,
+    },
+    secenek: {
+      flex: 1,
+      minHeight: t.dokunmaAlani.normal,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+      borderRadius: t.yaricap.m,
+      backgroundColor: t.renkler.yuzey,
+    },
+    secili: {
+      backgroundColor: t.renkler.ana,
+      borderColor: t.renkler.ana,
+    },
+    metin: {
+      ...t.yazi.govde,
+      fontFamily: t.yaziTipi.yariKalin,
+      color: t.renkler.metinIkincil,
+    },
+    seciliMetin: {
+      color: t.renkler.anaUzeriMetin,
+    },
+  });
+}

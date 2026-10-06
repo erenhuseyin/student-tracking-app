@@ -14,11 +14,12 @@ import { dersGunleriniKaydet, dersPlanlariniGetir } from '@/lib/dersPlani';
 import { haftaninPlani } from '@/lib/katilim';
 import { sinifGetir } from '@/lib/siniflar';
 import { bugununTarihi, haftaBaslangici } from '@/lib/tarih';
-import { yazi } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
 
 export default function DersGunleri() {
   const router = useRouter();
+  const tema = useTema();
   const { sinifId } = useLocalSearchParams<{ sinifId: string }>();
   const [sinif, setSinif] = useState<Sinif | null>(null);
   const [gunler, setGunler] = useState<number[]>([]);
@@ -54,10 +55,10 @@ export default function DersGunleri() {
       {sinif ? (
         <Kart>
           <GunSecici etiket="Bu sınıfın ders yaptığı günler" secililer={gunler} onDegis={setGunler} pasif={gonderiliyor} />
-          <Text style={yazi.govde}>
+          <Text style={tema.yazi.govde}>
             {gunler.length === 0 ? 'Henüz gün seçilmedi.' : `Haftada ${gunler.length} ders.`}
           </Text>
-          <Text style={yazi.kucuk}>
+          <Text style={tema.yazi.kucuk}>
             Değişiklik bu haftadan itibaren geçerlidir; önceki haftaların tablosu ve katılım oranı değişmez.
           </Text>
           <HataMesaji mesaj={hata} />

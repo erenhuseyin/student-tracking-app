@@ -1,7 +1,7 @@
 // Erişim: yalnızca ogretmen. `tarih` parametresi verilmezse bugünün yoklaması alınır; haftalık
 // tablodan geçmiş bir gün açılabilir (düzeltme). Gelecek tarih kabul edilmez.
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ekran } from '@/components/Ekran';
@@ -9,7 +9,7 @@ import { Kart } from '@/components/Kart';
 import { Liste } from '@/components/Liste';
 import { useOturum } from '@/lib/oturum';
 import { bugununTarihi, tarihGecerliMi, tarihiBicimle } from '@/lib/tarih';
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi, yoklamaRenkleri } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import { YOKLAMA_DURUMLARI, type YoklamaDurumu } from '@/lib/tipler';
 import {
   gununYoklamasiniGetir,
@@ -29,6 +29,8 @@ function ozetMetni(ogrenciler: OgrenciYoklamaSatiri[]): string {
 }
 
 export default function OgretmenYoklama() {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const { sinifId, tarih: tarihParametresi } = useLocalSearchParams<{ sinifId: string; tarih?: string }>();
   const bugun = bugununTarihi();
   const tarih =
@@ -85,16 +87,16 @@ export default function OgretmenYoklama() {
         bosBaslik="Bu sınıfta öğrenci yok"
         ust={
           <View style={styles.ust}>
-            <Text style={yazi.altBaslik}>{tarihiBicimle(tarih)}</Text>
-            <Text style={yazi.kucuk}>{ozetMetni(ogrenciler ?? [])}</Text>
-            {gecmisGun ? <Text style={yazi.kucuk}>Geçmiş gün düzeltmesi veliye bildirilmez.</Text> : null}
+            <Text style={styles.ustBaslik}>{tarihiBicimle(tarih)}</Text>
+            <Text style={styles.kucuk}>{ozetMetni(ogrenciler ?? [])}</Text>
+            {gecmisGun ? <Text style={styles.kucuk}>Geçmiş gün düzeltmesi veliye bildirilmez.</Text> : null}
           </View>
         }
         satir={(o) => (
           <Kart>
             <View style={styles.adSatiri}>
-              <Text style={[yazi.govde, styles.ad]}>{o.ad_soyad}</Text>
-              {kaydedenId === o.id ? <ActivityIndicator size="small" color={renkler.ana} /> : null}
+              <Text style={[styles.govde, styles.ad]}>{o.ad_soyad}</Text>
+              {kaydedenId === o.id ? <ActivityIndicator size="small" color={tema.renkler.ana} /> : null}
             </View>
             <View style={styles.secici}>
               {YOKLAMA_DURUMLARI.map((durum) => {
@@ -109,7 +111,10 @@ export default function OgretmenYoklama() {
                     onPress={() => isaretle(o.id, durum)}
                     style={[
                       styles.secenek,
-                      secili && { backgroundColor: yoklamaRenkleri[durum].renk, borderColor: yoklamaRenkleri[durum].renk },
+                      secili && {
+                        backgroundColor: tema.yoklamaRenkleri[durum].renk,
+                        borderColor: tema.yoklamaRenkleri[durum].renk,
+                      },
                     ]}
                   >
                     <Text style={[styles.secenekMetni, secili && styles.secenekMetniSecili]}>
@@ -126,40 +131,51 @@ export default function OgretmenYoklama() {
   );
 }
 
-const styles = StyleSheet.create({
-  ust: {
-    gap: bosluk.xs,
-    marginBottom: bosluk.m,
-  },
-  adSatiri: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: bosluk.s,
-  },
-  ad: {
-    flex: 1,
-    fontWeight: '600',
-  },
-  secici: {
-    flexDirection: 'row',
-    gap: bosluk.s,
-  },
-  secenek: {
-    flex: 1,
-    minHeight: dokunmaAlani.normal,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    backgroundColor: renkler.yuzey,
-  },
-  secenekMetni: {
-    ...yazi.govde,
-    fontWeight: '600',
-    color: renkler.metinIkincil,
-  },
-  secenekMetniSecili: {
-    color: renkler.anaUstu,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    ust: {
+      gap: t.bosluk.xs,
+      marginBottom: t.bosluk.m,
+    },
+    ustBaslik: {
+      ...t.yazi.bolum,
+    },
+    kucuk: {
+      ...t.yazi.kucuk,
+    },
+    adSatiri: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.bosluk.s,
+    },
+    govde: {
+      ...t.yazi.govde,
+    },
+    ad: {
+      flex: 1,
+      fontFamily: t.yaziTipi.yariKalin,
+    },
+    secici: {
+      flexDirection: 'row',
+      gap: t.bosluk.s,
+    },
+    secenek: {
+      flex: 1,
+      minHeight: t.dokunmaAlani.normal,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+      borderRadius: t.yaricap.m,
+      backgroundColor: t.renkler.yuzey,
+    },
+    secenekMetni: {
+      ...t.yazi.govde,
+      fontFamily: t.yaziTipi.yariKalin,
+      color: t.renkler.metinIkincil,
+    },
+    secenekMetniSecili: {
+      color: t.renkler.anaUzeriMetin,
+    },
+  });
+}

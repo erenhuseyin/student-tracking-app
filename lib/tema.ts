@@ -18,6 +18,7 @@ import type { ComponentProps } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 
 import { marka } from '@/lib/marka';
+import { useTemaTercihi } from '@/lib/temaTercihi';
 import type { YoklamaDurumu } from '@/lib/tipler';
 
 // Rengi beyazla karıştırıp opak, soluk bir ton üretir (#RRGGBB bekler). Marka başına ayrı
@@ -260,7 +261,9 @@ const TEMALAR: Record<'acik' | 'karanlik', Tema> = { acik: temaKur('acik'), kara
 // `dark` dışında bir şey dönerse (`null`, yüklenmeden önce) açık tema kullanılır.
 export function useTema(): Tema {
   const sema = useColorScheme();
-  return TEMALAR[sema === 'dark' ? 'karanlik' : 'acik'];
+  const { tercih } = useTemaTercihi();
+  const mod = tercih === 'sistem' ? sema : tercih === 'karanlik' ? 'dark' : 'light';
+  return TEMALAR[mod === 'dark' ? 'karanlik' : 'acik'];
 }
 
 // Belirli bir modun belirteç setini doğrudan verir (OS temasından bağımsız). `Appearance.

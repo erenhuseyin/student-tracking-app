@@ -12,6 +12,8 @@ import { useEffect } from 'react';
 
 import { usePushBildirimKaydi } from '@/lib/bildirimler';
 import { OturumSaglayici, useOturum } from '@/lib/oturum';
+import { TemaTercihiSaglayici } from '@/lib/temaTercihi';
+import { useTema } from '@/lib/tema';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Zaten gizlenmişse hata görmezden gelinir.
@@ -19,6 +21,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 function Yonlendirici() {
   usePushBildirimKaydi();
+  const tema = useTema();
   const { durum, kullanici } = useOturum();
   const rol = durum === 'hazir' ? kullanici?.rol : undefined;
   // lib/tema.ts > yaziTipi bu dört ağırlığa fontFamily ile referans verir; yüklenene kadar
@@ -35,8 +38,10 @@ function Yonlendirici() {
 
   return (
     <>
-      <StatusBar style="dark" />
-      <Stack>
+      <StatusBar style={tema.mod === 'karanlik' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{ contentStyle: { backgroundColor: tema.renkler.zemin } }}
+      >
         <Stack.Protected guard={durum === 'oturum_yok'}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
@@ -73,8 +78,10 @@ function Yonlendirici() {
 
 export default function RootLayout() {
   return (
-    <OturumSaglayici>
-      <Yonlendirici />
-    </OturumSaglayici>
+    <TemaTercihiSaglayici>
+      <OturumSaglayici>
+        <Yonlendirici />
+      </OturumSaglayici>
+    </TemaTercihiSaglayici>
   );
 }

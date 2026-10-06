@@ -10,6 +10,7 @@ import { Ekran } from '@/components/Ekran';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { TemaDugmesi } from '@/components/TemaDugmesi';
 import { useTema } from '@/lib/tema';
 import { type OgrenciYoklamaSatiri, veliCocuklariniBugunkuYoklamaylaGetir } from '@/lib/yoklama';
 
@@ -42,6 +43,7 @@ export default function VeliAnaSayfa() {
                 renk={tema.renkler.metinIkincil}
                 onPress={() => router.push('/pin-degistir')}
               />
+              <TemaDugmesi />
               <CikisYapButonu />
             </View>
           ),

@@ -1,13 +1,14 @@
 // Haftalık yoklama tablosu (salt okunur): satır = öğrenci, sütun = o haftanın ders günleri,
 // son sütun = haftalık katılım oranı. `onGunSec` verilirse bugün ve geçmiş günlerin başlığı
 // dokunulabilir olur (o günün yoklama ekranını açmak için). Sütunlar sığmazsa yatay kayar.
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ikon, type IkonAdi } from '@/components/Ikon';
 import { Kart } from '@/components/Kart';
 import { katilimHesapla, yuzdeMetni } from '@/lib/katilim';
 import { bugununTarihi, GUN_KISA_ADLARI, isoGun } from '@/lib/tarih';
-import { bosluk, katilimRengi, renkler, yaricap, yazi, yoklamaRenkleri } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import { type Ogrenci, YOKLAMA_DURUMLARI, type YoklamaDurumu } from '@/lib/tipler';
 import { YOKLAMA_ETIKETLERI, type YoklamaKaydi } from '@/lib/yoklama';
 
@@ -31,6 +32,8 @@ type Props = {
 };
 
 export function HaftalikYoklamaTablosu({ ogrenciler, sutunlar, yoklamalar, onGunSec }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const bugun = bugununTarihi();
   const durumHaritasi = new Map(yoklamalar.map((y) => [`${y.ogrenci_id}|${y.tarih}`, y.durum]));
 
@@ -73,7 +76,7 @@ export function HaftalikYoklamaTablosu({ ogrenciler, sutunlar, yoklamalar, onGun
             const { oran } = katilimHesapla(kayitlari);
             return (
               <View key={o.id} style={[styles.satir, styles.ogrenciSatiri]}>
-                <Text style={[yazi.kucuk, styles.ad, styles.adMetni]} numberOfLines={2}>
+                <Text style={[styles.ad, styles.adMetni]} numberOfLines={2}>
                   {o.ad_soyad}
                 </Text>
                 {sutunlar.map((tarih) => {
@@ -88,8 +91,8 @@ export function HaftalikYoklamaTablosu({ ogrenciler, sutunlar, yoklamalar, onGun
                       }`}
                     >
                       {durum ? (
-                        <View style={[styles.isaret, { backgroundColor: yoklamaRenkleri[durum].soluk }]}>
-                          <Ikon ad={DURUM_IKONLARI[durum]} boyut={16} renk={yoklamaRenkleri[durum].renk} />
+                        <View style={[styles.isaret, { backgroundColor: tema.yoklamaRenkleri[durum].soluk }]}>
+                          <Ikon ad={DURUM_IKONLARI[durum]} boyut={16} renk={tema.yoklamaRenkleri[durum].renk} />
                         </View>
                       ) : (
                         <View style={styles.bosIsaret} />
@@ -98,7 +101,7 @@ export function HaftalikYoklamaTablosu({ ogrenciler, sutunlar, yoklamalar, onGun
                   );
                 })}
                 <View style={styles.oran}>
-                  <Text style={[styles.oranMetni, { color: katilimRengi(oran).renk }]}>{yuzdeMetni(oran)}</Text>
+                  <Text style={[styles.oranMetni, { color: tema.katilimRengi(oran).renk }]}>{yuzdeMetni(oran)}</Text>
                 </View>
               </View>
             );
@@ -109,107 +112,110 @@ export function HaftalikYoklamaTablosu({ ogrenciler, sutunlar, yoklamalar, onGun
       <View style={styles.aciklama}>
         {YOKLAMA_DURUMLARI.map((durum) => (
           <View key={durum} style={styles.aciklamaOgesi}>
-            <Ikon ad={DURUM_IKONLARI[durum]} boyut={14} renk={yoklamaRenkleri[durum].renk} />
-            <Text style={yazi.kucuk}>{YOKLAMA_ETIKETLERI[durum]}</Text>
+            <Ikon ad={DURUM_IKONLARI[durum]} boyut={14} renk={tema.yoklamaRenkleri[durum].renk} />
+            <Text style={styles.kucuk}>{YOKLAMA_ETIKETLERI[durum]}</Text>
           </View>
         ))}
         <View style={styles.aciklamaOgesi}>
           <View style={styles.bosIsaret} />
-          <Text style={yazi.kucuk}>İşaretlenmedi</Text>
+          <Text style={styles.kucuk}>İşaretlenmedi</Text>
         </View>
       </View>
     </Kart>
   );
 }
 
-const styles = StyleSheet.create({
-  // Sütunlar dar ekranda sığmazsa kayar, sığarsa tablo kartı doldurur.
-  kaydirma: {
-    flexGrow: 1,
-  },
-  tablo: {
-    flexGrow: 1,
-  },
-  satir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ogrenciSatiri: {
-    minHeight: 44,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: renkler.ayirici,
-  },
-  ad: {
-    flexGrow: 1,
-    flexBasis: AD_GENISLIGI,
-    minWidth: AD_GENISLIGI,
-    paddingRight: bosluk.s,
-  },
-  adMetni: {
-    color: renkler.metin,
-    fontWeight: '600',
-  },
-  gunBasligi: {
-    width: GUN_GENISLIGI,
-    alignItems: 'center',
-    paddingVertical: bosluk.xs,
-    borderRadius: yaricap.s,
-  },
-  dokunulabilir: {
-    backgroundColor: renkler.anaSoluk,
-  },
-  basili: {
-    opacity: 0.6,
-  },
-  gunAdi: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: renkler.vurguKoyu,
-  },
-  gunSayisi: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: renkler.metin,
-  },
-  bugun: {
-    color: renkler.ana,
-  },
-  hucre: {
-    width: GUN_GENISLIGI,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  isaret: {
-    width: 28,
-    height: 28,
-    borderRadius: yaricap.tam,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bosIsaret: {
-    width: 10,
-    height: 10,
-    borderRadius: yaricap.tam,
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-  },
-  oran: {
-    width: ORAN_GENISLIGI,
-    alignItems: 'flex-end',
-  },
-  oranMetni: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  aciklama: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: bosluk.l,
-    rowGap: bosluk.xs,
-  },
-  aciklamaOgesi: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: bosluk.xs,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kaydirma: {
+      flexGrow: 1,
+    },
+    tablo: {
+      flexGrow: 1,
+    },
+    satir: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    ogrenciSatiri: {
+      minHeight: 44,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.renkler.ayirici,
+    },
+    ad: {
+      flexGrow: 1,
+      flexBasis: AD_GENISLIGI,
+      minWidth: AD_GENISLIGI,
+      paddingRight: t.bosluk.s,
+    },
+    adMetni: {
+      ...t.yazi.kucuk,
+      fontFamily: t.yaziTipi.yariKalin,
+      color: t.renkler.metin,
+    },
+    gunBasligi: {
+      width: GUN_GENISLIGI,
+      alignItems: 'center',
+      paddingVertical: t.bosluk.xs,
+      borderRadius: t.yaricap.s,
+    },
+    dokunulabilir: {
+      backgroundColor: t.renkler.anaSoluk,
+    },
+    basili: {
+      opacity: 0.6,
+    },
+    gunAdi: {
+      ...t.yazi.etiket,
+    },
+    gunSayisi: {
+      fontFamily: t.yaziTipi.kalin,
+      fontSize: 14,
+      color: t.renkler.metin,
+    },
+    bugun: {
+      color: t.renkler.ana,
+    },
+    hucre: {
+      width: GUN_GENISLIGI,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    isaret: {
+      width: 28,
+      height: 28,
+      borderRadius: t.yaricap.tam,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bosIsaret: {
+      width: 10,
+      height: 10,
+      borderRadius: t.yaricap.tam,
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+    },
+    oran: {
+      width: ORAN_GENISLIGI,
+      alignItems: 'flex-end',
+    },
+    oranMetni: {
+      fontFamily: t.yaziTipi.kalin,
+      fontSize: 15,
+    },
+    aciklama: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      columnGap: t.bosluk.l,
+      rowGap: t.bosluk.xs,
+    },
+    aciklamaOgesi: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.bosluk.xs,
+    },
+    kucuk: {
+      ...t.yazi.kucuk,
+    },
+  });
+}

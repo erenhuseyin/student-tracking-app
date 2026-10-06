@@ -1,25 +1,39 @@
 // Erişim: yalnızca kurum_admin. Kendi kurumunun sınıflarını yönetir; kurumu kök (müşteri)
 // ise ayrıca şubelerine geçebilir.
 import { Stack, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Buton } from '@/components/Buton';
 import { CikisYapButonu } from '@/components/CikisYapButonu';
 import { Ekran } from '@/components/Ekran';
 import { SinifListesi } from '@/components/SinifListesi';
+import { TemaDugmesi } from '@/components/TemaDugmesi';
 import { useOturum } from '@/lib/oturum';
-import { bosluk, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 export default function KurumAdminAnaSayfa() {
   const router = useRouter();
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const { kurum } = useOturum();
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
 
   return (
     <Ekran>
-      <Stack.Screen options={{ title: 'Sınıflar', headerRight: () => <CikisYapButonu /> }} />
+      <Stack.Screen
+        options={{
+          title: 'Sınıflar',
+          headerRight: () => (
+            <View style={styles.baslikEylemleri}>
+              <TemaDugmesi />
+              <CikisYapButonu />
+            </View>
+          ),
+        }}
+      />
 
-      {kurum ? <Text style={yazi.altBaslik}>{kurum.ad}</Text> : null}
+      {kurum ? <Text style={styles.kurumAdi}>{kurum.ad}</Text> : null}
       {kurum ? <SinifListesi kurumId={kurum.id} /> : null}
 
       <View style={styles.altButonlar}>
@@ -46,15 +60,23 @@ export default function KurumAdminAnaSayfa() {
   );
 }
 
-const styles = StyleSheet.create({
-  altButonlar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: bosluk.m,
-  },
-  // İki sütun; tek kalan buton satırı doldurur.
-  altButon: {
-    flexGrow: 1,
-    flexBasis: '40%',
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    baslikEylemleri: {
+      flexDirection: 'row',
+    },
+    kurumAdi: {
+      ...t.yazi.bolum,
+    },
+    altButonlar: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: t.bosluk.m,
+    },
+    // İki sütun; tek kalan buton satırı doldurur.
+    altButon: {
+      flexGrow: 1,
+      flexBasis: '40%',
+    },
+  });
+}

@@ -2,7 +2,7 @@
 // ortak gövdesi: `onGunSec` (o günün yoklamasını aç) ve `onDersGunleri` (ders günlerini düzenle)
 // yalnızca öğretmen ekranında verilir; verilmezse görünüm salt okunurdur.
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BosDurum } from '@/components/BosDurum';
@@ -17,7 +17,7 @@ import { Yukleniyor } from '@/components/Yukleniyor';
 import { dersPlanlariniGetir } from '@/lib/dersPlani';
 import { haftadakiler, haftaninPlani, haftaSutunlari, islenmemisGunler } from '@/lib/katilim';
 import { bugununTarihi, gunBasligi, GUN_KISA_ADLARI, gunEkle, haftaBaslangici } from '@/lib/tarih';
-import { bosluk, renkler, yaricap, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { Ogrenci, SinifDersPlani } from '@/lib/tipler';
 import { sinifYoklamalariniGetir, type YoklamaKaydi } from '@/lib/yoklama';
 
@@ -37,6 +37,8 @@ type Props = {
 };
 
 export function SinifKatilimi({ sinifId, onGunSec, onDersGunleri }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [pazartesi, setPazartesi] = useState(() => haftaBaslangici(bugununTarihi()));
   const [gorunum, setGorunum] = useState<Gorunum>('tablo');
   const [veri, setVeri] = useState<Veri | null>(null);
@@ -83,13 +85,13 @@ export function SinifKatilimi({ sinifId, onGunSec, onDersGunleri }: Props) {
       ) : (
         <ScrollView style={styles.kaydirma} contentContainerStyle={styles.icerik}>
           {planGunleri ? (
-            <Text style={yazi.kucuk}>
+            <Text style={styles.kucuk}>
               Ders günleri: {planGunleri.map((g) => GUN_KISA_ADLARI[g - 1]).join(' · ')} (haftada {planGunleri.length} ders)
             </Text>
           ) : (
             <View style={styles.bilgi}>
-              <Ikon ad="calendar-outline" boyut={20} renk={renkler.vurguKoyu} />
-              <Text style={[yazi.kucuk, styles.bilgiMetni]}>
+              <Ikon ad="calendar-outline" boyut={20} renk={tema.renkler.vurguKoyu} />
+              <Text style={[styles.kucuk, styles.bilgiMetni]}>
                 Bu hafta için ders günleri belirlenmemiş. Tabloda yalnızca yoklaması alınmış günler görünür.
               </Text>
             </View>
@@ -101,8 +103,8 @@ export function SinifKatilimi({ sinifId, onGunSec, onDersGunleri }: Props) {
 
           {islenmemis.length > 0 ? (
             <View style={[styles.bilgi, styles.uyari]}>
-              <Ikon ad="alert-circle-outline" boyut={20} renk={renkler.uyari} />
-              <Text style={[yazi.kucuk, styles.bilgiMetni, styles.uyariMetni]}>
+              <Ikon ad="alert-circle-outline" boyut={20} renk={tema.renkler.uyari} />
+              <Text style={[styles.kucuk, styles.bilgiMetni, styles.uyariMetni]}>
                 {islenmemis.length} ders gününün yoklaması alınmadı: {islenmemis.map(gunBasligi).join(', ')}
               </Text>
             </View>
@@ -125,7 +127,7 @@ export function SinifKatilimi({ sinifId, onGunSec, onDersGunleri }: Props) {
             />
           )}
           {gorunum === 'tablo' && onGunSec && sutunlar.length > 0 ? (
-            <Text style={yazi.kucuk}>Bir günün yoklamasını almak ya da düzeltmek için gün başlığına dokunun.</Text>
+            <Text style={styles.kucuk}>Bir günün yoklamasını almak ya da düzeltmek için gün başlığına dokunun.</Text>
           ) : null}
         </ScrollView>
       )}
@@ -133,36 +135,38 @@ export function SinifKatilimi({ sinifId, onGunSec, onDersGunleri }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    gap: bosluk.m,
-  },
-  kaydirma: {
-    flex: 1,
-    // Kart gölgeleri kenarda kesilmesin.
-    marginHorizontal: -bosluk.xs,
-  },
-  icerik: {
-    gap: bosluk.m,
-    paddingHorizontal: bosluk.xs,
-    paddingBottom: bosluk.l,
-  },
-  bilgi: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: bosluk.s,
-    padding: bosluk.m,
-    borderRadius: yaricap.m,
-    backgroundColor: renkler.vurguSoluk,
-  },
-  bilgiMetni: {
-    flex: 1,
-  },
-  uyari: {
-    backgroundColor: renkler.uyariSoluk,
-  },
-  uyariMetni: {
-    color: renkler.uyari,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      flex: 1,
+      gap: t.bosluk.m,
+    },
+    kaydirma: {
+      flex: 1,
+    },
+    icerik: {
+      gap: t.bosluk.m,
+      paddingBottom: t.bosluk.l,
+    },
+    bilgi: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.bosluk.s,
+      padding: t.bosluk.m,
+      borderRadius: t.yaricap.m,
+      backgroundColor: t.renkler.vurguSoluk,
+    },
+    bilgiMetni: {
+      flex: 1,
+    },
+    uyari: {
+      backgroundColor: t.renkler.uyariSoluk,
+    },
+    uyariMetni: {
+      color: t.renkler.uyari,
+    },
+    kucuk: {
+      ...t.yazi.kucuk,
+    },
+  });
+}

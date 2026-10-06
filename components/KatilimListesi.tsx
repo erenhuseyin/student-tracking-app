@@ -1,5 +1,6 @@
 // Öğrenci başına haftalık katılım oranı listesi; katılımı en düşük olan üstte. Alt satırda
 // son 4 haftanın (seçili hafta dahil) toplam oranı gösterilir.
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
@@ -7,7 +8,7 @@ import { ListeSatiri } from '@/components/ListeSatiri';
 import { Rozet } from '@/components/Rozet';
 import { araliktakiler, haftadakiler, katilimHesapla, katilimMetni, yuzdeMetni } from '@/lib/katilim';
 import { gunEkle } from '@/lib/tarih';
-import { bosluk, katilimRengi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { Ogrenci } from '@/lib/tipler';
 import type { YoklamaKaydi } from '@/lib/yoklama';
 
@@ -21,6 +22,9 @@ type Props = {
 };
 
 export function KatilimListesi({ ogrenciler, yoklamalar, pazartesi }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
+
   const satirlar = ogrenciler
     .map((o) => {
       const kayitlari = yoklamalar.filter((y) => y.ogrenci_id === o.id);
@@ -33,7 +37,7 @@ export function KatilimListesi({ ogrenciler, yoklamalar, pazartesi }: Props) {
   return (
     <View style={styles.liste}>
       {satirlar.map(({ ogrenci, hafta, donem }) => {
-        const renk = katilimRengi(hafta.oran);
+        const renk = tema.katilimRengi(hafta.oran);
         return (
           <ListeSatiri
             key={ogrenci.id}
@@ -48,8 +52,10 @@ export function KatilimListesi({ ogrenciler, yoklamalar, pazartesi }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  liste: {
-    gap: bosluk.m,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    liste: {
+      gap: t.bosluk.m,
+    },
+  });
+}

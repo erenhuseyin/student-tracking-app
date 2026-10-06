@@ -7,14 +7,14 @@
   "androidPackage": "com.ergenecode.ogrencitakip",
   "easProjectId": "238b87a6-fa82-44b9-9dbd-304631fa0b0a",
   "renkler": {
-    "ana": "#1E6B2A",
-    "anaParlak": "#3DAA35",
-    "anaSoluk": "#EAF4E8",
-    "vurgu": "#A08A64",
-    "vurguKoyu": "#7A6440",
-    "vurguSoluk": "#F3EEE5",
+    "ana": "#3E5C47",
+    "anaParlak": "#6E8F78",
+    "anaSoluk": "#E7EDE8",
+    "vurgu": "#9C8868",
+    "vurguKoyu": "#6B5A40",
+    "vurguSoluk": "#F1ECE3",
     "zemin": "#FAF8F4",
-    "ayirici": "#E4DDCF",
-    "ikonArkaplan": "#EAF4E8"
+    "ayirici": "#E3DDD0",
+    "ikonArkaplan": "#E7EDE8"
   }
 }

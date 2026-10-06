@@ -1,6 +1,6 @@
 // Erişim: yalnızca ogretmen. Sınıfın öğrencileri: yoklamaya ve öğrencinin gelişim kayıtlarına geçiş.
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
@@ -10,11 +10,13 @@ import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { ogrencileriGetir } from '@/lib/ogrenciler';
 import { sinifGetir } from '@/lib/siniflar';
-import { bosluk } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 
 export default function OgretmenSinifi() {
   const router = useRouter();
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const { sinifId } = useLocalSearchParams<{ sinifId: string }>();
   const [sinif, setSinif] = useState<Sinif | null>(null);
   const [ogrenciler, setOgrenciler] = useState<Ogrenci[] | null>(null);
@@ -70,12 +72,14 @@ export default function OgretmenSinifi() {
   );
 }
 
-const styles = StyleSheet.create({
-  butonlar: {
-    flexDirection: 'row',
-    gap: bosluk.m,
-  },
-  buton: {
-    flex: 1,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    butonlar: {
+      flexDirection: 'row',
+      gap: t.bosluk.m,
+    },
+    buton: {
+      flex: 1,
+    },
+  });
+}
