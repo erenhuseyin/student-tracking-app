@@ -1,6 +1,7 @@
 // Erişim: yalnızca ogretmen. Sınıfın öğrencileri: yoklamaya ve öğrencinin gelişim kayıtlarına geçiş.
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Buton } from '@/components/Buton';
@@ -9,6 +10,7 @@ import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { ogrencileriGetir } from '@/lib/ogrenciler';
 import { sinifGetir } from '@/lib/siniflar';
+import { bosluk } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 
 export default function OgretmenSinifi() {
@@ -35,7 +37,19 @@ export default function OgretmenSinifi() {
     <Ekran>
       <Stack.Screen options={{ title: sinif ? `${sinif.ad} · ${sinif.donem}` : 'Sınıf' }} />
 
-      <Buton ikon="checkbox-outline" baslik="Yoklama Al" onPress={() => router.push(`/yoklama/${sinifId}`)} />
+      <View style={styles.butonlar}>
+        <View style={styles.buton}>
+          <Buton ikon="checkbox-outline" baslik="Yoklama Al" onPress={() => router.push(`/yoklama/${sinifId}`)} />
+        </View>
+        <View style={styles.buton}>
+          <Buton
+            tur="ikincil"
+            ikon="grid-outline"
+            baslik="Haftalık"
+            onPress={() => router.push(`/haftalik-yoklama/${sinifId}`)}
+          />
+        </View>
+      </View>
 
       <Liste
         veri={ogrenciler}
@@ -55,3 +69,13 @@ export default function OgretmenSinifi() {
     </Ekran>
   );
 }
+
+const styles = StyleSheet.create({
+  butonlar: {
+    flexDirection: 'row',
+    gap: bosluk.m,
+  },
+  buton: {
+    flex: 1,
+  },
+});

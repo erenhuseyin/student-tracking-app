@@ -30,6 +30,12 @@ export function yuzdeMetni(oran: number | null): string {
   return oran === null ? '—' : `%${Math.round(oran * 100)}`;
 }
 
+// '2/3 derse katıldı · 1 geç'; hiç yoklama yoksa null.
+export function katilimMetni({ katildi, alinan, gec }: Katilim): string | null {
+  if (alinan === 0) return null;
+  return `${katildi}/${alinan} derse katıldı${gec > 0 ? ` · ${gec} geç` : ''}`;
+}
+
 // [baslangic, bitis] aralığındaki (uçlar dahil) kayıtlar.
 export function araliktakiler<T extends { tarih: string }>(kayitlar: T[], baslangic: string, bitis: string): T[] {
   return kayitlar.filter((k) => k.tarih >= baslangic && k.tarih <= bitis);
