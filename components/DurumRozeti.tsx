@@ -2,7 +2,7 @@
 // her zaman ikon taşır (bkz. components/Rozet.tsx notu) — yalnız renge dayanmaz.
 import type { IkonAdi } from '@/components/Ikon';
 import { Rozet } from '@/components/Rozet';
-import { renkler, yoklamaRenkleri } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 import type { YoklamaDurumu } from '@/lib/tipler';
 import { YOKLAMA_ETIKETLERI } from '@/lib/yoklama';
 
@@ -13,14 +13,17 @@ const IKONLAR: Record<YoklamaDurumu, IkonAdi> = {
 };
 
 export function DurumRozeti({ durum }: { durum: YoklamaDurumu | null }) {
+  const tema = useTema();
   if (!durum) {
-    return <Rozet metin="İşaretlenmedi" renk={renkler.metinIkincil} zemin={renkler.ayirici} ikon="ellipse-outline" />;
+    return (
+      <Rozet metin="İşaretlenmedi" renk={tema.renkler.metinIkincil} zemin={tema.renkler.ayirici} ikon="ellipse-outline" />
+    );
   }
   return (
     <Rozet
       metin={YOKLAMA_ETIKETLERI[durum]}
-      renk={yoklamaRenkleri[durum].renk}
-      zemin={yoklamaRenkleri[durum].soluk}
+      renk={tema.yoklamaRenkleri[durum].renk}
+      zemin={tema.yoklamaRenkleri[durum].soluk}
       ikon={IKONLAR[durum]}
     />
   );

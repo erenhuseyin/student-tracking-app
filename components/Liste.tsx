@@ -2,6 +2,7 @@
 // `veri` null ise henüz yüklenmemiştir. `sutunlar` verilen bir ekran, masaüstü genişlikte
 // (>=1024) otomatik olarak Tablo görünümüne döner; vermeyen ekranlar her genişlikte kart
 // listesi olarak kalır (kademeli geçiş — bkz. lib/tema.ts dosya başı notu).
+import { useMemo } from 'react';
 import type { ReactElement } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
@@ -10,7 +11,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import type { IkonAdi } from '@/components/Ikon';
 import { SkeletonSatir } from '@/components/Skeleton';
 import { Tablo, type TabloSutunu } from '@/components/Tablo';
-import { bosluk, useKirilma } from '@/lib/tema';
+import { type Tema, useKirilma, useTema } from '@/lib/tema';
 
 type Props<T> = {
   veri: T[] | null;
@@ -38,6 +39,8 @@ export function Liste<T>({
   sutunlar,
   onSatirPress,
 }: Props<T>) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const kirilma = useKirilma();
   const masaustuTablo = sutunlar && kirilma === 'masaustu';
   const satirlar = veri ?? [];
@@ -79,19 +82,21 @@ export function Liste<T>({
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    gap: bosluk.m,
-  },
-  liste: {
-    flex: 1,
-  },
-  icerik: {
-    gap: bosluk.m,
-    paddingBottom: bosluk.l,
-  },
-  iskeletListesi: {
-    gap: bosluk.m,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      flex: 1,
+      gap: t.bosluk.m,
+    },
+    liste: {
+      flex: 1,
+    },
+    icerik: {
+      gap: t.bosluk.m,
+      paddingBottom: t.bosluk.l,
+    },
+    iskeletListesi: {
+      gap: t.bosluk.m,
+    },
+  });
+}

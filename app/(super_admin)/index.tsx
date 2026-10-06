@@ -1,6 +1,6 @@
 // Erişim: yalnızca super_admin
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Buton } from '@/components/Buton';
@@ -9,8 +9,9 @@ import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { TemaDugmesi } from '@/components/TemaDugmesi';
 import { kurumlariGetir } from '@/lib/kurumlar';
-import { bosluk, renkler } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
 
 // Kök kurumlar ada göre, her kökün şubeleri hemen altında.
@@ -22,6 +23,8 @@ function agacSirasinaDiz(kurumlar: Kurum[]): Kurum[] {
 
 export default function SuperAdminAnaSayfa() {
   const router = useRouter();
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [kurumlar, setKurumlar] = useState<Kurum[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -44,7 +47,17 @@ export default function SuperAdminAnaSayfa() {
 
   return (
     <Ekran>
-      <Stack.Screen options={{ title: 'Kurumlar', headerRight: () => <CikisYapButonu /> }} />
+      <Stack.Screen
+        options={{
+          title: 'Kurumlar',
+          headerRight: () => (
+            <View style={styles.baslikEylemleri}>
+              <TemaDugmesi />
+              <CikisYapButonu />
+            </View>
+          ),
+        }}
+      />
 
       <Liste
         veri={kurumlar}
@@ -58,14 +71,14 @@ export default function SuperAdminAnaSayfa() {
               <ListeSatiri
                 baslik={k.ad}
                 altBaslik="Şube"
-                sol={<Ikon ad="git-branch-outline" renk={renkler.metinIkincil} />}
+                sol={<Ikon ad="git-branch-outline" renk={tema.renkler.metinIkincil} />}
               />
             </View>
           ) : (
             <ListeSatiri
               baslik={k.ad}
               altBaslik={k.marka_kodu ? `Marka kodu: ${k.marka_kodu}` : 'Marka kodu yok'}
-              sol={<Ikon ad="business-outline" boyut={26} renk={renkler.anaParlak} />}
+              sol={<Ikon ad="business-outline" boyut={26} renk={tema.renkler.anaParlak} />}
               onPress={() => router.push(`/kurum/${k.id}`)}
             />
           )
@@ -77,8 +90,13 @@ export default function SuperAdminAnaSayfa() {
   );
 }
 
-const styles = StyleSheet.create({
-  sube: {
-    marginLeft: bosluk.xl,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    baslikEylemleri: {
+      flexDirection: 'row',
+    },
+    sube: {
+      marginLeft: t.bosluk.xl,
+    },
+  });
+}

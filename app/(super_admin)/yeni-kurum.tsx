@@ -9,10 +9,11 @@ import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { kurumEkle } from '@/lib/kurumlar';
-import { yazi } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 
 export default function YeniKurum() {
   const router = useRouter();
+  const tema = useTema();
   const [ad, setAd] = useState('');
   const [markaKodu, setMarkaKodu] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -47,7 +48,7 @@ export default function YeniKurum() {
           editable={!gonderiliyor}
           onSubmitEditing={kaydet}
         />
-        <Text style={yazi.kucuk}>
+        <Text style={tema.yazi.kucuk}>
           Marka kodu müşterinin uygulamasıyla eşleşir ve sonradan değiştirilemez. Şubeleri kurumun kendi yöneticisi
           ekler.
         </Text>

@@ -1,17 +1,12 @@
 // Tasarım belirteçleri ("Defter" konsepti, 2026-10-06 yeniden tasarımı). Ekranlar ve bileşenler
 // renk, boşluk, yazı ve köşe değerlerini buradan alır; sabit renk kodu ya da ölçü yazmaz.
 //
-// İki API bir arada yaşıyor (kademeli geçiş için):
-//   - `useTema()` — render içinde çağrılır, OS temasına göre (açık/karanlık) tam belirteç
-//     setini döndürür. Geçişi yapılmış bileşenler `const t = useTema()` kullanır.
-//   - `renkler`/`bosluk`/`yazi`/... sabit export'ları — modül yüklenirken BİR KEZ hesaplanır,
-//     her zaman AÇIK temayı döndürür. Henüz `useTema()`'ya geçmemiş bileşenler bunları kullanmaya
-//     devam eder; karanlık modda yanlış renk göstermezler, yalnızca karanlık moda uymazlar.
-//     Tüm bileşenler geçince bu sabit export'lar kaldırılacak (ayrı bir son commit).
-//
-// Neden bu ayrım gerekli: React Native'de `StyleSheet.create` genelde modül kapsamında (import
-// anında) çağrılır; o anda hook kullanılamaz. Gerçek karanlık mod için stilin render sırasında
-// (temaya bağlı) kurulması gerekir — bu da ekran ekran yapılan bir geçiştir, tek seferde değil.
+// `useTema()` render içinde çağrılır; kullanıcının tema tercihine (bkz. lib/temaTercihi.tsx —
+// açık/karanlık/sistem, cihazda kalıcı) ya da "sistem" ise OS temasına göre tam belirteç setini
+// döndürür. Her bileşen kendi stilini `const t = useTema(); const styles = useMemo(() =>
+// StyleSheet.create({...}), [t]);` deseniyle render sırasında kurar — React Native'de
+// `StyleSheet.create` genelde modül kapsamında (import anında, hook kullanılamayan bir yerde)
+// çağrıldığı için gerçek karanlık mod bunu render-içi bir çağrıya taşımayı gerektirir.
 import { useColorScheme, useWindowDimensions } from 'react-native';
 import type { Stack } from 'expo-router';
 import type { ComponentProps } from 'react';
@@ -151,9 +146,6 @@ type Renkler = {
   bilgiSoluk: string;
 };
 
-// Geriye uyumlu sabit export: her zaman açık tema. bkz. dosya başındaki not.
-export const renkler = ACIK;
-
 function yaziOlcegi(r: Renkler): Record<string, TextStyle> {
   // bolum/altBaslik aynı stile işaret eder (iki isim de bir geçiş dönemi boyunca birlikte yaşar,
   // bkz. dosya başı notu). `etiket` ve `kucuk` AYNI DEĞİLDİR: `etiket` yalnızca form alanı
@@ -171,34 +163,7 @@ function yaziOlcegi(r: Renkler): Record<string, TextStyle> {
   };
 }
 
-export const yazi = yaziOlcegi(ACIK);
-
-export const yoklamaRenkleri: Record<YoklamaDurumu, { renk: string; soluk: string }> = {
-  geldi: { renk: ACIK.basari, soluk: ACIK.basariSoluk },
-  gelmedi: { renk: ACIK.hata, soluk: ACIK.hataSoluk },
-  gec: { renk: ACIK.uyari, soluk: ACIK.uyariSoluk },
-};
-
-// Katılım oranı (0-1) rengi: %80 ve üstü iyi, %50 ve üstü dikkat, altı sorunlu. Oran yoksa nötr.
-export function katilimRengi(oran: number | null): { renk: string; soluk: string } {
-  if (oran === null) return { renk: ACIK.metinIkincil, soluk: ACIK.ayirici };
-  if (oran >= 0.8) return { renk: ACIK.basari, soluk: ACIK.basariSoluk };
-  if (oran >= 0.5) return { renk: ACIK.uyari, soluk: ACIK.uyariSoluk };
-  return { renk: ACIK.hata, soluk: ACIK.hataSoluk };
-}
-
 type StackSecenekleri = Exclude<ComponentProps<typeof Stack>['screenOptions'], undefined | ((...args: never[]) => unknown)>;
-
-// Rol gruplarının `_layout.tsx` dosyalarında ortak başlık çubuğu görünümü.
-export const baslikCubuguSecenekleri: StackSecenekleri = {
-  headerStyle: { backgroundColor: renkler.yuzey },
-  headerTintColor: renkler.ana,
-  headerTitleStyle: { color: renkler.metin, fontFamily: yaziTipi.yariKalin, fontSize: 18 },
-  headerShadowVisible: false,
-  headerBackButtonDisplayMode: 'minimal',
-  headerTitleAlign: 'center',
-  contentStyle: { backgroundColor: renkler.zemin },
-};
 
 // ---------------------------------------------------------------------------
 // Render-içi tema — gerçek karanlık mod. bkz. dosya başı notu.
@@ -264,13 +229,6 @@ export function useTema(): Tema {
   const { tercih } = useTemaTercihi();
   const mod = tercih === 'sistem' ? sema : tercih === 'karanlik' ? 'dark' : 'light';
   return TEMALAR[mod === 'dark' ? 'karanlik' : 'acik'];
-}
-
-// Belirli bir modun belirteç setini doğrudan verir (OS temasından bağımsız). `Appearance.
-// setColorScheme` web'de desteklenmiyor; bu yüzden önizleme (ör. bilesen-vitrini) gerçek OS
-// temasını değiştirmek yerine bunu kullanıp yerel bir "zorlanan mod" durumu tutar.
-export function temaSec(mod: 'acik' | 'karanlik'): Tema {
-  return TEMALAR[mod];
 }
 
 export type Kirilma = 'mobil' | 'tablet' | 'masaustu';
