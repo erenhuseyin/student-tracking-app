@@ -1,7 +1,9 @@
-// Yan yana tek seçimli seçenekler (ör. rol seçimi).
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+// Yan yana tek seçimli segment (ör. rol seçimi, Tablo/Katılım listesi görünüm değiştirici).
+// Görsel olarak Chip üzerine kurulu; bkz. components/Chip.tsx.
+import { StyleSheet, Text, View } from 'react-native';
 
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
+import { Chip } from '@/components/Chip';
+import { bosluk, yazi } from '@/lib/tema';
 
 type Props<T extends string> = {
   // Verilmezse yalnızca seçenek satırı çizilir (ör. ekran içi görünüm değiştirici).
@@ -17,21 +19,16 @@ export function Secenekler<T extends string>({ etiket, secenekler, secili, onSec
     <View style={styles.kapsayici}>
       {etiket ? <Text style={yazi.etiket}>{etiket}</Text> : null}
       <View style={styles.satir}>
-        {secenekler.map((s) => {
-          const seciliMi = s.deger === secili;
-          return (
-            <Pressable
-              key={s.deger}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: seciliMi, disabled: pasif }}
-              disabled={pasif}
-              onPress={() => onSec(s.deger)}
-              style={[styles.secenek, seciliMi && styles.secili]}
-            >
-              <Text style={[styles.metin, seciliMi && styles.seciliMetin]}>{s.etiket}</Text>
-            </Pressable>
-          );
-        })}
+        {secenekler.map((s) => (
+          <Chip
+            key={s.deger}
+            etiket={s.etiket}
+            secili={s.deger === secili}
+            onPress={() => onSec(s.deger)}
+            pasif={pasif}
+            esitGenislik
+          />
+        ))}
       </View>
     </View>
   );
@@ -44,27 +41,5 @@ const styles = StyleSheet.create({
   satir: {
     flexDirection: 'row',
     gap: bosluk.s,
-  },
-  secenek: {
-    flex: 1,
-    minHeight: dokunmaAlani.normal,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    backgroundColor: renkler.yuzey,
-  },
-  secili: {
-    backgroundColor: renkler.ana,
-    borderColor: renkler.ana,
-  },
-  metin: {
-    ...yazi.govde,
-    fontWeight: '600',
-    color: renkler.metinIkincil,
-  },
-  seciliMetin: {
-    color: renkler.anaUstu,
   },
 });

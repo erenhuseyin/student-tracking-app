@@ -1,8 +1,10 @@
 // Haftanın günleri için çoklu seçim (Pzt ... Paz). Değerler ISO gün numarasıdır (1 = Pzt ... 7 = Paz).
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+// Görsel olarak Chip üzerine kurulu; bkz. components/Chip.tsx.
+import { StyleSheet, Text, View } from 'react-native';
 
+import { Chip } from '@/components/Chip';
 import { GUN_ADLARI, GUN_KISA_ADLARI } from '@/lib/tarih';
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
+import { bosluk, yazi } from '@/lib/tema';
 
 type Props = {
   etiket: string;
@@ -21,19 +23,17 @@ export function GunSecici({ etiket, secililer, onDegis, pasif = false }: Props) 
       <View style={styles.satir}>
         {GUN_KISA_ADLARI.map((kisaAd, i) => {
           const gun = i + 1;
-          const secili = secililer.includes(gun);
           return (
-            <Pressable
+            <Chip
               key={gun}
-              accessibilityRole="checkbox"
+              rol="checkbox"
+              etiket={kisaAd}
               accessibilityLabel={GUN_ADLARI[i]}
-              accessibilityState={{ checked: secili, disabled: pasif }}
-              disabled={pasif}
+              secili={secililer.includes(gun)}
               onPress={() => degistir(gun)}
-              style={[styles.gun, secili && styles.secili]}
-            >
-              <Text style={[styles.metin, secili && styles.seciliMetin]}>{kisaAd}</Text>
-            </Pressable>
+              pasif={pasif}
+              esitGenislik
+            />
           );
         })}
       </View>
@@ -48,27 +48,5 @@ const styles = StyleSheet.create({
   satir: {
     flexDirection: 'row',
     gap: bosluk.xs,
-  },
-  gun: {
-    flex: 1,
-    minHeight: dokunmaAlani.normal,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    backgroundColor: renkler.yuzey,
-  },
-  secili: {
-    backgroundColor: renkler.ana,
-    borderColor: renkler.ana,
-  },
-  metin: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: renkler.metinIkincil,
-  },
-  seciliMetin: {
-    color: renkler.anaUstu,
   },
 });
