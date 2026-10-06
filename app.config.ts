@@ -52,7 +52,11 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: gorsel('icon.png'),
   scheme: marka.scheme,
-  userInterfaceStyle: 'light',
+  // 'automatic': native tarafta sistem (splash, bildirim ikonu vb.) OS temasını izler.
+  // Uygulama içi karanlık mod (lib/tema.ts > useTema) bundan bağımsız zaten çalışıyordu;
+  // bu yalnızca native kabuğu JS tarafıyla tutarlı hale getiriyor. Native ayar olduğu için
+  // yeni bir development build gerektirir (2026-10-06 "Defter" yeniden tasarımı).
+  userInterfaceStyle: 'automatic',
   ios: {
     icon: './assets/expo.icon',
   },
