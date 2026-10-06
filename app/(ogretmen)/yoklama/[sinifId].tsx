@@ -1,4 +1,5 @@
-// Erişim: yalnızca ogretmen
+// Erişim: yalnızca ogretmen. `tarih` parametresi verilmezse bugünün yoklaması alınır; haftalık
+// tablodan geçmiş bir gün açılabilir (düzeltme). Gelecek tarih kabul edilmez.
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -7,11 +8,11 @@ import { Ekran } from '@/components/Ekran';
 import { Kart } from '@/components/Kart';
 import { Liste } from '@/components/Liste';
 import { useOturum } from '@/lib/oturum';
-import { bugununTarihi, tarihiBicimle } from '@/lib/tarih';
+import { bugununTarihi, tarihGecerliMi, tarihiBicimle } from '@/lib/tarih';
 import { bosluk, dokunmaAlani, renkler, yaricap, yazi, yoklamaRenkleri } from '@/lib/tema';
 import { YOKLAMA_DURUMLARI, type YoklamaDurumu } from '@/lib/tipler';
 import {
-  bugununYoklamasiniGetir,
+  gununYoklamasiniGetir,
   type OgrenciYoklamaSatiri,
   YOKLAMA_ETIKETLERI,
   yoklamaKaydet,
@@ -28,7 +29,11 @@ function ozetMetni(ogrenciler: OgrenciYoklamaSatiri[]): string {
 }
 
 export default function OgretmenYoklama() {
-  const { sinifId } = useLocalSearchParams<{ sinifId: string }>();
+  const { sinifId, tarih: tarihParametresi } = useLocalSearchParams<{ sinifId: string; tarih?: string }>();
+  const bugun = bugununTarihi();
+  const tarih =
+    tarihParametresi && tarihGecerliMi(tarihParametresi) && tarihParametresi <= bugun ? tarihParametresi : bugun;
+  const gecmisGun = tarih < bugun;
   const { kullanici } = useOturum();
   const [ogrenciler, setOgrenciler] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -37,11 +42,11 @@ export default function OgretmenYoklama() {
   const yenile = useCallback(async () => {
     setHata(null);
     try {
-      setOgrenciler(await bugununYoklamasiniGetir(sinifId));
+      setOgrenciler(await gununYoklamasiniGetir(sinifId, tarih));
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     }
-  }, [sinifId]);
+  }, [sinifId, tarih]);
 
   useFocusEffect(
     useCallback(() => {
@@ -57,7 +62,7 @@ export default function OgretmenYoklama() {
     setKaydedenId(ogrenciId);
     setHata(null);
     try {
-      await yoklamaKaydet(kullanici.kurum_id, ogrenciId, kullanici.id, durum);
+      await yoklamaKaydet(kullanici.kurum_id, ogrenciId, kullanici.id, durum, tarih);
       setOgrenciler((mevcut) =>
         (mevcut ?? []).map((o) => (o.id === ogrenciId ? { ...o, yoklama_durumu: durum } : o)),
       );
@@ -80,8 +85,9 @@ export default function OgretmenYoklama() {
         bosBaslik="Bu sınıfta öğrenci yok"
         ust={
           <View style={styles.ust}>
-            <Text style={yazi.altBaslik}>{tarihiBicimle(bugununTarihi())}</Text>
+            <Text style={yazi.altBaslik}>{tarihiBicimle(tarih)}</Text>
             <Text style={yazi.kucuk}>{ozetMetni(ogrenciler ?? [])}</Text>
+            {gecmisGun ? <Text style={yazi.kucuk}>Geçmiş gün düzeltmesi veliye bildirilmez.</Text> : null}
           </View>
         }
         satir={(o) => (

@@ -31,3 +31,55 @@ export function tarihGecerliMi(tarih: string): boolean {
   const d = new Date(yil, ay - 1, gun);
   return d.getFullYear() === yil && d.getMonth() === ay - 1 && d.getDate() === gun;
 }
+
+// ---------------------------------------------------------------------------
+// Hafta hesapları. Hafta pazartesi başlar; günler ISO numarasıyla anılır (1 = Pzt ... 7 = Paz).
+// ---------------------------------------------------------------------------
+
+export const GUN_KISA_ADLARI = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] as const;
+export const GUN_ADLARI = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'] as const;
+
+function nesneye(tarih: string): Date {
+  const [yil, ay, gun] = tarih.split('-').map(Number);
+  return new Date(yil, ay - 1, gun);
+}
+
+function metne(d: Date): string {
+  const ay = String(d.getMonth() + 1).padStart(2, '0');
+  const gun = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${ay}-${gun}`;
+}
+
+export function gunEkle(tarih: string, gunSayisi: number): string {
+  const d = nesneye(tarih);
+  d.setDate(d.getDate() + gunSayisi);
+  return metne(d);
+}
+
+export function isoGun(tarih: string): number {
+  return ((nesneye(tarih).getDay() + 6) % 7) + 1;
+}
+
+// Tarihin içinde bulunduğu haftanın pazartesisi.
+export function haftaBaslangici(tarih: string): string {
+  return gunEkle(tarih, 1 - isoGun(tarih));
+}
+
+// Pazartesiden pazara 7 tarih.
+export function haftaGunleri(pazartesi: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => gunEkle(pazartesi, i));
+}
+
+// '2026-10-05' -> '5 – 11 Ekim'; ay değişiyorsa '28 Eylül – 4 Ekim'.
+export function haftaAraligiBicimle(pazartesi: string): string {
+  const bas = nesneye(pazartesi);
+  const son = nesneye(gunEkle(pazartesi, 6));
+  const ayAdi = (d: Date) => d.toLocaleDateString('tr-TR', { month: 'long' });
+  const basMetni = bas.getMonth() === son.getMonth() ? String(bas.getDate()) : `${bas.getDate()} ${ayAdi(bas)}`;
+  return `${basMetni} – ${son.getDate()} ${ayAdi(son)}`;
+}
+
+// 'Pzt 5' — haftalık tablo sütun başlığı.
+export function gunBasligi(tarih: string): string {
+  return `${GUN_KISA_ADLARI[isoGun(tarih) - 1]} ${nesneye(tarih).getDate()}`;
+}

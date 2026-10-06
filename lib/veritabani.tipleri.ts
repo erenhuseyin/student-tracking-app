@@ -470,6 +470,48 @@ export type Database = {
           },
         ];
       };
+      sinif_ders_plani: {
+        Row: {
+          baslangic_tarihi: string;
+          ders_gunleri: number[];
+          id: string;
+          kurum_id: string;
+          olusturma_tarihi: string;
+          sinif_id: string;
+        };
+        Insert: {
+          baslangic_tarihi: string;
+          ders_gunleri: number[];
+          id?: string;
+          kurum_id: string;
+          olusturma_tarihi?: string;
+          sinif_id: string;
+        };
+        Update: {
+          baslangic_tarihi?: string;
+          ders_gunleri?: number[];
+          id?: string;
+          kurum_id?: string;
+          olusturma_tarihi?: string;
+          sinif_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sinif_ders_plani_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sinif_ders_plani_sinif_ayni_kurum_fkey';
+            columns: ['sinif_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'sinif';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

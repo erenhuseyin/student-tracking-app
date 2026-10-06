@@ -29,6 +29,9 @@ export type YoklamaDurumu = (typeof YOKLAMA_DURUMLARI)[number];
 
 export type Yoklama = Tables<'yoklama'>;
 
+// Sınıfın haftalık ders günleri; `baslangic_tarihi` haftasından itibaren geçerlidir.
+export type SinifDersPlani = Tables<'sinif_ders_plani'>;
+
 export const BILDIRIM_TIPLERI = Constants.public.Enums.bildirim_tipi;
 
 export type BildirimTipi = (typeof BILDIRIM_TIPLERI)[number];

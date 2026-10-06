@@ -77,6 +77,14 @@ export const yoklamaRenkleri: Record<YoklamaDurumu, { renk: string; soluk: strin
   gec: { renk: renkler.uyari, soluk: renkler.uyariSoluk },
 };
 
+// Katılım oranı (0-1) rengi: %80 ve üstü iyi, %50 ve üstü dikkat, altı sorunlu. Oran yoksa nötr.
+export function katilimRengi(oran: number | null): { renk: string; soluk: string } {
+  if (oran === null) return { renk: renkler.metinIkincil, soluk: renkler.ayirici };
+  if (oran >= 0.8) return { renk: renkler.basari, soluk: renkler.basariSoluk };
+  if (oran >= 0.5) return { renk: renkler.uyari, soluk: renkler.uyariSoluk };
+  return { renk: renkler.hata, soluk: renkler.hataSoluk };
+}
+
 type StackSecenekleri = Exclude<ComponentProps<typeof Stack>['screenOptions'], undefined | ((...args: never[]) => unknown)>;
 
 // Rol gruplarının `_layout.tsx` dosyalarında ortak başlık çubuğu görünümü.
