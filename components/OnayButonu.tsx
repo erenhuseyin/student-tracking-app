@@ -1,13 +1,13 @@
 // İki adımlı onay: `Alert.alert` kullanılmaz (web'de tarayıcı confirm()'e sarılabilir, bu proje
 // için istenmiyor). Tetikleyiciye basılınca aynı yerde soru + onay/vazgeç çıkar.
 // Tetikleyici `ikon` verilirse ikon buton, verilmezse tehlike butonudur.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Buton } from '@/components/Buton';
 import type { IkonAdi } from '@/components/Ikon';
 import { IkonButon } from '@/components/IkonButon';
-import { bosluk, dokunmaAlani, renkler, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Props = {
   onOnay: () => Promise<void>;
@@ -24,12 +24,14 @@ export function OnayButonu({
   soru = 'Emin misiniz?',
   onayEtiketi = 'Evet, sil',
 }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [onayBekleniyor, setOnayBekleniyor] = useState(false);
   const [calisiyor, setCalisiyor] = useState(false);
 
   if (!onayBekleniyor) {
     return ikon ? (
-      <IkonButon ikon={ikon} etiket={etiket} renk={renkler.hata} onPress={() => setOnayBekleniyor(true)} />
+      <IkonButon ikon={ikon} etiket={etiket} renk={tema.renkler.hata} onPress={() => setOnayBekleniyor(true)} />
     ) : (
       <Buton tur="tehlike" baslik={etiket} onPress={() => setOnayBekleniyor(true)} />
     );
@@ -37,9 +39,9 @@ export function OnayButonu({
 
   return (
     <View style={styles.onaySatiri}>
-      <Text style={yazi.kucuk}>{soru}</Text>
+      <Text style={styles.soru}>{soru}</Text>
       {calisiyor ? (
-        <ActivityIndicator size="small" color={renkler.hata} />
+        <ActivityIndicator size="small" color={tema.renkler.hata} />
       ) : (
         <>
           <Pressable
@@ -63,26 +65,30 @@ export function OnayButonu({
   );
 }
 
-const styles = StyleSheet.create({
-  onaySatiri: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: bosluk.m,
-    minHeight: dokunmaAlani.normal,
-  },
-  secenek: {
-    minHeight: dokunmaAlani.normal,
-    justifyContent: 'center',
-  },
-  evetMetni: {
-    color: renkler.hata,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  vazgecMetni: {
-    color: renkler.metinIkincil,
-    fontSize: 14,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    onaySatiri: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: t.bosluk.m,
+      minHeight: t.dokunmaAlani.normal,
+    },
+    soru: {
+      ...t.yazi.kucuk,
+    },
+    secenek: {
+      minHeight: t.dokunmaAlani.normal,
+      justifyContent: 'center',
+    },
+    evetMetni: {
+      ...t.yazi.kucuk,
+      fontFamily: t.yaziTipi.yariKalin,
+      color: t.renkler.hata,
+    },
+    vazgecMetni: {
+      ...t.yazi.kucuk,
+    },
+  });
+}

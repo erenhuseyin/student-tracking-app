@@ -19,7 +19,7 @@ import { Rozet } from '@/components/Rozet';
 import { Sidebar } from '@/components/Sidebar';
 import { Skeleton, SkeletonKart, SkeletonSatir } from '@/components/Skeleton';
 import { Tablo } from '@/components/Tablo';
-import { type Tema, yazi as acikYazi, useTema } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 function Bolum({ tema: t, baslik, children }: { tema: Tema; baslik: string; children: React.ReactNode }) {
   return (
@@ -79,12 +79,8 @@ function VitrinIcerik() {
       </Bolum>
 
       <Bolum tema={tema} baslik="Kart + metrik kartı">
-        <Text style={tema.yazi.etiket}>
-          Not: Kart henüz useTema()&apos;ya geçmedi (Aşama 4&apos;te ekranıyla birlikte geçecek) —
-          bu yüzden içeriği de kasıtlı olarak açık temanın sabit renkleriyle yazılır.
-        </Text>
         <Kart>
-          <Text style={acikYazi.govde}>Basit bir kart, 1px ayırıcı kenarlıkla (gölge yok).</Text>
+          <Text style={tema.yazi.govde}>Basit bir kart, 1px ayırıcı kenarlıkla (gölge yok).</Text>
         </Kart>
         <View style={{ flexDirection: 'row', gap: tema.bosluk.m }}>
           <MetrikKarti deger={24} etiket="Toplam öğrenci" ikon="people-outline" />
@@ -144,7 +140,7 @@ function VitrinIcerik() {
       </Bolum>
 
       <Bolum tema={tema} baslik="Alt eylem çubuğu (<768 — gerçek sekme çubuğu değil, bkz. not)">
-        <Text style={tema.yazi.etiket}>
+        <Text style={tema.yazi.kucuk}>
           Not: Navigasyon yapısı (route adları, Stack.Protected) korunduğu için gerçek bir Tabs
           navigatör&apos;üne geçilmedi; çok bölümlü ekranlarda (kurum admini, süper admin) mevcut
           buton grubu yalnızca görsel olarak bu şekilde biçimlendirilir.

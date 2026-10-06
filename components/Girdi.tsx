@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
 
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Props = TextInputProps & {
   etiket: string;
@@ -11,14 +11,16 @@ type Props = TextInputProps & {
 };
 
 export function Girdi({ etiket, hata, buyuk = false, style, editable = true, ...digerleri }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [odakta, setOdakta] = useState(false);
 
   return (
     <View style={styles.kapsayici}>
-      <Text style={yazi.etiket}>{etiket}</Text>
+      <Text style={styles.etiket}>{etiket}</Text>
       <TextInput
         accessibilityLabel={etiket}
-        placeholderTextColor={renkler.kenarlik}
+        placeholderTextColor={tema.renkler.kenarlik}
         editable={editable}
         {...digerleri}
         onFocus={(e) => {
@@ -43,36 +45,42 @@ export function Girdi({ etiket, hata, buyuk = false, style, editable = true, ...
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    gap: bosluk.xs,
-  },
-  girdi: {
-    ...yazi.govde,
-    minHeight: dokunmaAlani.normal,
-    backgroundColor: renkler.yuzey,
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    paddingHorizontal: bosluk.l,
-    paddingVertical: bosluk.m,
-  },
-  buyuk: {
-    minHeight: dokunmaAlani.buyuk,
-    fontSize: 20,
-  },
-  odakta: {
-    borderColor: renkler.ana,
-  },
-  hatali: {
-    borderColor: renkler.hata,
-  },
-  pasif: {
-    backgroundColor: renkler.ayirici,
-    color: renkler.metinIkincil,
-  },
-  hataMetni: {
-    ...yazi.kucuk,
-    color: renkler.hata,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      gap: t.bosluk.xs,
+    },
+    etiket: {
+      ...t.yazi.etiket,
+    },
+    girdi: {
+      ...t.yazi.govde,
+      minHeight: t.dokunmaAlani.normal,
+      backgroundColor: t.renkler.yuzey,
+      color: t.renkler.metin,
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+      borderRadius: t.yaricap.m,
+      paddingHorizontal: t.bosluk.l,
+      paddingVertical: t.bosluk.m,
+    },
+    buyuk: {
+      minHeight: t.dokunmaAlani.buyuk,
+      fontSize: 20,
+    },
+    odakta: {
+      borderColor: t.renkler.ana,
+    },
+    hatali: {
+      borderColor: t.renkler.hata,
+    },
+    pasif: {
+      backgroundColor: t.renkler.ayirici,
+      color: t.renkler.metinIkincil,
+    },
+    hataMetni: {
+      ...t.yazi.kucuk,
+      color: t.renkler.hata,
+    },
+  });
+}

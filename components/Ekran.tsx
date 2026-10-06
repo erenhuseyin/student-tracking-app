@@ -1,11 +1,14 @@
 // Ekran iskeleti: zemin rengi, kenar boşlukları ve güvenli alan. Formlarda `kaydirilabilir`
 // verilir (kaydırma + klavye kaçınması). Başlık çubuğu olmayan ekranlar (giriş, durum
-// ekranları) `baslikCubugusuz` ile üst güvenli alanı da kendisi bırakır.
+// ekranları) `baslikCubugusuz` ile üst güvenli alanı da kendisi bırakır. `ortala` (tek kart,
+// ör. giriş ekranları) dar bir genişlikte kalır; normal ekranlar masaüstünde (>=1024) tablo/
+// bento grid için daha geniş bir alana (1200) yayılır.
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { bosluk, renkler } from '@/lib/tema';
+import { type Tema, useKirilma, useTema } from '@/lib/tema';
 
 type Props = {
   children: ReactNode;
@@ -14,21 +17,36 @@ type Props = {
   ortala?: boolean;
 };
 
+const DAR_GENISLIK = 560;
+const GENIS_GENISLIK = 1200;
+
 export function Ekran({ children, kaydirilabilir = false, baslikCubugusuz = false, ortala = false }: Props) {
+  const tema = useTema();
+  const kirilma = useKirilma();
   const kenarlar = useSafeAreaInsets();
+  const styles = useMemo(() => olustur(tema), [tema]);
+  const yatayGenislik = Platform.OS === 'web' ? tema.kenarBosluklari.web : tema.kenarBosluklari.mobil;
+  const genislikSinirlamasi = ortala ? DAR_GENISLIK : kirilma === 'masaustu' ? GENIS_GENISLIK : undefined;
+
   const dolgu = {
-    paddingTop: bosluk.l + (baslikCubugusuz ? kenarlar.top : 0),
-    paddingBottom: bosluk.l + kenarlar.bottom,
+    paddingTop: tema.bosluk.l + (baslikCubugusuz ? kenarlar.top : 0),
+    paddingBottom: tema.bosluk.l + kenarlar.bottom,
+    paddingHorizontal: yatayGenislik,
   };
+  const genislikStili = genislikSinirlamasi ? { maxWidth: genislikSinirlamasi } : null;
 
   if (!kaydirilabilir) {
-    return <View style={[styles.kok, styles.icerik, styles.doldur, ortala && styles.ortala, dolgu]}>{children}</View>;
+    return (
+      <View style={[styles.kok, styles.icerik, styles.doldur, genislikStili, ortala && styles.ortala, dolgu]}>
+        {children}
+      </View>
+    );
   }
 
   return (
     <KeyboardAvoidingView style={styles.kok} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
-        contentContainerStyle={[styles.icerik, styles.kaydirmaIcerigi, ortala && styles.ortala, dolgu]}
+        contentContainerStyle={[styles.icerik, styles.kaydirmaIcerigi, genislikStili, ortala && styles.ortala, dolgu]}
         keyboardShouldPersistTaps="handled"
       >
         {children}
@@ -37,26 +55,25 @@ export function Ekran({ children, kaydirilabilir = false, baslikCubugusuz = fals
   );
 }
 
-const styles = StyleSheet.create({
-  kok: {
-    flex: 1,
-    backgroundColor: renkler.zemin,
-  },
-  doldur: {
-    flex: 1,
-  },
-  icerik: {
-    paddingHorizontal: bosluk.l,
-    gap: bosluk.m,
-    // Web'de ve tablette içerik aşırı genişlemesin.
-    width: '100%',
-    maxWidth: 560,
-    alignSelf: 'center',
-  },
-  kaydirmaIcerigi: {
-    flexGrow: 1,
-  },
-  ortala: {
-    justifyContent: 'center',
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kok: {
+      flex: 1,
+      backgroundColor: t.renkler.zemin,
+    },
+    doldur: {
+      flex: 1,
+    },
+    icerik: {
+      gap: t.bosluk.m,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    kaydirmaIcerigi: {
+      flexGrow: 1,
+    },
+    ortala: {
+      justifyContent: 'center',
+    },
+  });
+}

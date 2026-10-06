@@ -1,9 +1,9 @@
 // 4 kutulu PIN girdisi. Rakamlar görünmez bir TextInput'a yazılır, kutular yalnızca kaç hane
 // girildiğini gösterir (PIN ekranda okunmaz).
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 const HANE_SAYISI = 4;
 
@@ -16,11 +16,13 @@ type Props = {
 };
 
 export function PinGirdisi({ etiket, deger, onDegis, pasif = false, onTamamla }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [odakta, setOdakta] = useState(false);
 
   return (
     <View style={styles.kapsayici}>
-      <Text style={yazi.etiket}>{etiket}</Text>
+      <Text style={styles.etiket}>{etiket}</Text>
       <View style={styles.kutular}>
         {Array.from({ length: HANE_SAYISI }, (_, i) => (
           <View key={i} style={[styles.kutu, odakta && i === Math.min(deger.length, HANE_SAYISI - 1) && styles.kutuOdakta]}>
@@ -45,41 +47,46 @@ export function PinGirdisi({ etiket, deger, onDegis, pasif = false, onTamamla }:
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    gap: bosluk.xs,
-  },
-  kutular: {
-    flexDirection: 'row',
-    gap: bosluk.m,
-  },
-  kutu: {
-    flex: 1,
-    height: dokunmaAlani.buyuk,
-    backgroundColor: renkler.yuzey,
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kutuOdakta: {
-    borderColor: renkler.ana,
-  },
-  nokta: {
-    width: 12,
-    height: 12,
-    borderRadius: yaricap.tam,
-    backgroundColor: renkler.metin,
-  },
-  gizliGirdi: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    color: 'transparent',
-    // Web'de tarayıcının kendi odak çerçevesi kutuların üstüne binmesin.
-    opacity: 0.01,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      gap: t.bosluk.xs,
+    },
+    etiket: {
+      ...t.yazi.etiket,
+    },
+    kutular: {
+      flexDirection: 'row',
+      gap: t.bosluk.m,
+    },
+    kutu: {
+      flex: 1,
+      height: t.dokunmaAlani.buyuk,
+      backgroundColor: t.renkler.yuzey,
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+      borderRadius: t.yaricap.m,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    kutuOdakta: {
+      borderColor: t.renkler.ana,
+    },
+    nokta: {
+      width: 12,
+      height: 12,
+      borderRadius: t.yaricap.tam,
+      backgroundColor: t.renkler.metin,
+    },
+    gizliGirdi: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      color: 'transparent',
+      // Web'de tarayıcının kendi odak çerçevesi kutuların üstüne binmesin.
+      opacity: 0.01,
+    },
+  });
+}

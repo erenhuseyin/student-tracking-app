@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Ikon, type IkonAdi } from '@/components/Ikon';
-import { bosluk, dokunmaAlani, renkler, yaricap } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Tur = 'birincil' | 'ikincil' | 'tehlike' | 'metin';
 
@@ -16,16 +17,11 @@ type Props = {
   buyuk?: boolean;
 };
 
-const ON_PLAN: Record<Tur, string> = {
-  birincil: renkler.anaUstu,
-  ikincil: renkler.ana,
-  tehlike: renkler.hata,
-  metin: renkler.ana,
-};
-
 export function Buton({ baslik, onPress, tur = 'birincil', ikon, yukleniyor = false, pasif = false, buyuk = false }: Props) {
+  const tema = useTema();
+  const { styles, onPlan } = useMemo(() => olustur(tema), [tema]);
   const engelli = pasif || yukleniyor;
-  const onPlan = ON_PLAN[tur];
+  const renk = onPlan[tur];
 
   return (
     <Pressable
@@ -35,64 +31,70 @@ export function Buton({ baslik, onPress, tur = 'birincil', ikon, yukleniyor = fa
       disabled={engelli}
       style={({ pressed }) => [
         styles.temel,
-        turStilleri[tur],
+        styles[tur],
         buyuk && styles.buyuk,
         pressed && styles.basili,
         engelli && styles.engelli,
       ]}
     >
       {yukleniyor ? (
-        <ActivityIndicator color={onPlan} />
+        <ActivityIndicator color={renk} />
       ) : (
         <>
-          {ikon ? <Ikon ad={ikon} boyut={20} renk={onPlan} /> : null}
-          <Text style={[styles.yazi, { color: onPlan }]}>{baslik}</Text>
+          {ikon ? <Ikon ad={ikon} boyut={20} renk={renk} /> : null}
+          <Text style={[styles.yazi, { color: renk }]}>{baslik}</Text>
         </>
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  temel: {
-    minHeight: dokunmaAlani.normal,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: bosluk.s,
-    paddingHorizontal: bosluk.l,
-    borderRadius: yaricap.m,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  buyuk: {
-    minHeight: dokunmaAlani.buyuk,
-  },
-  basili: {
-    opacity: 0.8,
-  },
-  engelli: {
-    opacity: 0.5,
-  },
-  yazi: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
-
-const turStilleri = StyleSheet.create({
-  birincil: {
-    backgroundColor: renkler.ana,
-  },
-  ikincil: {
-    backgroundColor: renkler.yuzey,
-    borderColor: renkler.ana,
-  },
-  tehlike: {
-    backgroundColor: renkler.yuzey,
-    borderColor: renkler.hata,
-  },
-  metin: {
-    backgroundColor: 'transparent',
-  },
-});
+function olustur(t: Tema) {
+  const onPlan: Record<Tur, string> = {
+    birincil: t.renkler.anaUzeriMetin,
+    ikincil: t.renkler.ana,
+    tehlike: t.renkler.hata,
+    metin: t.renkler.ana,
+  };
+  const styles = StyleSheet.create({
+    temel: {
+      minHeight: t.dokunmaAlani.normal,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: t.bosluk.s,
+      paddingHorizontal: t.bosluk.l,
+      borderRadius: t.yaricap.m,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    buyuk: {
+      minHeight: t.dokunmaAlani.buyuk,
+    },
+    basili: {
+      opacity: 0.8,
+    },
+    engelli: {
+      opacity: 0.5,
+    },
+    yazi: {
+      ...t.yazi.govde,
+      fontFamily: t.yaziTipi.yariKalin,
+    },
+    birincil: {
+      backgroundColor: t.renkler.ana,
+    },
+    ikincil: {
+      backgroundColor: t.renkler.yuzey,
+      borderColor: t.renkler.ana,
+    },
+    tehlike: {
+      backgroundColor: t.renkler.yuzey,
+      borderColor: t.renkler.hata,
+    },
+    metin: {
+      backgroundColor: 'transparent',
+    },
+  });
+  return { styles, onPlan };
+}

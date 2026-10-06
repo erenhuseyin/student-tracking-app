@@ -58,6 +58,14 @@ function Yonlendirici() {
         <Stack.Protected guard={rol === 'veli'}>
           <Stack.Screen name="(veli)" options={{ headerShown: false }} />
         </Stack.Protected>
+        {/* `durum !== 'yukleniyor'` şart: guard'sız (ya da `__DEV__` gibi durumdan bağımsız sabit
+            doğru) bir ekran, `durum` henüz çözülmeden (tüm guard'lar geçici olarak yanlışken)
+            Router'ın ilk derin bağlantı çözümlemesini kaçırıp buraya düşürüyor — herhangi bir
+            route'a (ör. /login) gidilince bunun yerine bu ekran açılıyordu. Yalnızca oturum
+            durumu netleşince (hangi durum olursa olsun) kullanılabilir olması bunu engeller. */}
+        <Stack.Protected guard={__DEV__ && durum !== 'yukleniyor'}>
+          <Stack.Screen name="bilesen-vitrini" options={{ headerShown: false }} />
+        </Stack.Protected>
       </Stack>
     </>
   );

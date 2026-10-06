@@ -13,12 +13,13 @@ import { Kart } from '@/components/Kart';
 import { MarkaBasligi } from '@/components/MarkaBasligi';
 import { EN_AZ_SIFRE_UZUNLUGU, kodIleSifreBelirle, kodIste } from '@/lib/personel';
 import { supabase } from '@/lib/supabase';
-import { yazi } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 
 const mesajaCevir = (e: unknown) => (e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
 
 export default function KodIleGiris() {
   const router = useRouter();
+  const tema = useTema();
   const [eposta, setEposta] = useState('');
   const [kod, setKod] = useState('');
   const [sifre, setSifre] = useState('');
@@ -65,7 +66,7 @@ export default function KodIleGiris() {
       <MarkaBasligi altBaslik="Şifre belirle" />
 
       <Kart>
-        <Text style={yazi.kucuk}>E-postanıza gelen kodu girin ve şifrenizi belirleyin.</Text>
+        <Text style={tema.yazi.kucuk}>E-postanıza gelen kodu girin ve şifrenizi belirleyin.</Text>
         <Girdi
           etiket="E-posta"
           autoCapitalize="none"

@@ -154,17 +154,18 @@ type Renkler = {
 export const renkler = ACIK;
 
 function yaziOlcegi(r: Renkler): Record<string, TextStyle> {
-  // bolum/altBaslik ve etiket/kucuk aynı stile işaret eder — iki isim de bir geçiş dönemi
-  // boyunca birlikte yaşar (bkz. dosya başı notu).
+  // bolum/altBaslik aynı stile işaret eder (iki isim de bir geçiş dönemi boyunca birlikte yaşar,
+  // bkz. dosya başı notu). `etiket` ve `kucuk` AYNI DEĞİLDİR: `etiket` yalnızca form alanı
+  // etiketleri için (vurgu tonunda, brief'in "vurguKoyu: vurgu tonunda metin gerektiğinde"
+  // kuralı) — genel ikincil/açıklama metninde kullanılmaz, onun için `kucuk` vardır (nötr).
   const bolum: TextStyle = { fontFamily: yaziTipi.yariKalin, fontSize: 18, color: r.metin };
-  const etiket: TextStyle = { fontFamily: yaziTipi.orta, fontSize: 12, color: r.vurguKoyu };
   return {
     baslik: { fontFamily: yaziTipi.yariKalin, fontSize: 24, color: r.metin },
     bolum,
     altBaslik: bolum,
     govde: { fontFamily: yaziTipi.duzenli, fontSize: 15, lineHeight: 22.5, color: r.metin },
-    etiket,
-    kucuk: etiket,
+    etiket: { fontFamily: yaziTipi.orta, fontSize: 12, color: r.vurguKoyu },
+    kucuk: { fontFamily: yaziTipi.duzenli, fontSize: 13, color: r.metinIkincil },
     metrik: { fontFamily: yaziTipi.kalin, fontSize: 32, color: r.metin, fontVariant: ['tabular-nums'] as TextStyle['fontVariant'] },
   };
 }

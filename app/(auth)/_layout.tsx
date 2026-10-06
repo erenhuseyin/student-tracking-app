@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 
-import { renkler } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 
 export default function AuthLayout() {
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: renkler.zemin } }} />;
+  const tema = useTema();
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tema.renkler.zemin } }} />;
 }

@@ -1,10 +1,10 @@
 // Gün / Ay / Yıl olarak üç alanlı tarih girdisi; dışarıya YYYY-AA-GG verir (eksikse olduğu
 // kadarını, hepsi boşsa ''). Native tarih seçici bilerek kullanılmadı: yeni build gerektirir
 // ve web'de çalışmaz. Başlangıç değeri yalnızca ilk çizimde okunur.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Props = {
   etiket: string;
@@ -26,6 +26,8 @@ function birlestir({ gun, ay, yil }: Parcalar): string {
 }
 
 export function TarihGirdisi({ etiket, deger, onDegis, pasif = false }: Props) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [parcalar, setParcalar] = useState(() => parcala(deger));
 
   const guncelle = (alan: keyof Parcalar, metin: string) => {
@@ -36,13 +38,13 @@ export function TarihGirdisi({ etiket, deger, onDegis, pasif = false }: Props) {
 
   return (
     <View style={styles.kapsayici}>
-      <Text style={yazi.etiket}>{etiket}</Text>
+      <Text style={styles.etiket}>{etiket}</Text>
       <View style={styles.satir}>
         <TextInput
           accessibilityLabel={`${etiket}, gün`}
           style={styles.girdi}
           placeholder="Gün"
-          placeholderTextColor={renkler.kenarlik}
+          placeholderTextColor={tema.renkler.kenarlik}
           keyboardType="number-pad"
           maxLength={2}
           value={parcalar.gun}
@@ -53,7 +55,7 @@ export function TarihGirdisi({ etiket, deger, onDegis, pasif = false }: Props) {
           accessibilityLabel={`${etiket}, ay`}
           style={styles.girdi}
           placeholder="Ay"
-          placeholderTextColor={renkler.kenarlik}
+          placeholderTextColor={tema.renkler.kenarlik}
           keyboardType="number-pad"
           maxLength={2}
           value={parcalar.ay}
@@ -64,7 +66,7 @@ export function TarihGirdisi({ etiket, deger, onDegis, pasif = false }: Props) {
           accessibilityLabel={`${etiket}, yıl`}
           style={[styles.girdi, styles.yil]}
           placeholder="Yıl"
-          placeholderTextColor={renkler.kenarlik}
+          placeholderTextColor={tema.renkler.kenarlik}
           keyboardType="number-pad"
           maxLength={4}
           value={parcalar.yil}
@@ -76,29 +78,35 @@ export function TarihGirdisi({ etiket, deger, onDegis, pasif = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    gap: bosluk.xs,
-  },
-  satir: {
-    flexDirection: 'row',
-    gap: bosluk.s,
-  },
-  girdi: {
-    ...yazi.govde,
-    flex: 1,
-    // Web'de <input> kendi iç genişliğinin altına inmez ve üç alan kartın dışına taşar.
-    minWidth: 0,
-    minHeight: dokunmaAlani.normal,
-    backgroundColor: renkler.yuzey,
-    borderWidth: 1,
-    borderColor: renkler.kenarlik,
-    borderRadius: yaricap.m,
-    paddingHorizontal: bosluk.l,
-    paddingVertical: bosluk.m,
-    textAlign: 'center',
-  },
-  yil: {
-    flex: 1.5,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      gap: t.bosluk.xs,
+    },
+    etiket: {
+      ...t.yazi.etiket,
+    },
+    satir: {
+      flexDirection: 'row',
+      gap: t.bosluk.s,
+    },
+    girdi: {
+      ...t.yazi.govde,
+      flex: 1,
+      // Web'de <input> kendi iç genişliğinin altına inmez ve üç alan kartın dışına taşar.
+      minWidth: 0,
+      minHeight: t.dokunmaAlani.normal,
+      backgroundColor: t.renkler.yuzey,
+      color: t.renkler.metin,
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+      borderRadius: t.yaricap.m,
+      paddingHorizontal: t.bosluk.l,
+      paddingVertical: t.bosluk.m,
+      textAlign: 'center',
+    },
+    yil: {
+      flex: 1.5,
+    },
+  });
+}

@@ -2,10 +2,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
 
-import { renkler } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 
 export type IkonAdi = ComponentProps<typeof Ionicons>['name'];
 
-export function Ikon({ ad, boyut = 22, renk = renkler.metinIkincil }: { ad: IkonAdi; boyut?: number; renk?: string }) {
-  return <Ionicons name={ad} size={boyut} color={renk} />;
+export function Ikon({ ad, boyut = 22, renk }: { ad: IkonAdi; boyut?: number; renk?: string }) {
+  const tema = useTema();
+  return <Ionicons name={ad} size={boyut} color={renk ?? tema.renkler.metinIkincil} />;
 }

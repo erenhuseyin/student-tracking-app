@@ -57,6 +57,6 @@ function olustur(t: Tema) {
       marginBottom: t.bosluk.xs,
     },
     deger: t.yazi.metrik,
-    etiket: t.yazi.etiket,
+    etiket: t.yazi.kucuk,
   });
 }
