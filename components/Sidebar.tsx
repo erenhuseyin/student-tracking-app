@@ -26,8 +26,10 @@ export function Sidebar({ ogeler }: { ogeler: SidebarOgesi[] }) {
       {ogeler.map((oge) => {
         const secili = typeof oge.href === 'string' && (yol === oge.href || yol.startsWith(`${oge.href}/`));
         return (
-          <Link key={typeof oge.href === 'string' ? oge.href : oge.etiket} href={oge.href} asChild>
-            <View style={[styles.satir, secili && styles.seciliSatir]}>
+          <Link key={`${typeof oge.href === 'string' ? oge.href : ''}-${oge.etiket}`} href={oge.href} asChild>
+            {/* `Link asChild` tek çocuğun stilini StyleSheet.flatten ile düzleştirir; dizi
+                verilirse uyarı/hata fırlatır — bu yüzden burada önceden düzleştiriliyor. */}
+            <View style={StyleSheet.flatten([styles.satir, secili && styles.seciliSatir])}>
               <Ikon ad={oge.ikon} boyut={20} renk={secili ? tema.renkler.ana : tema.renkler.metinIkincil} />
               {daraltilmis ? null : (
                 <Text style={[styles.etiket, secili && styles.seciliEtiket]} numberOfLines={1}>

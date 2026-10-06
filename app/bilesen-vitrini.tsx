@@ -4,7 +4,7 @@
 // görünmez.
 import { Redirect, Stack } from 'expo-router';
 import { useState } from 'react';
-import { Appearance, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { BosDurum } from '@/components/BosDurum';
@@ -19,10 +19,9 @@ import { Rozet } from '@/components/Rozet';
 import { Sidebar } from '@/components/Sidebar';
 import { Skeleton, SkeletonKart, SkeletonSatir } from '@/components/Skeleton';
 import { Tablo } from '@/components/Tablo';
-import { useTema } from '@/lib/tema';
+import { type Tema, yazi as acikYazi, useTema } from '@/lib/tema';
 
-function Bolum({ baslik, children }: { baslik: string; children: React.ReactNode }) {
-  const t = useTema();
+function Bolum({ tema: t, baslik, children }: { tema: Tema; baslik: string; children: React.ReactNode }) {
   return (
     <View style={{ gap: t.bosluk.m }}>
       <Text style={t.yazi.bolum}>{baslik}</Text>
@@ -32,6 +31,10 @@ function Bolum({ baslik, children }: { baslik: string; children: React.ReactNode
 }
 
 function VitrinIcerik() {
+  // Her bileşen OS temasını kendi useTema() çağrısıyla bağımsız okur (ortak bir
+  // ThemeContext/override yok — bkz. lib/tema.ts dosya başı notu); bu yüzden burada
+  // sahte bir "zorla karanlık" düğmesi yok, yalnızca gerçek durum okunur. Karanlık modu
+  // görmek için işletim sisteminin/tarayıcının temasını değiştirin (prefers-color-scheme).
   const tema = useTema();
   const [secimli, setSecimli] = useState(false);
   const [tabloOgeleri] = useState([
@@ -46,14 +49,14 @@ function VitrinIcerik() {
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={tema.yazi.baslik}>Bileşen Vitrini</Text>
-        <Buton
-          tur="ikincil"
-          baslik={tema.mod === 'karanlik' ? 'Açık temaya geç' : 'Karanlık temaya geç'}
-          onPress={() => Appearance.setColorScheme(tema.mod === 'karanlik' ? 'light' : 'dark')}
+        <Rozet
+          metin={tema.mod === 'karanlik' ? 'Karanlık (OS)' : 'Açık (OS)'}
+          renk={tema.renkler.vurguKoyu}
+          zemin={tema.renkler.vurguSoluk}
         />
       </View>
 
-      <Bolum baslik="Buton">
+      <Bolum tema={tema} baslik="Buton">
         <View style={{ gap: tema.bosluk.s }}>
           <Buton tur="birincil" baslik="Birincil" onPress={() => {}} />
           <Buton tur="ikincil" baslik="İkincil" onPress={() => {}} />
@@ -62,7 +65,7 @@ function VitrinIcerik() {
         </View>
       </Bolum>
 
-      <Bolum baslik="Chip / durum etiketi">
+      <Bolum tema={tema} baslik="Chip / durum etiketi">
         <View style={{ flexDirection: 'row', gap: tema.bosluk.s }}>
           <Chip etiket="Seçili" secili onPress={() => {}} />
           <Chip etiket="Seçisiz" secili={false} onPress={() => {}} />
@@ -75,9 +78,13 @@ function VitrinIcerik() {
         </View>
       </Bolum>
 
-      <Bolum baslik="Kart + metrik kartı">
+      <Bolum tema={tema} baslik="Kart + metrik kartı">
+        <Text style={tema.yazi.etiket}>
+          Not: Kart henüz useTema()&apos;ya geçmedi (Aşama 4&apos;te ekranıyla birlikte geçecek) —
+          bu yüzden içeriği de kasıtlı olarak açık temanın sabit renkleriyle yazılır.
+        </Text>
         <Kart>
-          <Text style={tema.yazi.govde}>Basit bir kart, 1px ayırıcı kenarlıkla (gölge yok).</Text>
+          <Text style={acikYazi.govde}>Basit bir kart, 1px ayırıcı kenarlıkla (gölge yok).</Text>
         </Kart>
         <View style={{ flexDirection: 'row', gap: tema.bosluk.m }}>
           <MetrikKarti deger={24} etiket="Toplam öğrenci" ikon="people-outline" />
@@ -85,7 +92,7 @@ function VitrinIcerik() {
         </View>
       </Bolum>
 
-      <Bolum baslik="Liste satırı">
+      <Bolum tema={tema} baslik="Liste satırı">
         <ListeSatiri
           baslik="Elif Kaya"
           altBaslik="1-A · %92 katılım"
@@ -94,7 +101,7 @@ function VitrinIcerik() {
         />
       </Bolum>
 
-      <Bolum baslik="Tablo (masaüstü ≥1024'te Liste bunu otomatik kullanır)">
+      <Bolum tema={tema} baslik="Tablo (masaüstü ≥1024'te Liste bunu otomatik kullanır)">
         <Tablo
           veri={tabloOgeleri}
           anahtar={(o) => o.id}
@@ -111,21 +118,21 @@ function VitrinIcerik() {
         />
       </Bolum>
 
-      <Bolum baslik="Form alanı">
+      <Bolum tema={tema} baslik="Form alanı">
         <Girdi etiket="Ad soyad" placeholder="Örn. Elif Kaya" />
       </Bolum>
 
-      <Bolum baslik="Boş durum">
+      <Bolum tema={tema} baslik="Boş durum">
         <BosDurum ikon="people-outline" baslik="Henüz kayıt yok" aciklama="İlk kaydı ekleyince burada görünür." />
       </Bolum>
 
-      <Bolum baslik="Skeleton">
+      <Bolum tema={tema} baslik="Skeleton">
         <SkeletonSatir />
         <SkeletonKart />
         <Skeleton genislik={120} yukseklik={14} />
       </Bolum>
 
-      <Bolum baslik="Sidebar (tablet: yalnızca ikon, masaüstü: ikon + etiket)">
+      <Bolum tema={tema} baslik="Sidebar (tablet: yalnızca ikon, masaüstü: ikon + etiket)">
         <View style={{ flexDirection: 'row', height: 220 }}>
           <Sidebar
             ogeler={[
@@ -136,7 +143,7 @@ function VitrinIcerik() {
         </View>
       </Bolum>
 
-      <Bolum baslik="Alt eylem çubuğu (<768 — gerçek sekme çubuğu değil, bkz. not)">
+      <Bolum tema={tema} baslik="Alt eylem çubuğu (<768 — gerçek sekme çubuğu değil, bkz. not)">
         <Text style={tema.yazi.etiket}>
           Not: Navigasyon yapısı (route adları, Stack.Protected) korunduğu için gerçek bir Tabs
           navigatör&apos;üne geçilmedi; çok bölümlü ekranlarda (kurum admini, süper admin) mevcut

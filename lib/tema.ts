@@ -262,6 +262,13 @@ export function useTema(): Tema {
   return TEMALAR[sema === 'dark' ? 'karanlik' : 'acik'];
 }
 
+// Belirli bir modun belirteç setini doğrudan verir (OS temasından bağımsız). `Appearance.
+// setColorScheme` web'de desteklenmiyor; bu yüzden önizleme (ör. bilesen-vitrini) gerçek OS
+// temasını değiştirmek yerine bunu kullanıp yerel bir "zorlanan mod" durumu tutar.
+export function temaSec(mod: 'acik' | 'karanlik'): Tema {
+  return TEMALAR[mod];
+}
+
 export type Kirilma = 'mobil' | 'tablet' | 'masaustu';
 
 // < 768 mobil (alt gezinme), 768-1023 tablet (daraltılmış sidebar), >= 1024 masaüstü
