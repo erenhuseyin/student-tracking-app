@@ -24,7 +24,7 @@ import {
   type PersonelRolu,
 } from '@/lib/personel';
 import { siniflariGetir } from '@/lib/siniflar';
-import { yazi } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 import type { Kullanici, Sinif } from '@/lib/tipler';
 
 const mesajaCevir = (e: unknown) => (e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
@@ -40,6 +40,7 @@ async function personelVerisiniGetir(id: string): Promise<PersonelVerisi> {
 }
 
 export function PersonelDetay({ id }: { id: string }) {
+  const tema = useTema();
   const { kullanici } = useOturum();
   const [personel, setPersonel] = useState<Kullanici | null>(null);
   const [adSoyad, setAdSoyad] = useState('');
@@ -149,8 +150,8 @@ export function PersonelDetay({ id }: { id: string }) {
 
       {personel.rol === 'ogretmen' && personel.aktif ? (
         <Kart>
-          <Text style={yazi.altBaslik}>Sınıfları</Text>
-          {siniflar.length === 0 ? <Text style={yazi.kucuk}>Bu kurumda henüz sınıf yok.</Text> : null}
+          <Text style={tema.yazi.bolum}>Sınıfları</Text>
+          {siniflar.length === 0 ? <Text style={tema.yazi.kucuk}>Bu kurumda henüz sınıf yok.</Text> : null}
           {siniflar.map((s) => (
             <OnayKutusu
               key={s.id}
@@ -167,8 +168,8 @@ export function PersonelDetay({ id }: { id: string }) {
 
       {personel.aktif ? (
         <Kart>
-          <Text style={yazi.altBaslik}>Giriş</Text>
-          <Text style={yazi.kucuk}>
+          <Text style={tema.yazi.bolum}>Giriş</Text>
+          <Text style={tema.yazi.kucuk}>
             Davet e-postası ulaşmadıysa ya da şifre unutulduysa yeni bir giriş kodu gönderin. Kişi uygulamada
             &quot;Davet kodum var&quot; ile kodu girip şifresini belirler.
           </Text>
@@ -179,8 +180,8 @@ export function PersonelDetay({ id }: { id: string }) {
 
       {kendisi ? null : (
         <Kart>
-          <Text style={yazi.altBaslik}>Hesap</Text>
-          <Text style={yazi.kucuk}>
+          <Text style={tema.yazi.bolum}>Hesap</Text>
+          <Text style={tema.yazi.kucuk}>
             {personel.aktif
               ? 'Pasifleştirilen kişi uygulamaya giremez ve sınıf atamaları kaldırılır. Girdiği kayıtlar silinmez.'
               : 'Bu hesap pasif. Aktifleştirirseniz kişi yeniden giriş yapabilir; sınıflarını tekrar atamanız gerekir.'}

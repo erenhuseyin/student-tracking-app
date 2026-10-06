@@ -12,10 +12,11 @@ import { OnayButonu } from '@/components/OnayButonu';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { Yukleniyor } from '@/components/Yukleniyor';
 import { ogrenciGetir, ogrenciGuncelle, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
-import { yazi } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 
 export default function OgrenciDuzenle() {
   const router = useRouter();
+  const tema = useTema();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
@@ -97,7 +98,7 @@ export default function OgrenciDuzenle() {
       ) : (
         <>
           <Kart>
-            <Text style={yazi.altBaslik}>Bilgiler</Text>
+            <Text style={tema.yazi.bolum}>Bilgiler</Text>
             <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} />
             <TarihGirdisi etiket="Doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
             <HataMesaji mesaj={hata} />
@@ -105,11 +106,11 @@ export default function OgrenciDuzenle() {
           </Kart>
 
           <Kart>
-            <Text style={yazi.altBaslik}>Veli girişi</Text>
+            <Text style={tema.yazi.bolum}>Veli girişi</Text>
             {tckn ? (
               <>
                 <Girdi etiket="TCKN (değiştirilemez)" value={tckn} editable={false} />
-                <Text style={yazi.kucuk}>
+                <Text style={tema.yazi.kucuk}>
                   Veli bu TCKN ve PIN ile giriş yapar. PIN unutulursa sıfırlayın; yeni PIN &quot;1234&quot; olur.
                 </Text>
                 <HataMesaji mesaj={pinBasarili ? 'PIN "1234" olarak sıfırlandı.' : null} tur="basari" />
@@ -123,7 +124,7 @@ export default function OgrenciDuzenle() {
               </>
             ) : (
               <>
-                <Text style={yazi.kucuk}>
+                <Text style={tema.yazi.kucuk}>
                   TCKN atanınca veli hesabı açılır ve PIN &quot;1234&quot; olur. TCKN sonradan değiştirilemez.
                 </Text>
                 <Girdi

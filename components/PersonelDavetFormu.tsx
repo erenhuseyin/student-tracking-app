@@ -13,11 +13,12 @@ import { OnayKutusu } from '@/components/OnayKutusu';
 import { Secenekler } from '@/components/Secenekler';
 import { PERSONEL_ROL_ETIKETLERI, personelDavetEt, type PersonelRolu } from '@/lib/personel';
 import { siniflariGetir } from '@/lib/siniflar';
-import { yazi } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
 
 export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; roller: PersonelRolu[] }) {
   const router = useRouter();
+  const tema = useTema();
   const [adSoyad, setAdSoyad] = useState('');
   const [eposta, setEposta] = useState('');
   const [rol, setRol] = useState<PersonelRolu>(roller[0]);
@@ -63,7 +64,7 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
     return (
       <Kart>
         <HataMesaji mesaj="Hesap oluşturuldu ama giriş kodu e-postası gönderilemedi." />
-        <Text style={yazi.kucuk}>
+        <Text style={tema.yazi.kucuk}>
           Personel listesinden bu kişiyi açıp &quot;Giriş kodu gönder&quot;e dokunarak tekrar deneyebilirsiniz.
         </Text>
         <Buton baslik="Tamam" onPress={() => router.back()} />
@@ -95,7 +96,7 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
 
       {rol === 'ogretmen' && siniflar.length > 0 ? (
         <>
-          <Text style={yazi.etiket}>Sınıfları (sonradan değiştirilebilir)</Text>
+          <Text style={tema.yazi.etiket}>Sınıfları (sonradan değiştirilebilir)</Text>
           {siniflar.map((s) => (
             <OnayKutusu
               key={s.id}
@@ -110,7 +111,7 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
         </>
       ) : null}
 
-      <Text style={yazi.kucuk}>
+      <Text style={tema.yazi.kucuk}>
         Bu adrese bir giriş kodu gönderilir. Kişi uygulamada &quot;Davet kodum var&quot; ile kodu girip şifresini
         kendisi belirler.
       </Text>

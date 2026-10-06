@@ -2,7 +2,7 @@
 // şubeler ortak kullanır; yalnızca ana kurumun yöneticisi düzenler (RLS de bunu zorlar),
 // şube yöneticisi bu ekranı salt okunur görür.
 import { Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Buton } from '@/components/Buton';
@@ -15,10 +15,12 @@ import { ListeSatiri } from '@/components/ListeSatiri';
 import { OnayButonu } from '@/components/OnayButonu';
 import { kategoriEkle, kategoriGuncelle, kategorileriGetir, kategoriSil } from '@/lib/gelisim';
 import { useOturum } from '@/lib/oturum';
-import { bosluk, renkler, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { GelisimKategorisi } from '@/lib/tipler';
 
 export default function GelisimKategorileri() {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const { kurum } = useOturum();
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
   const [kategoriler, setKategoriler] = useState<GelisimKategorisi[] | null>(null);
@@ -101,7 +103,7 @@ export default function GelisimKategorileri() {
           </View>
         </Kart>
       ) : (
-        <Text style={yazi.kucuk}>Kategorileri ana kurumun yöneticisi düzenler.</Text>
+        <Text style={tema.yazi.kucuk}>Kategorileri ana kurumun yöneticisi düzenler.</Text>
       )}
 
       <Liste
@@ -129,7 +131,7 @@ export default function GelisimKategorileri() {
                   <IkonButon
                     ikon={k.aktif ? 'eye-outline' : 'eye-off-outline'}
                     etiket={k.aktif ? 'Pasif yap' : 'Aktif yap'}
-                    renk={k.aktif ? renkler.ana : renkler.metinIkincil}
+                    renk={k.aktif ? tema.renkler.ana : tema.renkler.metinIkincil}
                     onPress={() => calistir(() => kategoriGuncelle(k.id, { aktif: !k.aktif }))}
                   />
                   <OnayButonu
@@ -148,12 +150,14 @@ export default function GelisimKategorileri() {
   );
 }
 
-const styles = StyleSheet.create({
-  formButonlari: {
-    flexDirection: 'row',
-    gap: bosluk.m,
-  },
-  formButonu: {
-    flex: 1,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    formButonlari: {
+      flexDirection: 'row',
+      gap: t.bosluk.m,
+    },
+    formButonu: {
+      flex: 1,
+    },
+  });
+}

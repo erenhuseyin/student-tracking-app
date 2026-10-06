@@ -2,7 +2,7 @@
 // Kurum admini ve süper admin ekranları paylaşır; ikisinde de rotalar aynıdır
 // (`/personel/[id]`, `/yeni-personel`).
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
@@ -11,11 +11,13 @@ import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
 import { PERSONEL_ROL_ETIKETLERI, type PersonelRolu, personelleriGetir } from '@/lib/personel';
-import { bosluk } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { Kullanici } from '@/lib/tipler';
 
 export function PersonelListesi({ kurumId }: { kurumId: string }) {
   const router = useRouter();
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [personel, setPersonel] = useState<Kullanici[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -65,9 +67,11 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    gap: bosluk.m,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      flex: 1,
+      gap: t.bosluk.m,
+    },
+  });
+}

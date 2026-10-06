@@ -1,6 +1,6 @@
 // Bir kurumun (kök ya da şube) sınıf listesi + düzenle/sil + yeni sınıf ekleme.
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Buton } from '@/components/Buton';
@@ -10,11 +10,13 @@ import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { OnayButonu } from '@/components/OnayButonu';
 import { siniflariGetir, sinifSil } from '@/lib/siniflar';
-import { bosluk, renkler } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
 
 export function SinifListesi({ kurumId }: { kurumId: string }) {
   const router = useRouter();
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [siniflar, setSiniflar] = useState<Sinif[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -46,7 +48,7 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
           <ListeSatiri
             baslik={s.ad}
             altBaslik={s.donem}
-            sol={<Ikon ad="school-outline" boyut={26} renk={renkler.anaParlak} />}
+            sol={<Ikon ad="school-outline" boyut={26} renk={tema.renkler.anaParlak} />}
             onPress={() => router.push(`/sinif/${s.id}`)}
             sag={
               <>
@@ -77,9 +79,11 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    flex: 1,
-    gap: bosluk.m,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      flex: 1,
+      gap: t.bosluk.m,
+    },
+  });
+}

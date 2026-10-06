@@ -11,11 +11,12 @@ import { ListeSatiri } from '@/components/ListeSatiri';
 import { OnayButonu } from '@/components/OnayButonu';
 import { subeleriGetir, subeSil } from '@/lib/kurumlar';
 import { useOturum } from '@/lib/oturum';
-import { renkler } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
 
 export default function Subeler() {
   const router = useRouter();
+  const tema = useTema();
   const { kurum } = useOturum();
   const [subeler, setSubeler] = useState<Kurum[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export default function Subeler() {
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}
-            sol={<Ikon ad="business-outline" boyut={26} renk={renkler.anaParlak} />}
+            sol={<Ikon ad="business-outline" boyut={26} renk={tema.renkler.anaParlak} />}
             onPress={() => router.push(`/sube/${s.id}`)}
             sag={
               <OnayButonu
