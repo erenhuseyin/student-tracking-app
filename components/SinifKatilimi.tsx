@@ -94,7 +94,8 @@ export function SinifKatilimi({ sinifId, onGunSec, onDersGunleri }: Props) {
               </Text>
             </View>
           )}
-          {!planGunleri && onDersGunleri ? (
+          {/* Plan bu haftadan itibaren geçerli olur; geçmiş haftada buton yanıltıcı olurdu. */}
+          {!planGunleri && onDersGunleri && pazartesi === haftaBaslangici(bugununTarihi()) ? (
             <Buton tur="ikincil" ikon="calendar-outline" baslik="Ders Günlerini Belirle" onPress={onDersGunleri} />
           ) : null}
 
