@@ -131,6 +131,7 @@ select tst.esit('anon veli_ogrenci', tst.dene('select 1 from public.veli_ogrenci
 select tst.esit('anon ogretmen_sinif', tst.dene('select 1 from public.ogretmen_sinif'), 'hata:42501');
 select tst.esit('anon gelisim_kategorisi', tst.dene('select 1 from public.gelisim_kategorisi'), 'hata:42501');
 select tst.esit('anon gelisim_kaydi', tst.dene('select 1 from public.gelisim_kaydi'), 'hata:42501');
+select tst.esit('anon sinif_ders_plani', tst.dene('select 1 from public.sinif_ders_plani'), 'hata:42501');
 
 -- ===========================================================================
 -- 2. GHOST: auth kullanıcısı var ama kullanici kaydı yok -> hiçbir şey göremez
@@ -1023,6 +1024,130 @@ delete from public.yoklama where ogrenci_id = 'e0000000-0000-0000-0000-000000000
 delete from public.ogrenci where id = 'e0000000-0000-0000-0000-000000000a11';
 select tst.esit('öğrenci silinince gelişim kayıtları da silinir',
   (select count(*) from public.gelisim_kaydi where ogrenci_id = 'e0000000-0000-0000-0000-000000000a11')::text, '0');
+
+-- ===========================================================================
+-- 18. SINIF DERS PLANI (haftalık ders günleri)
+--   2026-10-05 ve 2026-10-12 pazartesidir. Bu noktada: ogrA1 -> sA1, ogrA2 -> sA2, ogrA1x -> sA1x (şube A1);
+--   veliA1 -> sA1; veliA2 -> sA1 ve sA2 (10. bölümde oA3'e de bağlandı); veliB -> sB1.
+-- ===========================================================================
+reset role;
+
+select tst.esit('başlangıç pazartesi olmalı',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-06', '{1}')$q$), 'hata:23514');
+select tst.esit('gün 0 reddedilir',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-05', '{0,1}')$q$), 'hata:23514');
+select tst.esit('gün 8 reddedilir',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-05', '{1,8}')$q$), 'hata:23514');
+select tst.esit('boş gün listesi reddedilir',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-05', '{}')$q$), 'hata:23514');
+select tst.esit('sınıf başka kurumla eşleştirilemez (bileşik FK)',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-05', '{1}')$q$), 'hata:23503');
+
+insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', '2026-10-05', '{2,4}');
+insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-0000000000b1', '2026-10-05', '{1}');
+insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-0000000000a1', 'd0000000-0000-0000-0000-000000000a11', '2026-10-05', '{6}');
+
+-- ogrA1 (sA1)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA1 kendi sınıfına ders planı ekler',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-05', '{1,3,5}')$q$), 'ok:1');
+select tst.esit('aynı haftaya ikinci plan eklenemez',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-05', '{2}')$q$), 'hata:23505');
+select tst.esit('ogrA1 ders günlerini günceller',
+  tst.dene($q$update public.sinif_ders_plani set ders_gunleri = '{1,3}' where sinif_id = 'd0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
+select tst.esit('ogrA1 sonraki hafta için yeni plan ekler',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-12', '{2,4}')$q$), 'ok:1');
+select tst.esit('ogrA1 atanmadığı sınıfa plan ekleyemez',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', '2026-10-12', '{1}')$q$), 'hata:42501');
+select tst.esit('plan başka sınıfa taşınamaz',
+  tst.dene($q$update public.sinif_ders_plani set sinif_id = 'd0000000-0000-0000-0000-0000000000a2' where sinif_id = 'd0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+select tst.esit('planın haftası değiştirilemez',
+  tst.dene($q$update public.sinif_ders_plani set baslangic_tarihi = '2026-10-19' where sinif_id = 'd0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+select tst.esit('öğretmen plan silemez',
+  tst.dene($q$delete from public.sinif_ders_plani where sinif_id = 'd0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+select tst.esit('ogrA1 yalnızca kendi sınıfının planlarını görür', (select count(*) from public.sinif_ders_plani)::text, '2');
+
+-- ogrA2 (sA2)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000006","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ogrA2 yalnızca kendi sınıfının planını görür', (select count(*) from public.sinif_ders_plani)::text, '1');
+select tst.esit('ogrA2 başka sınıfın planını güncelleyemez',
+  tst.dene($q$update public.sinif_ders_plani set ders_gunleri = '{7}' where sinif_id = 'd0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+
+-- veliA1 (çocukları sA1'de)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA1 çocuğunun sınıfının planlarını görür', (select count(*) from public.sinif_ders_plani)::text, '2');
+select tst.esit('veli plan ekleyemez',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-19', '{1}')$q$), 'hata:42501');
+select tst.esit('veli plan güncelleyemez',
+  tst.dene($q$update public.sinif_ders_plani set ders_gunleri = '{7}'$q$), 'ok:0');
+select tst.esit('veli plan silemez',
+  tst.dene($q$delete from public.sinif_ders_plani$q$), 'ok:0');
+
+-- veliA2 (çocukları sA1 ve sA2'de)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliA2 iki çocuğunun sınıflarının planlarını görür', (select count(*) from public.sinif_ders_plani)::text, '3');
+
+-- veliB / adminB: A müşterisinden hiçbir plan sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veliB yalnızca kendi çocuğunun sınıfının planını görür', (select count(*) from public.sinif_ders_plani)::text, '1');
+select tst.esit('veliB A planlarını göremez', (select count(*) from public.sinif_ders_plani where kurum_id <> 'c0000000-0000-0000-0000-00000000000b')::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('adminB yalnızca kendi kurumunun planını görür', (select count(*) from public.sinif_ders_plani)::text, '1');
+select tst.esit('adminB A sınıfına plan ekleyemez',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '2026-10-19', '{1}')$q$), 'hata:42501');
+
+-- adminA (kök admin): kendi kurumu + şubelerinin planları
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin kendi ve şube planlarını görür', (select count(*) from public.sinif_ders_plani)::text, '4');
+select tst.esit('kök admin şube sınıfının planını günceller',
+  tst.dene($q$update public.sinif_ders_plani set ders_gunleri = '{6,7}' where sinif_id = 'd0000000-0000-0000-0000-000000000a11'$q$), 'ok:1');
+select tst.esit('kök admin plan siler',
+  tst.dene($q$delete from public.sinif_ders_plani where sinif_id = 'd0000000-0000-0000-0000-0000000000a1' and baslangic_tarihi = '2026-10-12'$q$), 'ok:1');
+
+-- adminA2 (kardeş şube): A1'in planını göremez, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kardeş şube admini plan göremez', (select count(*) from public.sinif_ders_plani)::text, '0');
+select tst.esit('kardeş şube admini başka şubeye plan ekleyemez',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-0000000000a1', 'd0000000-0000-0000-0000-000000000a11', '2026-10-12', '{1}')$q$), 'hata:42501');
+
+-- ogrA1x (şube A1 öğretmeni, sA1x)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000014","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube öğretmeni kendi sınıfının planını görür', (select count(*) from public.sinif_ders_plani)::text, '1');
+select tst.esit('şube öğretmeni sonraki hafta için plan ekler',
+  tst.dene($q$insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values ('c0000000-0000-0000-0000-0000000000a1', 'd0000000-0000-0000-0000-000000000a11', '2026-10-12', '{2}')$q$), 'ok:1');
+
+-- Sınıf silinince planları da silinir (şema; postgres rolüyle). sA1x'in öğrencisi 17. bölümde silindi.
+reset role;
+delete from public.sinif where id = 'd0000000-0000-0000-0000-000000000a11';
+select tst.esit('sınıf silinince ders planları da silinir', (select count(*) from public.sinif_ders_plani where sinif_id = 'd0000000-0000-0000-0000-000000000a11')::text, '0');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
