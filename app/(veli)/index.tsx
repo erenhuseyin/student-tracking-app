@@ -10,11 +10,12 @@ import { Ekran } from '@/components/Ekran';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { renkler } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 import { type OgrenciYoklamaSatiri, veliCocuklariniBugunkuYoklamaylaGetir } from '@/lib/yoklama';
 
 export default function VeliAnaSayfa() {
   const router = useRouter();
+  const tema = useTema();
   const [cocuklar, setCocuklar] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -38,7 +39,7 @@ export default function VeliAnaSayfa() {
               <IkonButon
                 ikon="key-outline"
                 etiket="PIN'imi değiştir"
-                renk={renkler.metinIkincil}
+                renk={tema.renkler.metinIkincil}
                 onPress={() => router.push('/pin-degistir')}
               />
               <CikisYapButonu />

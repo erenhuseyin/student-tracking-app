@@ -1,14 +1,14 @@
 // Bir öğrencinin gelişim kayıtları (salt okunur, en yeni üstte): üstte kategori başına kayıt
 // sayısı, altında kayıtlar. Veli ekranında kullanılır.
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { GelisimKaydiKarti } from '@/components/GelisimKaydiKarti';
 import { Liste } from '@/components/Liste';
 import { Rozet } from '@/components/Rozet';
 import { type GelisimKaydiSatiri, gelisimKayitlariniGetir } from '@/lib/gelisim';
-import { bosluk, renkler } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 // Kategori adı -> kayıt sayısı, ilk görülme sırasıyla (kayıtlar en yeniden eskiye gelir).
 function kategoriSayilari(kayitlar: GelisimKaydiSatiri[]): [string, number][] {
@@ -18,6 +18,8 @@ function kategoriSayilari(kayitlar: GelisimKaydiSatiri[]): [string, number][] {
 }
 
 export function GelisimZamanCizelgesi({ ogrenciId }: { ogrenciId: string }) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   const [kayitlar, setKayitlar] = useState<GelisimKaydiSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export function GelisimZamanCizelgesi({ ogrenciId }: { ogrenciId: string }) {
       ust={
         <View style={styles.ozet}>
           {kategoriSayilari(kayitlar ?? []).map(([ad, adet]) => (
-            <Rozet key={ad} metin={`${ad} · ${adet}`} renk={renkler.vurguKoyu} zemin={renkler.vurguSoluk} />
+            <Rozet key={ad} metin={`${ad} · ${adet}`} renk={tema.renkler.vurguKoyu} zemin={tema.renkler.vurguSoluk} />
           ))}
         </View>
       }
@@ -51,11 +53,13 @@ export function GelisimZamanCizelgesi({ ogrenciId }: { ogrenciId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  ozet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: bosluk.s,
-    marginBottom: bosluk.m,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    ozet: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: t.bosluk.s,
+      marginBottom: t.bosluk.m,
+    },
+  });
+}

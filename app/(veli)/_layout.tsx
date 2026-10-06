@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 
-import { baslikCubuguSecenekleri } from '@/lib/tema';
+import { useTema } from '@/lib/tema';
 
 export default function Layout() {
-  return <Stack screenOptions={baslikCubuguSecenekleri} />;
+  const tema = useTema();
+  return <Stack screenOptions={tema.baslikCubuguSecenekleri} />;
 }

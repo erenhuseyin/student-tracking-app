@@ -1,9 +1,10 @@
 // Yan yana tek seçimli segment (ör. rol seçimi, Tablo/Katılım listesi görünüm değiştirici).
 // Görsel olarak Chip üzerine kurulu; bkz. components/Chip.tsx.
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@/components/Chip';
-import { bosluk, yazi } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Props<T extends string> = {
   // Verilmezse yalnızca seçenek satırı çizilir (ör. ekran içi görünüm değiştirici).
@@ -15,9 +16,11 @@ type Props<T extends string> = {
 };
 
 export function Secenekler<T extends string>({ etiket, secenekler, secili, onSec, pasif = false }: Props<T>) {
+  const tema = useTema();
+  const styles = useMemo(() => olustur(tema), [tema]);
   return (
     <View style={styles.kapsayici}>
-      {etiket ? <Text style={yazi.etiket}>{etiket}</Text> : null}
+      {etiket ? <Text style={styles.etiket}>{etiket}</Text> : null}
       <View style={styles.satir}>
         {secenekler.map((s) => (
           <Chip
@@ -34,12 +37,17 @@ export function Secenekler<T extends string>({ etiket, secenekler, secili, onSec
   );
 }
 
-const styles = StyleSheet.create({
-  kapsayici: {
-    gap: bosluk.xs,
-  },
-  satir: {
-    flexDirection: 'row',
-    gap: bosluk.s,
-  },
-});
+function olustur(t: Tema) {
+  return StyleSheet.create({
+    kapsayici: {
+      gap: t.bosluk.xs,
+    },
+    etiket: {
+      ...t.yazi.etiket,
+    },
+    satir: {
+      flexDirection: 'row',
+      gap: t.bosluk.s,
+    },
+  });
+}
