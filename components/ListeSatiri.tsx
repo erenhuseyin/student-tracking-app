@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ikon } from '@/components/Ikon';
-import { bosluk, dokunmaAlani, golge, renkler, yaricap, yazi } from '@/lib/tema';
+import { bosluk, dokunmaAlani, renkler, yaricap, yazi } from '@/lib/tema';
 
 type Props = {
   baslik: string;
@@ -58,7 +58,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: bosluk.l,
     paddingVertical: bosluk.s,
     gap: bosluk.s,
-    ...golge,
+    borderWidth: 1,
+    borderColor: renkler.ayirici,
   },
   buyuk: {
     minHeight: 72,

@@ -1,3 +1,10 @@
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  useFonts,
+} from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -14,12 +21,17 @@ function Yonlendirici() {
   usePushBildirimKaydi();
   const { durum, kullanici } = useOturum();
   const rol = durum === 'hazir' ? kullanici?.rol : undefined;
+  // lib/tema.ts > yaziTipi bu dört ağırlığa fontFamily ile referans verir; yüklenene kadar
+  // splash ekranı açık kalır (aşağıdaki efekt `durum` yerine bunu da bekler).
+  const [fontlarHazir] = useFonts({ Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold });
 
   useEffect(() => {
-    if (durum !== 'yukleniyor') {
+    if (durum !== 'yukleniyor' && fontlarHazir) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [durum]);
+  }, [durum, fontlarHazir]);
+
+  if (!fontlarHazir) return null;
 
   return (
     <>
