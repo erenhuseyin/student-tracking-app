@@ -1,6 +1,6 @@
-// Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i. Şube admini bu sekmeyi görmez
+// Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i. Şube admini Menü'de bu satırı görmez
 // (lib/menu.ts); adresle açsa bile RLS ona şube göstermez ve şube eklemesine izin vermez.
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
@@ -40,6 +40,7 @@ export default function Subeler() {
 
   return (
     <Ekran>
+      <Stack.Screen options={{ title: 'Şubeler' }} />
       <BaslikEkleButonu etiket="Yeni şube ekle" onPress={() => router.push('/yeni-sube')} />
 
       <Liste
