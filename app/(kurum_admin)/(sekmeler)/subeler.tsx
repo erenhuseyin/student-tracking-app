@@ -1,9 +1,9 @@
-// Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i. Şube admini bu ekrana bağlantı
-// görmez; adresle açsa bile RLS ona şube göstermez ve şube eklemesine izin vermez.
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+// Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i. Şube admini bu sekmeyi görmez
+// (lib/menu.ts); adresle açsa bile RLS ona şube göstermez ve şube eklemesine izin vermez.
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { Buton } from '@/components/Buton';
+import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
 import { Liste } from '@/components/Liste';
@@ -40,7 +40,7 @@ export default function Subeler() {
 
   return (
     <Ekran>
-      <Stack.Screen options={{ title: 'Şubeler' }} />
+      <BaslikEkleButonu etiket="Yeni şube ekle" onPress={() => router.push('/yeni-sube')} />
 
       <Liste
         veri={subeler}
@@ -48,6 +48,7 @@ export default function Subeler() {
         anahtar={(s) => s.id}
         bosIkon="business-outline"
         bosBaslik="Henüz şube yok"
+        bosAciklama="Sağ üstteki + ile ilk şubeyi ekleyin."
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}
@@ -69,8 +70,6 @@ export default function Subeler() {
           />
         )}
       />
-
-      <Buton ikon="add" baslik="Yeni Şube Ekle" onPress={() => router.push('/yeni-sube')} />
     </Ekran>
   );
 }

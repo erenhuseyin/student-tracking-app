@@ -1,4 +1,4 @@
-// Bir kurumun personel listesi (yöneticiler + öğretmenler) ve "Personel Ekle" butonu.
+// Bir kurumun personel listesi (yöneticiler + öğretmenler); personel ekleme başlık çubuğundaki "+".
 // Kurum admini ve süper admin ekranları paylaşır; ikisinde de rotalar aynıdır
 // (`/personel/[id]`, `/yeni-personel`).
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
-import { Buton } from '@/components/Buton';
+import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
@@ -40,13 +40,17 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
 
   return (
     <View style={styles.kapsayici}>
+      <BaslikEkleButonu
+        etiket="Personel ekle"
+        onPress={() => router.push({ pathname: '/yeni-personel', params: { kurumId } })}
+      />
       <Liste
         veri={personel}
         hata={hata}
         anahtar={(k) => k.id}
         bosIkon="people-outline"
         bosBaslik="Henüz personel yok"
-        bosAciklama="Aşağıdaki butonla öğretmen ya da yönetici ekleyin."
+        bosAciklama="Sağ üstteki + ile öğretmen ya da yönetici ekleyin."
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad_soyad}
@@ -56,12 +60,6 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
             onPress={() => router.push(`/personel/${k.id}`)}
           />
         )}
-      />
-
-      <Buton
-        ikon="person-add-outline"
-        baslik="Personel Ekle"
-        onPress={() => router.push({ pathname: '/yeni-personel', params: { kurumId } })}
       />
     </View>
   );

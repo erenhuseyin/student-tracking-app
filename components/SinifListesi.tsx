@@ -1,9 +1,9 @@
-// Bir kurumun (kök ya da şube) sınıf listesi + düzenle/sil + yeni sınıf ekleme.
+// Bir kurumun (kök ya da şube) sınıf listesi + düzenle/sil; yeni sınıf ekleme başlık çubuğundaki "+".
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Buton } from '@/components/Buton';
+import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ikon } from '@/components/Ikon';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
@@ -37,13 +37,17 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
 
   return (
     <View style={styles.kapsayici}>
+      <BaslikEkleButonu
+        etiket="Yeni sınıf ekle"
+        onPress={() => router.push({ pathname: '/yeni-sinif', params: { kurumId } })}
+      />
       <Liste
         veri={siniflar}
         hata={hata}
         anahtar={(s) => s.id}
         bosIkon="school-outline"
         bosBaslik="Henüz sınıf yok"
-        bosAciklama="Aşağıdaki butonla ilk sınıfı ekleyin."
+        bosAciklama="Sağ üstteki + ile ilk sınıfı ekleyin."
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}
@@ -68,12 +72,6 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
             }
           />
         )}
-      />
-
-      <Buton
-        ikon="add"
-        baslik="Yeni Sınıf Ekle"
-        onPress={() => router.push({ pathname: '/yeni-sinif', params: { kurumId } })}
       />
     </View>
   );

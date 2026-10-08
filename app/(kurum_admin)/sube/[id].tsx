@@ -38,7 +38,7 @@ export default function SubeDetay() {
         tur="ikincil"
         ikon="people-outline"
         baslik="Şube Personeli"
-        onPress={() => router.push({ pathname: '/personel', params: { kurumId: id } })}
+        onPress={() => router.push(`/sube-personel/${id}`)}
       />
     </Ekran>
   );
