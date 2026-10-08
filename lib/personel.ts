@@ -1,7 +1,7 @@
 // Personel (öğretmen, kurum yöneticisi) yönetimi.
 // Erişim: süper admin (yalnızca kurum yöneticisi davet eder) ve kurum admini (yönettiği
 // kurumlar: kendi kurumu + şubeleri). Hesap açma, kod gönderme ve pasifleştirme sunucudadır
-// (supabase/functions/personel-yonet); listeleme, ad değiştirme ve sınıf ataması doğrudan
+// (supabase/functions/personel-yonet); listeleme, ad ve görev değiştirme, sınıf ataması doğrudan
 // tablolar üzerinde yapılır, yetkiyi RLS (kullanici_kurum_admin_*, ogretmen_sinif_kurum_admin) verir.
 import { edgeFonksiyonuCagir } from '@/lib/edge';
 import { supabase } from '@/lib/supabase';
@@ -57,6 +57,16 @@ export async function personelAdGuncelle(id: string, adSoyad: string): Promise<v
   if (error) throw new Error(hataMesajinaCevir(error.message));
 }
 
+// Görev (rol) değişikliği. Kuralları veritabanı zorlar: kimse kendi rolünü değiştiremez, sınıf
+// ataması olan öğretmenin rolü değişmez (önce atamalar kaldırılır), kurum admini süper admin yapamaz.
+export async function personelRolDegistir(id: string, rol: PersonelRolu): Promise<void> {
+  const { error } = await supabase.from('kullanici').update({ rol }).eq('id', id);
+  if (!error) return;
+  if (/bağı olan/i.test(error.message)) throw new Error('Önce bu öğretmenin sınıf atamalarını kaldırın.');
+  if (/kendi rolünü/i.test(error.message)) throw new Error('Kendi görevinizi değiştiremezsiniz.');
+  throw new Error(hataMesajinaCevir(error.message));
+}
+
 export type DavetSonucu = { kullanici_id: string; eposta_gonderildi: boolean };
 
 // kurumId verilmezse sunucu çağıranın kendi kurumunu kullanır; süper admin için zorunludur.
@@ -98,6 +108,26 @@ export async function personelAktifligiDegistir(kullaniciId: string, aktif: bool
   );
 }
 
+// Yalnızca daveti henüz kabul etmemiş hesapta (sunucu denetler): yanlış yazılmış adresi düzeltir
+// ve yeni adrese giriş kodu gönderir.
+export async function personelEpostaDegistir(
+  kullaniciId: string,
+  eposta: string,
+): Promise<{ eposta_gonderildi: boolean }> {
+  const temiz = eposta.trim().toLowerCase();
+  if (!EPOSTA_RE.test(temiz)) throw new Error('Geçerli bir e-posta adresi girin.');
+  return edgeFonksiyonuCagir(
+    FONKSIYON,
+    { islem: 'eposta_degistir', kullanici_id: kullaniciId, eposta: temiz },
+    'E-posta değiştirilemedi.',
+  );
+}
+
+// Yalnızca daveti henüz kabul etmemiş hesapta (sunucu denetler): hesabı tümüyle siler.
+export async function personelDavetIptal(kullaniciId: string): Promise<void> {
+  await edgeFonksiyonuCagir(FONKSIYON, { islem: 'davet_iptal', kullanici_id: kullaniciId }, 'Davet iptal edilemedi.');
+}
+
 // Erişim: oturumsuz ("şifremi unuttum"). Sunucu, e-posta kayıtlı olsun olmasın aynı cevabı verir.
 export async function kodIste(eposta: string): Promise<void> {
   const temiz = eposta.trim().toLowerCase();
@@ -135,6 +165,10 @@ export async function ogretmenSinifAta(kurumId: string, ogretmenId: string, sini
 }
 
 export async function ogretmenSinifKaldir(ogretmenId: string, sinifId: string): Promise<void> {
-  const { error } = await supabase.from('ogretmen_sinif').delete().eq('ogretmen_id', ogretmenId).eq('sinif_id', sinifId);
+  const { error } = await supabase
+    .from('ogretmen_sinif')
+    .delete()
+    .eq('ogretmen_id', ogretmenId)
+    .eq('sinif_id', sinifId);
   if (error) throw new Error(hataMesajinaCevir(error.message));
 }

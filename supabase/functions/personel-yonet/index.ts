@@ -14,6 +14,8 @@
 //   kod_gonder            (oturumlu: yönetici, `kullanici_id` ile | oturumsuz: `eposta` ile, "şifremi unuttum")
 //   kod_ile_sifre_belirle (oturumsuz) e-posta + kod + yeni şifre
 //   pasiflestir / aktiflestir (oturumlu)
+//   eposta_degistir       (oturumlu)  yanlış yazılmış adresi düzeltir + yeni kod; yalnızca şifresini henüz belirlememiş hesapta
+//   davet_iptal           (oturumlu)  şifresini henüz belirlememiş hesabı tümüyle siler
 //
 // Yetki matrisi (oturumlu işlemler):
 //   super_admin -> yalnızca `kurum_admin` davet eder (herhangi bir kurum); tüm personeli yönetir
@@ -49,7 +51,8 @@ const BEKLEME_OTURUMSUZ_SN = 600;
 // Pasif hesap için auth tarafında "süresiz" ban (yaklaşık 100 yıl).
 const SURESIZ_BAN = '876000h';
 
-const KULLANICI_KOLONLARI = 'id, auth_id, rol, kurum_id, ad_soyad, eposta, aktif, son_kod_gonderim, kod_deneme_sayisi';
+const KULLANICI_KOLONLARI =
+  'id, auth_id, rol, kurum_id, ad_soyad, eposta, aktif, sifre_belirlendi, son_kod_gonderim, kod_deneme_sayisi';
 
 type KullaniciSatiri = {
   id: string;
@@ -59,6 +62,7 @@ type KullaniciSatiri = {
   ad_soyad: string;
   eposta: string | null;
   aktif: boolean;
+  sifre_belirlendi: boolean;
   son_kod_gonderim: string | null;
   kod_deneme_sayisi: number;
 };
@@ -317,6 +321,49 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Pasif öğretmen sınıf listelerinde görünmesin; yeniden aktifleşince atamalar elle yapılır.
       const { error } = await servis.from('ogretmen_sinif').delete().eq('ogretmen_id', hedef.id);
       if (error) console.error('personel-yonet: sınıf atamaları kaldırılamadı', error);
+    }
+    return yanit(200, { tamam: true });
+  }
+
+  // Her ikisi de yalnızca daveti kabul etmemiş (şifresini belirlememiş) hesapta: kişi henüz hiç
+  // giriş yapmadığı için kayıt girmiş olamaz ve adres değişikliği başkasının hesabını ele geçirmez.
+  if (islem === 'eposta_degistir') {
+    const hedef = await yonetilenPersoneliGetir(kullaniciClient, cagiran, govde);
+    if (hedef instanceof Response) return hedef;
+    const yeniEposta = epostayiOku(govde.eposta);
+    if (!yeniEposta) return hata(400, 'Geçerli bir e-posta adresi girin.');
+    if (hedef.sifre_belirlendi) return hata(409, 'Bu kişi hesabını kullanmaya başlamış; e-posta adresi değiştirilemez.');
+    if (!hedef.aktif) return hata(409, 'Bu hesap pasif; önce aktifleştirin.');
+    if (yeniEposta === hedef.eposta) return hata(400, 'Yeni adres mevcut adresle aynı.');
+
+    const { error: authHatasi } = await servis.auth.admin.updateUserById(hedef.auth_id, { email: yeniEposta, email_confirm: true });
+    if (authHatasi) {
+      if (authHatasi.code === 'email_exists' || /already.*registered/i.test(authHatasi.message)) {
+        return hata(409, 'Bu e-posta adresi zaten kayıtlı.');
+      }
+      console.error('personel-yonet: e-posta değiştirilemedi', authHatasi);
+      return hata(500, 'E-posta değiştirilemedi.');
+    }
+    const { error: satirHatasi } = await servis.from('kullanici').update({ eposta: yeniEposta }).eq('id', hedef.id);
+    if (satirHatasi) {
+      console.error('personel-yonet: kullanici.eposta yazılamadı, auth geri alınıyor', satirHatasi);
+      if (hedef.eposta) await servis.auth.admin.updateUserById(hedef.auth_id, { email: hedef.eposta, email_confirm: true });
+      return hata(500, 'E-posta değiştirilemedi.');
+    }
+    const gonderildi = await kodUretVeGonder(servis, { ...hedef, eposta: yeniEposta }, true);
+    return yanit(200, { tamam: true, eposta_gonderildi: gonderildi });
+  }
+
+  if (islem === 'davet_iptal') {
+    const hedef = await yonetilenPersoneliGetir(kullaniciClient, cagiran, govde);
+    if (hedef instanceof Response) return hedef;
+    if (hedef.id === cagiran.id) return hata(400, 'Kendi hesabınızı silemezsiniz.');
+    if (hedef.sifre_belirlendi) return hata(409, 'Bu kişi hesabını kullanmaya başlamış; silmek yerine pasifleştirin.');
+    // FK cascade `kullanici` satırını ve sınıf atamalarını da siler.
+    const { error } = await servis.auth.admin.deleteUser(hedef.auth_id);
+    if (error) {
+      console.error('personel-yonet: davet iptal edilemedi', error);
+      return hata(500, 'Davet iptal edilemedi.');
     }
     return yanit(200, { tamam: true });
   }
