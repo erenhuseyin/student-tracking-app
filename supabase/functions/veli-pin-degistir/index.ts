@@ -9,6 +9,11 @@
 //   - hesap "PIN değiştirilmeli" durumundaysa (ilk giriş ya da sıfırlama sonrası) mevcut PIN
 //     sorulmaz — veli az önce onunla giriş yaptı. Diğer durumda mevcut PIN doğrulanır: açık
 //     kalmış bir telefonu eline alan kişi PIN'i değiştirip hesabı ele geçiremesin.
+//
+// Şifre yönetici API'siyle değişince Auth hesabın TÜM oturumlarını kapatır (yerelde doğrulandı:
+// eski access token `getUser`'da 403, refresh token 400 alır). Bu yüzden yeni PIN'le burada yeniden
+// giriş yapılır ve taze oturum döndürülür; istemci onu `setSession` ile kurar. Diğer cihazlardaki
+// oturumlar kapanır — PIN değişikliğinde istenen davranış.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -103,9 +108,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   const servis = createClient(supabaseUrl, servisAnahtar, istemciSecenekleri);
-  const { error: sifreHatasi } = await servis.auth.admin.updateUserById(kimlik.user.id, {
-    password: await pinSifresi(pinAnahtari, eposta, yeniPin),
-  });
+  const yeniSifre = await pinSifresi(pinAnahtari, eposta, yeniPin);
+  const { error: sifreHatasi } = await servis.auth.admin.updateUserById(kimlik.user.id, { password: yeniSifre });
   if (sifreHatasi) {
     console.error('veli-pin-degistir: PIN yazılamadı', sifreHatasi);
     return hata(500, 'PIN değiştirilemedi.');
@@ -116,5 +120,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .eq('id', cagiran.id);
   if (bayrakHatasi) console.error('veli-pin-degistir: pin_degistirilmeli yazılamadı', bayrakHatasi);
 
-  return yanit(200, { tamam: true });
+  // Şifre değişikliği çağıranın oturumunu da kapattı; yeni PIN'le taze oturum alınır.
+  const { data: yeniGiris, error: girisHatasi } = await createClient(supabaseUrl, anonAnahtar, istemciSecenekleri).auth.signInWithPassword({
+    email: eposta,
+    password: yeniSifre,
+  });
+  if (girisHatasi || !yeniGiris.session) {
+    console.error('veli-pin-degistir: yeni oturum açılamadı', girisHatasi);
+    // PIN değişti; istemci oturum alamazsa kullanıcı yeni PIN'le yeniden giriş yapar.
+    return yanit(200, { tamam: true });
+  }
+  return yanit(200, {
+    tamam: true,
+    access_token: yeniGiris.session.access_token,
+    refresh_token: yeniGiris.session.refresh_token,
+  });
 });

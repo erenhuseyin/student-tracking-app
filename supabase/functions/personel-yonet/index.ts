@@ -335,6 +335,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (hedef.sifre_belirlendi) return hata(409, 'Bu kişi hesabını kullanmaya başlamış; e-posta adresi değiştirilemez.');
     if (!hedef.aktif) return hata(409, 'Bu hesap pasif; önce aktifleştirin.');
     if (yeniEposta === hedef.eposta) return hata(400, 'Yeni adres mevcut adresle aynı.');
+    // Auth, kayıtlı bir adrese güncellemeyi anlaşılır bir kodla değil genel bir 500 ile reddediyor
+    // (yerelde denendi); bu yüzden çakışma önce burada aranır. Personel e-postaları `kullanici.eposta`'dadır.
+    const { data: ayniAdres, error: ayniAdresHatasi } = await servis.from('kullanici').select('id').eq('eposta', yeniEposta).limit(1);
+    if (ayniAdresHatasi) {
+      console.error('personel-yonet: e-posta çakışması aranamadı', ayniAdresHatasi);
+      return hata(500, 'İşlem şu an yapılamıyor.');
+    }
+    if (ayniAdres && ayniAdres.length > 0) return hata(409, 'Bu e-posta adresi zaten kayıtlı.');
 
     const { error: authHatasi } = await servis.auth.admin.updateUserById(hedef.auth_id, { email: yeniEposta, email_confirm: true });
     if (authHatasi) {

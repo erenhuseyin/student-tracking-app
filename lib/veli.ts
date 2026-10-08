@@ -28,9 +28,17 @@ export async function veliGirisYap(tckn: string, pin: string): Promise<void> {
 export async function veliPinDegistir(yeniPin: string, mevcutPin?: string): Promise<void> {
   if (yeniPin.length !== 4) throw new Error('PIN 4 haneli olmalı.');
   if (yeniPin === VARSAYILAN_PIN) throw new Error("Bu PIN herkesçe bilinen başlangıç PIN'idir; başka bir PIN seçin.");
-  await edgeFonksiyonuCagir(
+  const sonuc = await edgeFonksiyonuCagir<{ access_token?: string; refresh_token?: string }>(
     'veli-pin-degistir',
     { yeni_pin: yeniPin, mevcut_pin: mevcutPin },
     'PIN değiştirilemedi, lütfen tekrar deneyin.',
   );
+  // PIN (Auth şifresi) değişince Auth hesabın tüm oturumlarını kapatır; sunucu yeni PIN'le
+  // açtığı taze oturumu döndürür. Dönmediyse eski oturum zaten geçersizdir: çıkış yapılır ve
+  // veli yeni PIN'iyle giriş ekranından girer.
+  if (sonuc.access_token && sonuc.refresh_token) {
+    const { error } = await supabase.auth.setSession({ access_token: sonuc.access_token, refresh_token: sonuc.refresh_token });
+    if (!error) return;
+  }
+  await supabase.auth.signOut();
 }
