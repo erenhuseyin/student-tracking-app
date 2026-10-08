@@ -201,7 +201,8 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - **Karar (kullanıcı):** bölümlere ana ekranın altındaki butonlarla gitmek yerine alt sekme çubuğu + "Menü" sekmesi (tablet/masaüstünde çubuk solda). Kurum admini için "Özet" ekranı bu turda yok. Tam plan ve sonraki aşamalar (B: profil → personel düzenleme → roller → menü yetkisi; C: duyurular; D: ders programı; E: başvuruyla öğrenci/personel kaydı): `~/.claude/plans/iridescent-booping-robin.md` — Aşama A bitince yol haritası bu dosyaya taşınacak.
   - [x] **1. adım — kurum yöneticisi (yalnızca kod; ekranda görülmedi):** `lib/menu.ts` (rol başına bölüm kayıt defteri, `useMenu`), `components/RolSekmeleri` (Expo Router `Tabs`, yeni bağımlılık yok), `MenuEkrani` (kullanıcı kartı, menü satırları, tema seçimi, onaylı çıkış), `BaslikEkleButonu` ("Yeni … Ekle" butonları başlık çubuğunda "+" oldu; `SinifListesi`/`PersonelListesi` kendi ekranının başlığına koyar — süper adminin kurum ekranı da etkilendi). `(kurum_admin)/(sekmeler)/`: Sınıflar, Personel, Şubeler (yalnızca kök), Menü; rotalar değişmedi. Şube personeli `/personel?kurumId=` yerine yeni `/sube-personel/[id]` (sekme değiştirmesin diye). Doğrulanan: `typecheck`, `lint`, `expo export --platform web`.
   - [x] **2. adım — öğretmen (yalnızca kod; ekranda görülmedi):** `(ogretmen)/(sekmeler)/`: Sınıflarım, Menü. Tema ve çıkış başlıktan Menü'ye taşındı.
-  - [ ] 3. veli · 4. süper admin (+ `TemaDugmesi`/`CikisYapButonu` temizliği) · 5. belgeler
+  - [x] **3. adım — veli (yalnızca kod; ekranda görülmedi):** `(veli)/(sekmeler)/`: Çocuklarım, Menü. "PIN'imi Değiştir" başlıktaki etiketsiz anahtar ikonundan Menü'de yazılı satıra taşındı.
+  - [ ] 4. süper admin (+ `TemaDugmesi`/`CikisYapButonu` temizliği) · 5. belgeler
 - [ ] EAS build (preview/production) + Play Console internal testing — **Faz 1'in son maddesi (tasarım gözle onaylandıktan sonra)**
 
 ## Alınan Teknik Kararlar (spesifikasyonda olmayan, oturum içi kararlar)

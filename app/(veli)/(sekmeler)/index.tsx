@@ -1,22 +1,16 @@
 // Erişim: yalnızca veli
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
-import { CikisYapButonu } from '@/components/CikisYapButonu';
 import { DurumRozeti } from '@/components/DurumRozeti';
 import { Ekran } from '@/components/Ekran';
-import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { TemaDugmesi } from '@/components/TemaDugmesi';
-import { useTema } from '@/lib/tema';
 import { type OgrenciYoklamaSatiri, veliCocuklariniBugunkuYoklamaylaGetir } from '@/lib/yoklama';
 
 export default function VeliAnaSayfa() {
   const router = useRouter();
-  const tema = useTema();
   const [cocuklar, setCocuklar] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -32,24 +26,6 @@ export default function VeliAnaSayfa() {
 
   return (
     <Ekran>
-      <Stack.Screen
-        options={{
-          title: 'Çocuklarım',
-          headerRight: () => (
-            <View style={styles.baslikEylemleri}>
-              <IkonButon
-                ikon="key-outline"
-                etiket="PIN'imi değiştir"
-                renk={tema.renkler.metinIkincil}
-                onPress={() => router.push('/pin-degistir')}
-              />
-              <TemaDugmesi />
-              <CikisYapButonu />
-            </View>
-          ),
-        }}
-      />
-
       <Liste
         veri={cocuklar}
         hata={hata}
@@ -71,9 +47,3 @@ export default function VeliAnaSayfa() {
     </Ekran>
   );
 }
-
-const styles = StyleSheet.create({
-  baslikEylemleri: {
-    flexDirection: 'row',
-  },
-});
