@@ -48,6 +48,10 @@ Yapılandırma dinamik (`app.config.ts`) olduğu için komut proje kimliğini do
 
 Personel davet ve şifre kodları `personel-yonet` Edge Function'ından EmailJS ile gider; kurulum proje genelinde tektir (marka başına değil), e-postadaki kurum adı kök kurumun `ad`'ından gelir. İlk kurulumda unutulmaması gerekenler: EmailJS'te **Account > Security > "Allow EmailJS API for non-browser applications"** açık olmalı (kapalıysa hesap açılır ama e-posta gitmez), şablonda To Email `{{alici_eposta}}` olmalı, dört `EMAILJS_*` değeri Supabase > Edge Functions > Secrets'ta durmalı.
 
+## 3c. Veli girişi anahtarı
+
+Veli PIN'leri sunucudaki `VELI_PIN_ANAHTARI` ile korunur (Supabase > Edge Functions > Secrets). Proje genelinde tektir, marka başına ayarlanmaz; ilk kurulumda bir kez `openssl rand -hex 32` ile üretilip eklenir. **Sonradan değiştirilmemelidir:** değişirse tüm veli PIN'leri geçersiz olur ve hepsinin sıfırlanması gerekir.
+
 ## 4. Build profilleri
 
 `eas.json`'a marka için profiller ekle:
