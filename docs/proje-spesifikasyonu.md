@@ -37,8 +37,10 @@ Bir eğitim kurumu için, öğretmenlerin öğrenci gelişimini kaydedebildiği,
 - **duyuru** — id, kurum_id, kok_kurum_id (otomatik), sinif_id (boşsa kurum geneli; kök kurumsa şubeler dahil), tur (duyuru/etkinlik), baslik, icerik, etkinlik_zamani, yer, giren_kullanici_id
 - **kapali_bolum** — kurum_id (kök kurum), rol (öğretmen/veli), bolum_anahtari — müşterinin o rol için kapattığı bölümler (satır yoksa açık)
 - **ders_programi** — id, kurum_id, sinif_id, gun (1-7), baslangic_saati, bitis_saati, ders_adi
+- **devamsizlik_bildirimi** — id, kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id (velinin önceden bildirdiği devamsızlık; yoklamayı değiştirmez)
+- **oneri** — id, kurum_id, kok_kurum_id (otomatik), giren_kullanici_id, metin, okundu (veliden kuruma tek yönlü)
 - **basvuru** — id, kurum_id, kok_kurum_id (otomatik), tur (öğrenci/personel), durum (bekliyor/onaylandı/reddedildi), ad_soyad, öğrenci alanları (dogum_tarihi, tckn, veli_ad_soyad, veli_telefon) ya da eposta, karar bilgisi
-- **bildirim_log** — id, alıcı_kullanici_id, tip, gönderim_tarihi, okundu_mu
+- **bildirim_log** — id, alıcı_kullanici_id, tip, baslik, metin, ogrenci_id / duyuru_id (ilgili kayıt), gönderim_tarihi, okundu_mu
 
 ## 5. Multi-Tenant Mimari Notu
 
@@ -121,6 +123,12 @@ supabase/
 
 ## 9. Netleşen Kararlar
 
+- **Mesajlaşma yok; veli tek yönlü yazar (2026-10-08).** Veli–öğretmen mesajlaşması yapılmayacak. Veliden kuruma iki tek yönlü kanal var: **devamsızlık bildirimi** (çocuğun gelmeyeceği gün + neden; öğretmen o günün yoklamasında görür, yoklamayı yine öğretmen işaretler) ve **öneri** (yalnızca yöneticiler okur, günde en fazla 5; uygulamadan yanıt yazılmaz).
+- **Dönem geçişi yok (2026-10-08).** Sınıflar yıl sonunda üst sınıfa "geçirilmez": bir sınıf (ör. vakıfta "Bilinçli Mucitler") yıllarca aynı adla ve aynı ekiple sürebilir. `sinif.donem` yalnızca bilgi alanıdır.
+- **Aidat/ödeme takibi kapsam dışı (2026-10-08, şimdilik).**
+- **Kardeşler tek hesapta (2026-10-08).** Veli, aynı kurumdaki diğer çocuğunu o çocuğun TCKN + PIN'iyle kendi hesabına bağlar; ilişki zaten çoka çoktur. Çocukların kendi girişleri çalışmaya devam eder. Farklı şubelerdeki kardeşler bağlanamaz.
+- **Bildirimler uygulamada da listelenir (2026-10-08).** Gönderilen her bildirim alıcının "Bildirimler" ekranında görünür ve okundu olarak işaretlenir; bildirim metninde not/içerik yer almaz (yalnızca öğrenci adı ve tür ya da duyuru başlığı).
+- **Silme, düzenleme ekranındadır (2026-10-08).** Liste satırlarında silme düğmesi bulunmaz; kayıt düzenleme ekranında, onay sorularak silinir.
 - **Menü yetkisi: roller sabit, bölüm görünürlüğü ayarlanır (2026-10-08).** Kurumun kendi rollerini tanımlaması reddedildi (tüm RLS'in yetki tablosuna göre yeniden yazılması gerekirdi). Ana kurumun yöneticisi "Roller ve Yetkiler" ekranından **öğretmen ve veli** için bölümleri (Yoklama, Gelişim, Duyurular, Ders Programı) kapatabilir; yönetici bölümleri kapatılamaz. Ayar müşteri düzeyindedir (şubeler ortak kullanır, şube yöneticisi salt okunur görür) ve yalnızca kapatılanlar saklanır (`kapali_bolum`). **Bu bir görünürlük ayarıdır, güvenlik sınırı değildir:** veriye erişimi RLS belirler ve rol başına sabittir.
 - **Duyurular ve etkinlikler (2026-10-08).** Kapsam: sınıf / şube / tüm müşteri (kök kuruma yazılan duyuru şubeleri de kapsar). Kurum admini yönettiği kurumlara, **öğretmen yalnızca atandığı sınıfa** yazar ve yalnızca kendi yazdığını değiştirir. Yeni duyuruda kapsamdaki velilere (kurum genelinde öğretmenlere de) push gider; bildirimde yalnızca başlık yer alır; düzeltme bildirilmez.
 - **Ders programı (2026-10-08).** Sınıfın haftalık ders saatleri; "kurumun programı" tüm sınıfların birleşik görünümüdür (ayrı veri yok). Ders adı serbest metindir. Kurum admini ve sınıfın öğretmeni düzenler, veli çocuğunun sınıfınınkini görür. **Yoklama günde tek kalır** (2026-10-06 kararı değişmedi): program bilgilendirme amaçlıdır ve değişince sınıfın ders günlerini günceller.
