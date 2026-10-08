@@ -50,3 +50,6 @@ export type DuyuruTuru = (typeof DUYURU_TURLERI)[number];
 // Kapsam: sinif_id doluysa o sınıf; boşsa kurum_id'nin tamamı (kök kurumsa şubeler dahil).
 export type Duyuru = Tables<'duyuru'>;
 
+// Sınıfın haftalık programındaki tek bir ders saati (gun: 1 = Pzt ... 7 = Paz; saatler 'SS:DD:SS').
+export type DersSaati = Tables<'ders_programi'>;
+

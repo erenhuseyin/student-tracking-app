@@ -9,6 +9,7 @@ export default function Layout() {
   const yoklamaAcik = useBolumAcik('yoklama');
   const gelisimAcik = useBolumAcik('gelisim');
   const duyurularAcik = useBolumAcik('duyurular');
+  const programAcik = useBolumAcik('program');
   return (
     <Stack screenOptions={tema.baslikCubuguSecenekleri}>
       {/* Sekmelerin başlık çubuğu kendi içindedir (components/RolSekmeleri). */}
@@ -26,6 +27,10 @@ export default function Layout() {
       <Stack.Protected guard={duyurularAcik}>
         <Stack.Screen name="yeni-duyuru" />
         <Stack.Screen name="duyuru-duzenle/[id]" />
+      </Stack.Protected>
+      <Stack.Protected guard={programAcik}>
+        <Stack.Screen name="ders-programi/[sinifId]" />
+        <Stack.Screen name="ders-saati" />
       </Stack.Protected>
     </Stack>
   );

@@ -25,6 +25,7 @@ export default function OgretmenSinifi() {
   const [hata, setHata] = useState<string | null>(null);
   const yoklamaAcik = useBolumAcik('yoklama');
   const gelisimAcik = useBolumAcik('gelisim');
+  const programAcik = useBolumAcik('program');
 
   useFocusEffect(
     useCallback(() => {
@@ -57,6 +58,15 @@ export default function OgretmenSinifi() {
           />
         </View>
       </View>
+      ) : null}
+
+      {programAcik ? (
+        <Buton
+          tur="ikincil"
+          ikon="calendar-outline"
+          baslik="Ders Programı"
+          onPress={() => router.push(`/ders-programi/${sinifId}`)}
+        />
       ) : null}
 
       <Liste

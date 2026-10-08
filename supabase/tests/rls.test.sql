@@ -1308,6 +1308,79 @@ set local role authenticated;
 
 select tst.esit('öğretmen kendi duyurusunu siler', tst.dene($q$delete from public.duyuru where baslik = 'D7'$q$), 'ok:1');
 
+-- ===========================================================================
+-- 21. DERS PROGRAMI (sınıfın haftalık ders saatleri)
+--   Bu noktada: adminA (02) kök admin, adminA2 (13) şube A2 admini, ogrA1 (05) -> sA1, ogrA2 (06) -> sA2,
+--   veliA1 (08) -> sA1, veliB (10) -> sB1.
+-- ===========================================================================
+reset role;
+
+select tst.esit('gün 0 reddedilir', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 0, '09:00', '09:40', 'x')$q$), 'hata:23514');
+select tst.esit('gün 8 reddedilir', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 8, '09:00', '09:40', 'x')$q$), 'hata:23514');
+select tst.esit('bitiş başlangıçtan önce olamaz', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 1, '10:00', '09:40', 'x')$q$), 'hata:23514');
+select tst.esit('boş ders adı reddedilir', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 1, '09:00', '09:40', '  ')$q$), 'hata:23514');
+select tst.esit('sınıf başka kurumla eşleştirilemez (bileşik FK)', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-0000000000a1', 1, '09:00', '09:40', 'x')$q$), 'hata:23503');
+
+insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values
+  ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', 2, '09:00', '09:40', 'Fen'),
+  ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-0000000000b1', 1, '09:00', '09:40', 'Resim');
+
+-- ogrA1 (sA1): kendi sınıfının programını düzenler
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen kendi sınıfına ders ekler', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 1, '09:00', '09:40', 'Matematik')$q$), 'ok:1');
+select tst.esit('aynı sınıf, gün ve saate ikinci ders eklenemez', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 1, '09:00', '10:00', 'Türkçe')$q$), 'hata:23505');
+select tst.esit('öğretmen ikinci dersi ekler', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 1, '09:50', '10:30', 'Türkçe')$q$), 'ok:1');
+select tst.esit('öğretmen atanmadığı sınıfa ekleyemez', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', 1, '09:00', '09:40', 'x')$q$), 'hata:42501');
+select tst.esit('öğretmen yalnızca kendi sınıfının programını görür', (select count(*) from public.ders_programi)::text, '2');
+select tst.esit('öğretmen dersi günceller', tst.dene($q$update public.ders_programi set ders_adi = 'Hayat Bilgisi' where ders_adi = 'Türkçe'$q$), 'ok:1');
+select tst.esit('ders başka sınıfa taşınamaz (kolon yetkisi)',
+  tst.dene($q$update public.ders_programi set sinif_id = 'd0000000-0000-0000-0000-0000000000a2' where ders_adi = 'Matematik'$q$), 'hata:42501');
+select tst.esit('öğretmen başka sınıfın dersini güncelleyemez', tst.dene($q$update public.ders_programi set ders_adi = 'x' where ders_adi = 'Fen'$q$), 'ok:0');
+select tst.esit('öğretmen dersi siler', tst.dene($q$delete from public.ders_programi where ders_adi = 'Hayat Bilgisi'$q$), 'ok:1');
+
+-- veliA1 (sA1): okur, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli çocuğunun sınıfının programını görür', (select count(*) from public.ders_programi)::text, '1');
+select tst.esit('veli ekleyemez', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 3, '09:00', '09:40', 'x')$q$), 'hata:42501');
+select tst.esit('veli güncelleyemez', tst.dene($q$update public.ders_programi set ders_adi = 'x'$q$), 'ok:0');
+select tst.esit('veli silemez', tst.dene($q$delete from public.ders_programi$q$), 'ok:0');
+
+-- adminA (kök admin): müşterinin tüm programı
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin müşterinin tüm programını görür', (select count(*) from public.ders_programi)::text, '2');
+select tst.esit('kök admin ders ekler', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', 4, '11:00', '11:40', 'Müzik')$q$), 'ok:1');
+select tst.esit('kök admin başka müşteriye ekleyemez', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-0000000000b1', 2, '09:00', '09:40', 'x')$q$), 'hata:42501');
+select tst.esit('kök admin dersi siler', tst.dene($q$delete from public.ders_programi where ders_adi = 'Müzik'$q$), 'ok:1');
+
+-- adminA2 (şube A2): ana kurumun sınıflarının programını görmez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini ana kurumun programını görmez', (select count(*) from public.ders_programi)::text, '0');
+select tst.esit('şube admini ana kurumun sınıfına ekleyemez', tst.dene($q$insert into public.ders_programi (kurum_id, sinif_id, gun, baslangic_saati, bitis_saati, ders_adi) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 5, '09:00', '09:40', 'x')$q$), 'hata:42501');
+
+-- veliB: A'nın programı sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin velisi yalnızca kendi sınıfını görür', (select count(*) from public.ders_programi)::text, '1');
+
+-- Sınıf silinince programı da silinir (şema; postgres rolüyle)
+reset role;
+delete from public.ders_programi where sinif_id = 'd0000000-0000-0000-0000-0000000000b1';
+select tst.esit('program satırı silinir', (select count(*) from public.ders_programi where sinif_id = 'd0000000-0000-0000-0000-0000000000b1')::text, '0');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

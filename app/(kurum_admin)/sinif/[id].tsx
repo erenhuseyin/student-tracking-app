@@ -73,6 +73,7 @@ export default function SinifDetay() {
         )}
       />
 
+      <Buton tur="ikincil" ikon="calendar-outline" baslik="Ders Programı" onPress={() => router.push(`/ders-programi/${id}`)} />
       <Buton tur="ikincil" ikon="grid-outline" baslik="Haftalık Yoklama ve Katılım" onPress={() => router.push(`/sinif-katilim/${id}`)} />
       <Buton
         ikon="add"
