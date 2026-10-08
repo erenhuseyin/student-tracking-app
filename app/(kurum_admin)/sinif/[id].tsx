@@ -61,6 +61,17 @@ export default function SinifDetay() {
       <Buton tur="ikincil" ikon="calendar-outline" baslik="Ders Programı" onPress={() => router.push(`/ders-programi/${id}`)} />
       <Buton tur="ikincil" ikon="grid-outline" baslik="Haftalık Yoklama ve Katılım" onPress={() => router.push(`/sinif-katilim/${id}`)} />
       <Buton
+        tur="ikincil"
+        ikon="list-outline"
+        baslik="Listeden Toplu Ekle"
+        onPress={() =>
+          router.push({
+            pathname: '/toplu-ogrenci',
+            params: sinif ? { sinifId: id, kurumId: sinif.kurum_id } : { sinifId: id },
+          })
+        }
+      />
+      <Buton
         ikon="add"
         baslik="Yeni Öğrenci Ekle"
         onPress={() =>
