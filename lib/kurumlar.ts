@@ -27,6 +27,24 @@ export async function kurumGetir(id: string): Promise<Kurum> {
   return data;
 }
 
+// Erişim: yalnızca süper admin (trigger: kurum_korunan_alan_yetki). Müşteriye özel bir özelliği
+// (bkz. lib/ozellikler.ts) kök kurumda açar ya da kapatır; diğer bayraklara dokunmaz.
+export async function kurumOzelligiAyarla(kurumId: string, ad: string, acik: boolean): Promise<Kurum> {
+  const kurum = await kurumGetir(kurumId);
+  const mevcut =
+    typeof kurum.ozellikler === 'object' && kurum.ozellikler !== null && !Array.isArray(kurum.ozellikler)
+      ? kurum.ozellikler
+      : {};
+  const { data, error } = await supabase
+    .from('kurum')
+    .update({ ozellikler: { ...mevcut, [ad]: acik } })
+    .eq('id', kurumId)
+    .select()
+    .single();
+  if (error) throw new Error(hataMesajinaCevir(error.message));
+  return data;
+}
+
 // Kök kurum = müşteri. markaKodu müşterinin uygulamasıyla (markalar/<kod>/) eşleşir ve
 // sonradan değiştirilemez (bkz. docs/yeni-marka.md).
 export async function kurumEkle(ad: string, markaKodu: string): Promise<Kurum> {

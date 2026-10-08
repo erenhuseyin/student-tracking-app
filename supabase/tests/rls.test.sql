@@ -1411,6 +1411,82 @@ set local role authenticated;
 select tst.esit('kurum admini pin_degistirilmeli bayrağını yazamaz',
   tst.dene($q$update public.kullanici set pin_degistirilmeli = false where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'hata:42501');
 
+-- ===========================================================================
+-- 23. BAŞVURU: istemci eklemez/değiştirmez; yönetici yalnızca yönettiği kurumlarınkini okur
+--   Başvurular Edge Function'dan (service role) eklenir; burada postgres rolüyle eklenir.
+--   B1 kök A (öğrenci) | B2 şube A2 (personel) | B3 kurum B (öğrenci) | B4 kök A (öğrenci, reddedildi)
+-- ===========================================================================
+reset role;
+
+select tst.esit('öğrenci başvurusu TCKN''siz olamaz',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, veli_ad_soyad, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'x', '2020-01-01', 'v', '05551112233')$q$), 'hata:23514');
+select tst.esit('öğrenci başvurusu velisiz olamaz',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, tckn, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'x', '2020-01-01', '12345678950', '05551112233')$q$), 'hata:23514');
+select tst.esit('personel başvurusu e-postasız olamaz',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x')$q$), 'hata:23514');
+select tst.esit('personel başvurusunda TCKN olamaz',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta, tckn) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local', '12345678950')$q$), 'hata:23514');
+select tst.esit('sonuçlanmış başvuruda karar tarihi zorunlu',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta, durum) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local', 'reddedildi')$q$), 'hata:23514');
+
+insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, tckn, veli_ad_soyad, veli_telefon, eposta) values
+  ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'B1', '2020-05-05', '12345678950', 'Veli', '0555 111 22 33', null),
+  ('c0000000-0000-0000-0000-0000000000a2', 'personel', 'B2', null, null, null, null, 'aday@test.local'),
+  ('c0000000-0000-0000-0000-00000000000b', 'ogrenci', 'B3', '2020-05-05', '12345678950', 'Veli', '0555 111 22 33', null);
+insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, tckn, veli_ad_soyad, veli_telefon, durum, karar_tarihi) values
+  ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'B4', '2020-05-05', '10000000146', 'Veli', '05551112233', 'reddedildi', now());
+select tst.esit('kok_kurum_id şube başvurusunda ana kurumdur', (select kok_kurum_id::text from public.basvuru where ad_soyad = 'B2'), 'c0000000-0000-0000-0000-00000000000a');
+
+-- adminA (kök admin): kendi kurumu + şubeleri; ekleyemez, değiştiremez; yalnızca sonuçlanmışı siler
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin müşterinin başvurularını görür', (select count(*) from public.basvuru)::text, '3');
+select tst.esit('kök admin başvuru ekleyemez',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local')$q$), 'hata:42501');
+select tst.esit('kök admin başvuruyu doğrudan onaylayamaz',
+  tst.dene($q$update public.basvuru set durum = 'onaylandi', karar_tarihi = now() where ad_soyad = 'B1'$q$), 'hata:42501');
+select tst.esit('kök admin bekleyen başvuruyu silemez', tst.dene($q$delete from public.basvuru where ad_soyad = 'B1'$q$), 'ok:0');
+select tst.esit('kök admin sonuçlanmış başvuruyu siler', tst.dene($q$delete from public.basvuru where ad_soyad = 'B4'$q$), 'ok:1');
+
+-- adminA2 (şube admini): yalnızca kendi şubesine gelenler
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini yalnızca kendi şubesinin başvurusunu görür', (select count(*) from public.basvuru)::text, '1');
+
+-- adminB: A'nın başvuruları sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin admini yalnızca kendisininkini görür', (select count(*) from public.basvuru)::text, '1');
+
+-- ogrA1 ve veliA1: hiçbir başvuruyu göremez, ekleyemez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen başvuru göremez', (select count(*) from public.basvuru)::text, '0');
+select tst.esit('öğretmen başvuru ekleyemez',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local')$q$), 'hata:42501');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli başvuru göremez', (select count(*) from public.basvuru)::text, '0');
+
+-- anon: tabloya hiç erişemez
+reset role;
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+select tst.esit('anon başvuru okuyamaz', tst.dene($q$select 1 from public.basvuru$q$), 'hata:42501');
+select tst.esit('anon başvuru ekleyemez',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local')$q$), 'hata:42501');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

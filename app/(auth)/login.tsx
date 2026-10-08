@@ -8,6 +8,7 @@ import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { MarkaBasligi } from '@/components/MarkaBasligi';
+import { useBasvuruAcik } from '@/lib/basvuruAcik';
 import { supabase } from '@/lib/supabase';
 
 function hataMesajinaCevir(mesaj: string): string {
@@ -23,6 +24,7 @@ export default function Login() {
   const [sifre, setSifre] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  const basvuruAcik = useBasvuruAcik();
 
   const girisYap = async () => {
     if (!email.trim() || !sifre) {
@@ -68,6 +70,14 @@ export default function Login() {
           onPress={() => router.replace('/kod-ile-giris')}
           pasif={gonderiliyor}
         />
+        {basvuruAcik ? (
+          <Buton
+            tur="metin"
+            baslik="Öğretmen olarak başvur"
+            onPress={() => router.replace('/personel-basvuru')}
+            pasif={gonderiliyor}
+          />
+        ) : null}
       </Kart>
 
       <Buton

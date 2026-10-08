@@ -49,6 +49,8 @@ type Ortak = {
   yalnizKok?: boolean;
   // Kurumun kapatabildiği bölüm (AYARLANABILIR_BOLUMLER'deki anahtar); kapalıysa öğe gizlenir.
   bolum?: string;
+  // Müşteriye özel özellik bayrağı (kurum.ozellikler; yalnızca süper admin açar); kapalıysa öğe gizlenir.
+  ozellik?: string;
 };
 
 // `sekme`: rol grubunun `(sekmeler)` klasöründeki dosya adı.
@@ -75,6 +77,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'subeler', etiket: 'Şubeler', ikon: 'business-outline', yer: 'sekme', sekme: 'subeler', yalnizKok: true },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
+    { anahtar: 'basvurular', etiket: 'Başvurular', ikon: 'mail-unread-outline', yer: 'menu', rota: '/basvurular', ozellik: 'basvuru' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'roller', etiket: 'Roller ve Yetkiler', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     {
@@ -111,10 +114,16 @@ export type Menu = {
 };
 
 export function useMenu(): Menu {
-  const { kullanici, kurum, kapaliBolumler } = useOturum();
+  const { kullanici, kurum, kokKurum, kapaliBolumler } = useOturum();
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
   const ogeler = kullanici ? MENULER[kullanici.rol] : [];
-  const gorunur = (o: MenuOgesi) => (!o.yalnizKok || kokKurumMu) && !(o.bolum && kapaliBolumler.includes(o.bolum));
+  const ozellikler = kokKurum?.ozellikler;
+  const ozellikAcik = (ad: string) =>
+    typeof ozellikler === 'object' && ozellikler !== null && !Array.isArray(ozellikler) && ozellikler[ad] === true;
+  const gorunur = (o: MenuOgesi) =>
+    (!o.yalnizKok || kokKurumMu) &&
+    !(o.bolum && kapaliBolumler.includes(o.bolum)) &&
+    (!o.ozellik || ozellikAcik(o.ozellik));
 
   return {
     sekmeler: ogeler.filter((o) => o.yer === 'sekme').map((o) => ({ ...o, gorunur: gorunur(o) })),

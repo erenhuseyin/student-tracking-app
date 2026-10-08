@@ -479,6 +479,71 @@ export type Database = {
           },
         ];
       };
+      basvuru: {
+        Row: {
+          ad_soyad: string;
+          dogum_tarihi: string | null;
+          durum: Database['public']['Enums']['basvuru_durumu'];
+          eposta: string | null;
+          id: string;
+          karar_notu: string | null;
+          karar_tarihi: string | null;
+          karar_veren_kullanici_id: string | null;
+          kok_kurum_id: string;
+          kurum_id: string;
+          not_metni: string | null;
+          olusturma_tarihi: string;
+          tckn: string | null;
+          tur: Database['public']['Enums']['basvuru_turu'];
+          veli_ad_soyad: string | null;
+          veli_telefon: string | null;
+        };
+        Insert: {
+          ad_soyad: string;
+          dogum_tarihi?: string | null;
+          durum?: Database['public']['Enums']['basvuru_durumu'];
+          eposta?: string | null;
+          id?: string;
+          karar_notu?: string | null;
+          karar_tarihi?: string | null;
+          karar_veren_kullanici_id?: string | null;
+          kok_kurum_id?: string;
+          kurum_id: string;
+          not_metni?: string | null;
+          olusturma_tarihi?: string;
+          tckn?: string | null;
+          tur: Database['public']['Enums']['basvuru_turu'];
+          veli_ad_soyad?: string | null;
+          veli_telefon?: string | null;
+        };
+        Update: {
+          ad_soyad?: string;
+          dogum_tarihi?: string | null;
+          durum?: Database['public']['Enums']['basvuru_durumu'];
+          eposta?: string | null;
+          id?: string;
+          karar_notu?: string | null;
+          karar_tarihi?: string | null;
+          karar_veren_kullanici_id?: string | null;
+          kok_kurum_id?: string;
+          kurum_id?: string;
+          not_metni?: string | null;
+          olusturma_tarihi?: string;
+          tckn?: string | null;
+          tur?: Database['public']['Enums']['basvuru_turu'];
+          veli_ad_soyad?: string | null;
+          veli_telefon?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'basvuru_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       ders_programi: {
         Row: {
           baslangic_saati: string;
@@ -676,7 +741,9 @@ export type Database = {
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
       yoklama_durumu: 'geldi' | 'gelmedi' | 'gec';
-      bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru';
+      basvuru_durumu: 'bekliyor' | 'onaylandi' | 'reddedildi';
+      basvuru_turu: 'ogrenci' | 'personel';
+      bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru' | 'basvuru';
       duyuru_turu: 'duyuru' | 'etkinlik';
     };
     CompositeTypes: {
@@ -697,7 +764,9 @@ export const Constants = {
     Enums: {
       rol: ['super_admin', 'kurum_admin', 'ogretmen', 'veli'],
       yoklama_durumu: ['geldi', 'gelmedi', 'gec'],
-      bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru'],
+      basvuru_durumu: ['bekliyor', 'onaylandi', 'reddedildi'],
+      basvuru_turu: ['ogrenci', 'personel'],
+      bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru', 'basvuru'],
       duyuru_turu: ['duyuru', 'etkinlik'],
     },
   },

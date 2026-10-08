@@ -53,3 +53,10 @@ export type Duyuru = Tables<'duyuru'>;
 // Sınıfın haftalık programındaki tek bir ders saati (gun: 1 = Pzt ... 7 = Paz; saatler 'SS:DD:SS').
 export type DersSaati = Tables<'ders_programi'>;
 
+// Uygulamadan yapılan öğrenci ön kaydı ya da personel başvurusu; kurum yöneticisi sonuçlandırır.
+export type Basvuru = Tables<'basvuru'>;
+
+export type BasvuruTuru = Basvuru['tur'];
+
+export type BasvuruDurumu = Basvuru['durum'];
+

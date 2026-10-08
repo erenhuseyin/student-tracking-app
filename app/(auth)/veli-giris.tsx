@@ -9,6 +9,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { MarkaBasligi } from '@/components/MarkaBasligi';
 import { PinGirdisi } from '@/components/PinGirdisi';
+import { useBasvuruAcik } from '@/lib/basvuruAcik';
 import { veliGirisYap } from '@/lib/veli';
 
 export default function VeliGiris() {
@@ -17,6 +18,7 @@ export default function VeliGiris() {
   const [pin, setPin] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  const basvuruAcik = useBasvuruAcik();
 
   const girisYap = async () => {
     setGonderiliyor(true);
@@ -48,6 +50,17 @@ export default function VeliGiris() {
         <HataMesaji mesaj={hata} />
         <Buton baslik="Giriş Yap" onPress={girisYap} yukleniyor={gonderiliyor} buyuk />
       </Kart>
+
+      {basvuruAcik ? (
+        <Buton
+          tur="ikincil"
+          ikon="create-outline"
+          baslik="Çocuğum için ön kayıt başvurusu"
+          onPress={() => router.replace('/ogrenci-basvuru')}
+          pasif={gonderiliyor}
+          buyuk
+        />
+      ) : null}
 
       <Buton
         tur="metin"
