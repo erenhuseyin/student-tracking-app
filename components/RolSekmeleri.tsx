@@ -2,6 +2,7 @@
 // Telefonda altta; tablet ve masaüstünde (>=768) solda durur. Rol grubunun
 // `(sekmeler)/_layout.tsx` dosyası yalnızca bunu döndürür.
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Ikon } from '@/components/Ikon';
 import { useMenu } from '@/lib/menu';
@@ -11,6 +12,7 @@ export function RolSekmeleri() {
   const tema = useTema();
   const kirilma = useKirilma();
   const { sekmeler } = useMenu();
+  const kenarlar = useSafeAreaInsets();
   const yanda = kirilma !== 'mobil';
   const r = tema.renkler;
 
@@ -29,8 +31,19 @@ export function RolSekmeleri() {
         tabBarLabelPosition: kirilma === 'masaustu' ? 'beside-icon' : 'below-icon',
         tabBarActiveTintColor: r.ana,
         tabBarInactiveTintColor: r.metinIkincil,
-        tabBarStyle: { backgroundColor: r.yuzey, borderColor: r.ayirici },
-        tabBarLabelStyle: { fontFamily: yaziTipi.orta },
+        // Alttaki çubuğun varsayılan yüksekliğinde (49) etikete 9 px kalıyor ve yazı alttan kesiliyor
+        // (web'de ölçüldü: ikon 28 + sekmenin kendi iç boşluğu 10). Yükseklik açıkça verilir, cihazın
+        // alt güvenli alanı eklenir.
+        tabBarStyle: yanda
+          ? { backgroundColor: r.yuzey, borderColor: r.ayirici }
+          : {
+              backgroundColor: r.yuzey,
+              borderColor: r.ayirici,
+              height: 64 + kenarlar.bottom,
+              paddingTop: 2,
+              paddingBottom: 4 + kenarlar.bottom,
+            },
+        tabBarLabelStyle: { fontFamily: yaziTipi.orta, fontSize: 11 },
       }}
     >
       {sekmeler.map((s) => (
