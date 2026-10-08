@@ -1381,6 +1381,36 @@ reset role;
 delete from public.ders_programi where sinif_id = 'd0000000-0000-0000-0000-0000000000b1';
 select tst.esit('program satırı silinir', (select count(*) from public.ders_programi where sinif_id = 'd0000000-0000-0000-0000-0000000000b1')::text, '0');
 
+-- ===========================================================================
+-- 22. VELİ GİRİŞİ GÜVENLİĞİ: giriş durumu kolonlarına istemci yazamaz
+-- ===========================================================================
+reset role;
+select tst.esit('pin_degistirilmeli varsayılan olarak kapalı',
+  (select pin_degistirilmeli::text from public.kullanici where id = 'b0000000-0000-0000-0000-000000000008'), 'false');
+update public.kullanici set pin_degistirilmeli = true, giris_deneme_sayisi = 3 where id = 'b0000000-0000-0000-0000-000000000008';
+
+-- veliA1: kendi durumunu okur, değiştiremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli kendi pin_degistirilmeli bayrağını okur',
+  (select pin_degistirilmeli::text from public.kullanici where id = 'b0000000-0000-0000-0000-000000000008'), 'true');
+select tst.esit('veli pin_degistirilmeli bayrağını kaldıramaz',
+  tst.dene($q$update public.kullanici set pin_degistirilmeli = false where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'hata:42501');
+select tst.esit('veli deneme sayacını sıfırlayamaz',
+  tst.dene($q$update public.kullanici set giris_deneme_sayisi = 0 where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'hata:42501');
+select tst.esit('veli giriş kilidini kaldıramaz',
+  tst.dene($q$update public.kullanici set giris_kilit_bitis = null where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'hata:42501');
+
+-- adminA: velinin giriş durumunu değiştiremez (PIN sıfırlama yalnızca Edge Function'dan)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kurum admini pin_degistirilmeli bayrağını yazamaz',
+  tst.dene($q$update public.kullanici set pin_degistirilmeli = false where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'hata:42501');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

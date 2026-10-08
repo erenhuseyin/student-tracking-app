@@ -22,11 +22,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const VELI_EPOSTA_SONEKI = 'veli.internal';
 const VARSAYILAN_PIN = '1234';
 
-// Supabase Dashboard'da minimum şifre uzunluğu 6'nın altına indirilemiyor (denendi, reddedildi).
-// 4 haneli PIN'i Auth'a göndermeden önce deterministik olarak uzatıyoruz. `lib/ogrenciler.ts`'deki
-// `pinAuthSifresi`'nin kopyasıdır — Deno ve React Native arasında paylaşılan paket yok.
-function pinAuthSifresi(pin: string): string {
-  return pin + pin;
+// Auth şifresi PIN'in kendisi değil, sunucudaki gizli anahtarla türetilen değerdir: istemci
+// üretemez, bu yüzden veli girişi yalnızca `veli-giris` fonksiyonundan (deneme sınırıyla) yapılır.
+// `veli-giris`'teki `pinSifresi`'nin kopyasıdır (paylaşılan modül yok); aynı kalmalı.
+async function pinSifresi(anahtar: string, eposta: string, pin: string): Promise<string> {
+  const kodlayici = new TextEncoder();
+  const hmacAnahtari = await crypto.subtle.importKey('raw', kodlayici.encode(anahtar), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const imza = await crypto.subtle.sign('HMAC', hmacAnahtari, kodlayici.encode(`${eposta}:${pin}`));
+  return [...new Uint8Array(imza)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function yanit(durum: number, govde: Record<string, unknown>): Response {
@@ -48,8 +51,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonAnahtar = Deno.env.get('SUPABASE_ANON_KEY');
   const servisAnahtar = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !anonAnahtar || !servisAnahtar) {
-    console.error('veli-pin-sifirla: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY tanımlı değil');
+  const pinAnahtari = Deno.env.get('VELI_PIN_ANAHTARI');
+  if (!supabaseUrl || !anonAnahtar || !servisAnahtar || !pinAnahtari) {
+    console.error('veli-pin-sifirla: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / VELI_PIN_ANAHTARI tanımlı değil');
     return hata(500, 'Sunucu yapılandırması eksik.');
   }
 
@@ -140,12 +144,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!veliAuthId) return hata(404, 'Bu öğrenci için veli hesabı bulunamadı.');
 
   const { error: guncelleHatasi } = await servis.auth.admin.updateUserById(veliAuthId, {
-    password: pinAuthSifresi(VARSAYILAN_PIN),
+    password: await pinSifresi(pinAnahtari, email, VARSAYILAN_PIN),
   });
   if (guncelleHatasi) {
     console.error('veli-pin-sifirla: PIN güncellenemedi', guncelleHatasi);
     return hata(500, 'PIN sıfırlanamadı.');
   }
+
+  // Veli bir sonraki girişte yeni PIN belirlemek zorundadır; varsa giriş kilidi de kalkar.
+  const { error: durumHatasi } = await servis
+    .from('kullanici')
+    .update({ pin_degistirilmeli: true, giris_deneme_sayisi: 0, giris_kilit_bitis: null })
+    .eq('auth_id', veliAuthId);
+  if (durumHatasi) console.error('veli-pin-sifirla: giriş durumu yazılamadı', durumHatasi);
 
   return yanit(200, {});
 });

@@ -4,7 +4,8 @@
 // Neden sunucuda: `ogrenci.tckn` kolonuna istemciden yazma yetkisi yoktur (bkz. migration
 // 20260928120200_ogrenci_tckn) ve service_role anahtarı uygulamaya konamaz. Veli girişi
 // Supabase Auth email+şifre mekanizmasını arkada kullanır: email = `{tckn}@{marka_kodu}.veli.internal`
-// (gerçek posta kutusu değil, yalnızca benzersiz kimlik), password = PIN (varsayılan '1234').
+// (gerçek posta kutusu değil, yalnızca benzersiz kimlik), password = PIN'den türetilen değer
+// (varsayılan PIN '1234'; veli ilk girişte değiştirmek zorundadır — pin_degistirilmeli).
 // marka_kodu öğrencinin kök kurumundan (müşteriden) gelir: TCKN müşteri başına tekildir, aynı
 // çocuk iki farklı müşteride ayrı veli hesabıyla bulunabilir.
 //
@@ -28,11 +29,14 @@ const TCKN_RE = /^[1-9][0-9]{10}$/;
 const VELI_EPOSTA_SONEKI = 'veli.internal';
 const VARSAYILAN_PIN = '1234';
 
-// Supabase Dashboard'da minimum şifre uzunluğu 6'nın altına indirilemiyor (denendi, reddedildi).
-// 4 haneli PIN'i Auth'a göndermeden önce deterministik olarak uzatıyoruz. `lib/ogrenciler.ts`'deki
-// `pinAuthSifresi`'nin kopyasıdır — Deno ve React Native arasında paylaşılan paket yok.
-function pinAuthSifresi(pin: string): string {
-  return pin + pin;
+// Auth şifresi PIN'in kendisi değil, sunucudaki gizli anahtarla türetilen değerdir: istemci
+// üretemez, bu yüzden veli girişi yalnızca `veli-giris` fonksiyonundan (deneme sınırıyla) yapılır.
+// `veli-giris`'teki `pinSifresi`'nin kopyasıdır (paylaşılan modül yok); aynı kalmalı.
+async function pinSifresi(anahtar: string, eposta: string, pin: string): Promise<string> {
+  const kodlayici = new TextEncoder();
+  const hmacAnahtari = await crypto.subtle.importKey('raw', kodlayici.encode(anahtar), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const imza = await crypto.subtle.sign('HMAC', hmacAnahtari, kodlayici.encode(`${eposta}:${pin}`));
+  return [...new Uint8Array(imza)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function yanit(durum: number, govde: Record<string, unknown>): Response {
@@ -67,8 +71,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonAnahtar = Deno.env.get('SUPABASE_ANON_KEY');
   const servisAnahtar = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !anonAnahtar || !servisAnahtar) {
-    console.error('tckn-hesap-olustur: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY tanımlı değil');
+  const pinAnahtari = Deno.env.get('VELI_PIN_ANAHTARI');
+  if (!supabaseUrl || !anonAnahtar || !servisAnahtar || !pinAnahtari) {
+    console.error('tckn-hesap-olustur: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / VELI_PIN_ANAHTARI tanımlı değil');
     return hata(500, 'Sunucu yapılandırması eksik.');
   }
 
@@ -146,7 +151,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const email = `${tckn}@${kokKurum.marka_kodu}.${VELI_EPOSTA_SONEKI}`;
   const { data: yeniAuth, error: authHatasi } = await servis.auth.admin.createUser({
     email,
-    password: pinAuthSifresi(VARSAYILAN_PIN),
+    password: await pinSifresi(pinAnahtari, email, VARSAYILAN_PIN),
     email_confirm: true,
   });
   if (authHatasi || !yeniAuth.user) {
@@ -165,7 +170,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const { data: yeniKullanici, error: kullaniciHatasi } = await servis
     .from('kullanici')
-    .insert({ auth_id: authId, rol: 'veli', kurum_id: ogrenci.kurum_id, ad_soyad: `${ogrenci.ad_soyad} Velisi` })
+    .insert({
+      auth_id: authId,
+      rol: 'veli',
+      kurum_id: ogrenci.kurum_id,
+      ad_soyad: `${ogrenci.ad_soyad} Velisi`,
+      pin_degistirilmeli: true,
+    })
     .select('id')
     .single();
   if (kullaniciHatasi || !yeniKullanici) {

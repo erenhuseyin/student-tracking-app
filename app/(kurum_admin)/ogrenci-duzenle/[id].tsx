@@ -111,7 +111,7 @@ export default function OgrenciDuzenle() {
               <>
                 <Girdi etiket="TCKN (değiştirilemez)" value={tckn} editable={false} />
                 <Text style={tema.yazi.kucuk}>
-                  Veli bu TCKN ve PIN ile giriş yapar. PIN unutulursa sıfırlayın; yeni PIN &quot;1234&quot; olur.
+                  Veli bu TCKN ve PIN ile giriş yapar. PIN unutulursa ya da hesap kilitlenirse sıfırlayın; PIN &quot;1234&quot; olur ve veli ilk girişte yenisini belirler.
                 </Text>
                 <HataMesaji mesaj={pinBasarili ? 'PIN "1234" olarak sıfırlandı.' : null} tur="basari" />
                 <HataMesaji mesaj={pinHata} />
@@ -125,7 +125,7 @@ export default function OgrenciDuzenle() {
             ) : (
               <>
                 <Text style={tema.yazi.kucuk}>
-                  TCKN atanınca veli hesabı açılır ve PIN &quot;1234&quot; olur. TCKN sonradan değiştirilemez.
+                  TCKN atanınca veli hesabı açılır ve PIN &quot;1234&quot; olur; veli ilk girişte yenisini belirler. TCKN sonradan değiştirilemez.
                 </Text>
                 <Girdi
                   etiket="Öğrencinin TC kimlik numarası"

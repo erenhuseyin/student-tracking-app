@@ -9,9 +9,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { MarkaBasligi } from '@/components/MarkaBasligi';
 import { PinGirdisi } from '@/components/PinGirdisi';
-import { veliEpostasi } from '@/lib/marka';
-import { pinAuthSifresi } from '@/lib/ogrenciler';
-import { supabase } from '@/lib/supabase';
+import { veliGirisYap } from '@/lib/veli';
 
 export default function VeliGiris() {
   const router = useRouter();
@@ -21,18 +19,15 @@ export default function VeliGiris() {
   const [hata, setHata] = useState<string | null>(null);
 
   const girisYap = async () => {
-    if (tckn.trim().length !== 11 || pin.length !== 4) {
-      setHata('TCKN 11, PIN 4 haneli olmalı.');
-      return;
-    }
     setGonderiliyor(true);
     setHata(null);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: veliEpostasi(tckn.trim()),
-      password: pinAuthSifresi(pin),
-    });
-    setGonderiliyor(false);
-    if (error) setHata('TCKN veya PIN hatalı.');
+    try {
+      // Giriş sunucudan geçer (deneme sınırı); başarılıysa oturum açılır ve ekran değişir.
+      await veliGirisYap(tckn, pin);
+    } catch (e) {
+      setHata(e instanceof Error ? e.message : 'Giriş yapılamadı, lütfen tekrar deneyin.');
+      setGonderiliyor(false);
+    }
   };
 
   return (

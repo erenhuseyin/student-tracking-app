@@ -25,9 +25,3 @@ const ham = Constants.expoConfig?.extra?.marka as Marka | undefined;
 if (!ham) throw new Error('Marka yapılandırması bulunamadı (app.config.ts > extra.marka). `npx expo start --clear` deneyin.');
 
 export const marka: Marka = ham;
-
-// Veli auth e-postası: {tckn}@{marka_kodu}.veli.internal — Edge Function'lardaki
-// (tckn-hesap-olustur, veli-pin-sifirla) kopyasıyla aynı kalmalı.
-export function veliEpostasi(tckn: string): string {
-  return `${tckn}@${marka.kod}.veli.internal`;
-}

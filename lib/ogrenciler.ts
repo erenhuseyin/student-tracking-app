@@ -90,11 +90,3 @@ export async function tcknAta(ogrenciId: string, tckn: string): Promise<void> {
 export async function veliPininiSifirla(ogrenciId: string): Promise<void> {
   await edgeFonksiyonuCagir('veli-pin-sifirla', { ogrenci_id: ogrenciId }, 'PIN sıfırlanamadı.');
 }
-
-// Supabase Dashboard'da minimum şifre uzunluğu 6'nın altına indirilemiyor (denendi, reddedildi).
-// 4 haneli PIN'i Auth'a göndermeden önce deterministik olarak uzatıyoruz. Edge Function'larda
-// (Deno) aynı dönüşümün kopyası kullanılır — paylaşılan paket yok. Güvenlik özelliğini değiştirmez
-// (PIN'in kendisi hâlâ 4 hane / 10.000 olasılık), yalnızca Auth'un teknik minimumunu karşılar.
-export function pinAuthSifresi(pin: string): string {
-  return pin + pin;
-}
