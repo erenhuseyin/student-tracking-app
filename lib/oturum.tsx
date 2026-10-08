@@ -25,6 +25,8 @@ type OturumBaglami = {
   kokKurum: Kurum | null;
   hataMesaji: string | null;
   cikisYap: () => Promise<void>;
+  // Kullanıcı kendi satırını değiştirdikten sonra (ör. profilde ad) bağlamı tazeler.
+  kullaniciyiYenile: () => Promise<void>;
 };
 
 const Baglam = createContext<OturumBaglami | null>(null);
@@ -135,6 +137,11 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
       hataMesaji,
       cikisYap: async () => {
         await supabase.auth.signOut();
+      },
+      kullaniciyiYenile: async () => {
+        if (!session) return;
+        const { kullanici: satir } = await kullaniciSatirinaGetir(session.user.id);
+        if (satir) setKullanici(satir);
       },
     }),
     [durum, session, kullanici, kurum, kokKurum, hataMesaji],

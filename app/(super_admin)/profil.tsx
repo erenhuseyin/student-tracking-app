@@ -1,0 +1,6 @@
+// Erişim: yalnızca super_admin (kendi hesabı)
+import { ProfilEkrani } from '@/components/ProfilEkrani';
+
+export default function Profil() {
+  return <ProfilEkrani />;
+}

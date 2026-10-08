@@ -7,6 +7,13 @@ import type { IkonAdi } from '@/components/Ikon';
 import { useOturum } from '@/lib/oturum';
 import type { Rol } from '@/lib/tipler';
 
+export const ROL_ETIKETLERI: Record<Rol, string> = {
+  super_admin: 'Süper yönetici',
+  kurum_admin: 'Yönetici',
+  ogretmen: 'Öğretmen',
+  veli: 'Veli',
+};
+
 type Ortak = {
   anahtar: string;
   etiket: string;
