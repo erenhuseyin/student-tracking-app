@@ -14,6 +14,29 @@ export const ROL_ETIKETLERI: Record<Rol, string> = {
   veli: 'Veli',
 };
 
+// Müşterinin (kök kurum yöneticisinin) öğretmen ve veliler için kapatabildiği bölümler
+// ("Roller ve Yetkiler" ekranı; tablo: kapali_bolum). Yönetici bölümleri kapatılamaz.
+export type AyarlanabilirRol = 'ogretmen' | 'veli';
+export type Bolum = { anahtar: string; etiket: string; aciklama: string };
+
+export const AYARLANABILIR_BOLUMLER: Record<AyarlanabilirRol, Bolum[]> = {
+  ogretmen: [
+    { anahtar: 'yoklama', etiket: 'Yoklama', aciklama: 'Yoklama alma, haftalık tablo ve katılım oranı' },
+    { anahtar: 'gelisim', etiket: 'Gelişim', aciklama: 'Öğrenciye gelişim kaydı girme ve kayıtları görme' },
+  ],
+  veli: [
+    { anahtar: 'yoklama', etiket: 'Yoklama', aciklama: 'Çocuğun yoklama geçmişi ve katılım oranı' },
+    { anahtar: 'gelisim', etiket: 'Gelişim', aciklama: 'Çocuğun gelişim kayıtları' },
+  ],
+};
+
+// Bölüm bu kullanıcıya açık mı? Ekranlar bölüme giden butonu/sekmeyi buna göre gösterir; rol
+// grubunun `_layout.tsx` dosyası da kapalı bölümün rotalarını kapatır.
+export function useBolumAcik(anahtar: string): boolean {
+  const { kapaliBolumler } = useOturum();
+  return !kapaliBolumler.includes(anahtar);
+}
+
 type Ortak = {
   anahtar: string;
   etiket: string;
@@ -36,6 +59,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'personel', etiket: 'Personel', ikon: 'people-outline', yer: 'sekme', sekme: 'personel' },
     { anahtar: 'subeler', etiket: 'Şubeler', ikon: 'business-outline', yer: 'sekme', sekme: 'subeler', yalnizKok: true },
     MENU_SEKMESI,
+    { anahtar: 'roller', etiket: 'Roller ve Yetkiler', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     {
       anahtar: 'gelisim-kategorileri',
       etiket: 'Gelişim Kategorileri',

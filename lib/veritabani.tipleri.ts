@@ -470,6 +470,35 @@ export type Database = {
           },
         ];
       };
+      kapali_bolum: {
+        Row: {
+          bolum_anahtari: string;
+          kurum_id: string;
+          olusturma_tarihi: string;
+          rol: Database['public']['Enums']['rol'];
+        };
+        Insert: {
+          bolum_anahtari: string;
+          kurum_id: string;
+          olusturma_tarihi?: string;
+          rol: Database['public']['Enums']['rol'];
+        };
+        Update: {
+          bolum_anahtari?: string;
+          kurum_id?: string;
+          olusturma_tarihi?: string;
+          rol?: Database['public']['Enums']['rol'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'kapali_bolum_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       sinif_ders_plani: {
         Row: {
           baslangic_tarihi: string;

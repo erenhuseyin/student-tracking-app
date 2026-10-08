@@ -7,12 +7,15 @@ import { DurumRozeti } from '@/components/DurumRozeti';
 import { Ekran } from '@/components/Ekran';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { useBolumAcik } from '@/lib/menu';
 import { type OgrenciYoklamaSatiri, veliCocuklariniBugunkuYoklamaylaGetir } from '@/lib/yoklama';
 
 export default function VeliAnaSayfa() {
   const router = useRouter();
   const [cocuklar, setCocuklar] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  // Kurum veliler için yoklamayı kapattıysa bugünkü yoklama rozeti de gösterilmez.
+  const yoklamaAcik = useBolumAcik('yoklama');
 
   useFocusEffect(
     useCallback(() => {
@@ -37,9 +40,9 @@ export default function VeliAnaSayfa() {
           <ListeSatiri
             buyuk
             baslik={o.ad_soyad}
-            altBaslik="Bugün"
+            altBaslik={yoklamaAcik ? 'Bugün' : null}
             sol={<Avatar ad={o.ad_soyad} boyut={48} />}
-            sag={<DurumRozeti durum={o.yoklama_durumu} />}
+            sag={yoklamaAcik ? <DurumRozeti durum={o.yoklama_durumu} /> : undefined}
             onPress={() => router.push(`/cocuk/${o.id}`)}
           />
         )}

@@ -1149,6 +1149,74 @@ reset role;
 delete from public.sinif where id = 'd0000000-0000-0000-0000-000000000a11';
 select tst.esit('sınıf silinince ders planları da silinir', (select count(*) from public.sinif_ders_plani where sinif_id = 'd0000000-0000-0000-0000-000000000a11')::text, '0');
 
+-- ===========================================================================
+-- 19. KAPALI BÖLÜM (menü yetkisi): kök admin yazar, müşterinin herkesi okur
+--   Bu noktada: adminA (02) kök admin, adminA2 (13) şube admini, ogrA1 (05), veliA1 (08), adminB (03).
+-- ===========================================================================
+reset role;
+
+select tst.esit('yönetici bölümü kapatılamaz (rol check)', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'kurum_admin', 'personel')$q$), 'hata:23514');
+select tst.esit('geçersiz anahtar reddedilir', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'ogretmen', 'Yoklama!')$q$), 'hata:23514');
+select tst.esit('şubeye yazılamaz (trigger)', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-0000000000a2', 'ogretmen', 'yoklama')$q$), 'hata:23514');
+insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000b', 'veli', 'gelisim');
+
+-- adminA (kök admin)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin öğretmen bölümünü kapatır', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'ogretmen', 'gelisim')$q$), 'ok:1');
+select tst.esit('kök admin veli bölümünü kapatır', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'veli', 'yoklama')$q$), 'ok:1');
+select tst.esit('aynı bölüm iki kez kapatılamaz', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'veli', 'yoklama')$q$), 'hata:23505');
+select tst.esit('kök admin başka müşteriye yazamaz', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000b', 'ogretmen', 'yoklama')$q$), 'hata:42501');
+select tst.esit('satır güncellenemez (kolon yetkisi yok)',
+  tst.dene($q$update public.kapali_bolum set bolum_anahtari = 'yoklama' where rol = 'ogretmen'$q$), 'hata:42501');
+select tst.esit('kök admin yalnızca kendi müşterisininkileri görür', (select count(*) from public.kapali_bolum)::text, '2');
+
+-- adminA2 (şube admini): okur, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini müşterinin ayarını okur', (select count(*) from public.kapali_bolum)::text, '2');
+select tst.esit('şube admini kök kuruma yazamaz', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'ogretmen', 'yoklama')$q$), 'hata:42501');
+-- BEFORE INSERT trigger'ı (yalnızca ana kurum) RLS with check'ten önce çalışır.
+select tst.esit('şube admini kendi şubesine yazamaz', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-0000000000a2', 'ogretmen', 'yoklama')$q$), 'hata:23514');
+select tst.esit('şube admini silemez', tst.dene($q$delete from public.kapali_bolum$q$), 'ok:0');
+
+-- ogrA1 ve veliA1: okur, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen müşterinin ayarını okur', (select count(*) from public.kapali_bolum)::text, '2');
+select tst.esit('öğretmen yazamaz', tst.dene($q$insert into public.kapali_bolum (kurum_id, rol, bolum_anahtari) values ('c0000000-0000-0000-0000-00000000000a', 'ogretmen', 'yoklama')$q$), 'hata:42501');
+select tst.esit('öğretmen silemez', tst.dene($q$delete from public.kapali_bolum$q$), 'ok:0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli müşterinin ayarını okur', (select count(*) from public.kapali_bolum)::text, '2');
+select tst.esit('veli silemez', tst.dene($q$delete from public.kapali_bolum$q$), 'ok:0');
+
+-- adminB: A'nın ayarı sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin admini yalnızca kendisininkini görür', (select count(*) from public.kapali_bolum)::text, '1');
+
+-- adminA bölümü yeniden açar (siler)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin bölümü yeniden açar',
+  tst.dene($q$delete from public.kapali_bolum where rol = 'veli' and bolum_anahtari = 'yoklama'$q$), 'ok:1');
+select tst.esit('kök admin başka müşterinin satırını silemez',
+  tst.dene($q$delete from public.kapali_bolum where kurum_id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'ok:0');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

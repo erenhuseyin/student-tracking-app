@@ -23,6 +23,8 @@ type OturumBaglami = {
   // süper adminde ikisi de null.
   kurum: Kurum | null;
   kokKurum: Kurum | null;
+  // Müşterinin bu kullanıcının rolü için kapattığı bölümler (bkz. lib/menu.ts > useBolumAcik).
+  kapaliBolumler: string[];
   hataMesaji: string | null;
   cikisYap: () => Promise<void>;
   // Kullanıcı kendi satırını değiştirdikten sonra (ör. profilde ad) bağlamı tazeler.
@@ -54,11 +56,25 @@ async function kurumlariGetir(
   return { kurum, kokKurum, hata: null };
 }
 
+// Yalnızca öğretmen ve veli bölümleri kapatılabilir. Okunamazsa (ör. bağlantı sorunu) hiçbir
+// bölüm kapalı sayılmaz: bu bir görünürlük ayarıdır, veriyi RLS korur.
+async function kapaliBolumleriGetir(kokKurumId: string, rol: Kullanici['rol']): Promise<string[]> {
+  if (rol !== 'ogretmen' && rol !== 'veli') return [];
+  const { data, error } = await supabase
+    .from('kapali_bolum')
+    .select('bolum_anahtari')
+    .eq('kurum_id', kokKurumId)
+    .eq('rol', rol);
+  if (error) return [];
+  return data.map((s) => s.bolum_anahtari);
+}
+
 export function OturumSaglayici({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [kullanici, setKullanici] = useState<Kullanici | null>(null);
   const [kurum, setKurum] = useState<Kurum | null>(null);
   const [kokKurum, setKokKurum] = useState<Kurum | null>(null);
+  const [kapaliBolumler, setKapaliBolumler] = useState<string[]>([]);
   const [durum, setDurum] = useState<OturumDurumu>('yukleniyor');
   const [hataMesaji, setHataMesaji] = useState<string | null>(null);
 
@@ -73,6 +89,7 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
         setKullanici(null);
         setKurum(null);
         setKokKurum(null);
+        setKapaliBolumler([]);
         setHataMesaji(null);
         setDurum('oturum_yok');
         return;
@@ -109,6 +126,9 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
         setDurum('profil_yok');
         return;
       }
+      const kapalilar = kurumlar.kokKurum ? await kapaliBolumleriGetir(kurumlar.kokKurum.id, satir.rol) : [];
+      if (iptalEdildi) return;
+      setKapaliBolumler(kapalilar);
       setKullanici(satir);
       setDurum(kurumlar.kokKurum?.marka_kodu === marka.kod ? 'hazir' : 'yanlis_uygulama');
     }
@@ -134,6 +154,7 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
       kullanici,
       kurum,
       kokKurum,
+      kapaliBolumler,
       hataMesaji,
       cikisYap: async () => {
         await supabase.auth.signOut();
@@ -144,7 +165,7 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
         if (satir) setKullanici(satir);
       },
     }),
-    [durum, session, kullanici, kurum, kokKurum, hataMesaji],
+    [durum, session, kullanici, kurum, kokKurum, kapaliBolumler, hataMesaji],
   );
 
   return <Baglam value={deger}>{children}</Baglam>;

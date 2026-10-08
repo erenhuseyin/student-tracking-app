@@ -1,4 +1,5 @@
-// Erişim: yalnızca ogretmen. Sınıfın öğrencileri: yoklamaya ve öğrencinin gelişim kayıtlarına geçiş.
+// Erişim: yalnızca ogretmen. Sınıfın öğrencileri: yoklamaya ve öğrencinin gelişim kayıtlarına geçiş
+// (kurumun öğretmenler için kapattığı bölümün girişi gösterilmez).
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -8,6 +9,7 @@ import { Buton } from '@/components/Buton';
 import { Ekran } from '@/components/Ekran';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { useBolumAcik } from '@/lib/menu';
 import { ogrencileriGetir } from '@/lib/ogrenciler';
 import { sinifGetir } from '@/lib/siniflar';
 import { type Tema, useTema } from '@/lib/tema';
@@ -21,6 +23,8 @@ export default function OgretmenSinifi() {
   const [sinif, setSinif] = useState<Sinif | null>(null);
   const [ogrenciler, setOgrenciler] = useState<Ogrenci[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const yoklamaAcik = useBolumAcik('yoklama');
+  const gelisimAcik = useBolumAcik('gelisim');
 
   useFocusEffect(
     useCallback(() => {
@@ -39,6 +43,7 @@ export default function OgretmenSinifi() {
     <Ekran>
       <Stack.Screen options={{ title: sinif ? `${sinif.ad} · ${sinif.donem}` : 'Sınıf' }} />
 
+      {yoklamaAcik ? (
       <View style={styles.butonlar}>
         <View style={styles.buton}>
           <Buton ikon="checkbox-outline" baslik="Yoklama Al" onPress={() => router.push(`/yoklama/${sinifId}`)} />
@@ -52,6 +57,7 @@ export default function OgretmenSinifi() {
           />
         </View>
       </View>
+      ) : null}
 
       <Liste
         veri={ogrenciler}
@@ -62,9 +68,9 @@ export default function OgretmenSinifi() {
         satir={(o) => (
           <ListeSatiri
             baslik={o.ad_soyad}
-            altBaslik="Gelişim kayıtları"
+            altBaslik={gelisimAcik ? 'Gelişim kayıtları' : null}
             sol={<Avatar ad={o.ad_soyad} />}
-            onPress={() => router.push(`/ogrenci-gelisim/${o.id}`)}
+            onPress={gelisimAcik ? () => router.push(`/ogrenci-gelisim/${o.id}`) : undefined}
           />
         )}
       />
