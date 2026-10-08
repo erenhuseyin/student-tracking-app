@@ -117,6 +117,8 @@ async function yoneticilereBildir(servis: SupabaseClient, kurumId: string, kokKu
     .eq('aktif', true);
   if (error || !yoneticiler || yoneticiler.length === 0) return;
 
+  // Kilit ekranında da görünür: başvuranın adı yazılmaz.
+  const metinGovdesi = tur === 'ogrenci' ? 'Yeni bir öğrenci ön kayıt başvurusu var.' : 'Yeni bir personel başvurusu var.';
   const tokenliler = yoneticiler.filter((y) => y.expo_push_token);
   if (tokenliler.length > 0 && expoErisimTokeni) {
     try {
@@ -127,8 +129,7 @@ async function yoneticilereBildir(servis: SupabaseClient, kurumId: string, kokKu
           tokenliler.map((y) => ({
             to: y.expo_push_token,
             title: 'Yeni Başvuru',
-            // Kilit ekranında görünür: başvuranın adı yazılmaz.
-            body: tur === 'ogrenci' ? 'Yeni bir öğrenci ön kayıt başvurusu var.' : 'Yeni bir personel başvurusu var.',
+            body: metinGovdesi,
             data: { tip: 'basvuru' },
           })),
         ),
@@ -140,7 +141,15 @@ async function yoneticilereBildir(servis: SupabaseClient, kurumId: string, kokKu
   }
   const { error: logHatasi } = await servis
     .from('bildirim_log')
-    .insert(yoneticiler.map((y) => ({ kurum_id: y.kurum_id, alici_kullanici_id: y.id, tip: 'basvuru' as const })));
+    .insert(
+      yoneticiler.map((y) => ({
+        kurum_id: y.kurum_id,
+        alici_kullanici_id: y.id,
+        tip: 'basvuru' as const,
+        baslik: 'Yeni Başvuru',
+        metin: metinGovdesi,
+      })),
+    );
   if (logHatasi) console.error('basvuru: bildirim_log yazılamadı', logHatasi);
 }
 

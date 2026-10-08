@@ -4,8 +4,10 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BildirimZili } from '@/components/BildirimZili';
 import { Ikon } from '@/components/Ikon';
 import { useMenu } from '@/lib/menu';
+import { useOturum } from '@/lib/oturum';
 import { useKirilma, useTema, yaziTipi } from '@/lib/tema';
 
 export function RolSekmeleri() {
@@ -13,6 +15,9 @@ export function RolSekmeleri() {
   const kirilma = useKirilma();
   const { sekmeler } = useMenu();
   const kenarlar = useSafeAreaInsets();
+  const { kullanici } = useOturum();
+  // Süper admine bildirim gönderilmez; zil yalnızca diğer rollerde gösterilir.
+  const zilVar = kullanici !== null && kullanici.rol !== 'super_admin';
   const yanda = kirilma !== 'mobil';
   const r = tema.renkler;
 
@@ -24,6 +29,7 @@ export function RolSekmeleri() {
         headerTitleStyle: { color: r.metin, fontFamily: yaziTipi.yariKalin, fontSize: 18 },
         headerTitleAlign: 'center',
         headerShadowVisible: false,
+        headerLeft: zilVar ? () => <BildirimZili /> : undefined,
         sceneStyle: { backgroundColor: r.zemin },
         tabBarPosition: yanda ? 'left' : 'bottom',
         // Yandaki çubukta `uikit` varyantı ikon altı etiketi desteklemez.

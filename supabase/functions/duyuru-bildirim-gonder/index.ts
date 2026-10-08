@@ -208,7 +208,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // 6. Her alıcı için (token olsun olmasın) bildirim_log'a yaz; satır alıcının kendi kurumunda durur.
   const { error: logHatasi } = await servis.from('bildirim_log').insert(
-    alicilar.map((a) => ({ kurum_id: a.kurum_id, alici_kullanici_id: a.id, tip: 'duyuru' as const })),
+    alicilar.map((a) => ({
+      kurum_id: a.kurum_id,
+      alici_kullanici_id: a.id,
+      tip: 'duyuru' as const,
+      baslik: duyuru.tur === 'etkinlik' ? 'Yeni Etkinlik' : 'Yeni Duyuru',
+      metin: duyuru.baslik,
+      duyuru_id: duyuru.id,
+    })),
   );
   if (logHatasi) console.error('duyuru-bildirim-gonder: bildirim_log yazılamadı', logHatasi);
 

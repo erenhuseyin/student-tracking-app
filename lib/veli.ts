@@ -42,3 +42,16 @@ export async function veliPinDegistir(yeniPin: string, mevcutPin?: string): Prom
   }
   await supabase.auth.signOut();
 }
+
+// Erişim: yalnızca veli. Başka bir çocuğunu bu hesaba bağlar; kanıt olarak o çocuğun TCKN'si ve
+// PIN'i istenir (sunucu doğrular). Eklenen çocuğun adını döndürür.
+export async function kardesEkle(tckn: string, pin: string): Promise<string> {
+  const temizTckn = tckn.trim();
+  if (temizTckn.length !== 11 || pin.length !== 4) throw new Error('TCKN 11, PIN 4 haneli olmalı.');
+  const sonuc = await edgeFonksiyonuCagir<{ ad_soyad: string }>(
+    'veli-kardes-ekle',
+    { tckn: temizTckn, pin },
+    'Çocuk eklenemedi, lütfen tekrar deneyin.',
+  );
+  return sonuc.ad_soyad;
+}

@@ -99,6 +99,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'cocuklarim', etiket: 'Çocuklarım', ikon: 'people-outline', yer: 'sekme', sekme: 'index' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
+    { anahtar: 'kardes-ekle', etiket: 'Kardeş Ekle', ikon: 'person-add-outline', yer: 'menu', rota: '/kardes-ekle' },
     { anahtar: 'pin-degistir', etiket: "PIN'imi Değiştir", ikon: 'key-outline', yer: 'menu', rota: '/pin-degistir' },
   ],
   super_admin: [

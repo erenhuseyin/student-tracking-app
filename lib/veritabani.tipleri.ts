@@ -331,25 +331,37 @@ export type Database = {
       bildirim_log: {
         Row: {
           alici_kullanici_id: string;
+          baslik: string | null;
+          duyuru_id: string | null;
           gonderim_tarihi: string;
           id: string;
           kurum_id: string;
+          metin: string | null;
+          ogrenci_id: string | null;
           okundu_mu: boolean;
           tip: Database['public']['Enums']['bildirim_tipi'];
         };
         Insert: {
           alici_kullanici_id: string;
+          baslik?: string | null;
+          duyuru_id?: string | null;
           gonderim_tarihi?: string;
           id?: string;
           kurum_id: string;
+          metin?: string | null;
+          ogrenci_id?: string | null;
           okundu_mu?: boolean;
           tip: Database['public']['Enums']['bildirim_tipi'];
         };
         Update: {
           alici_kullanici_id?: string;
+          baslik?: string | null;
+          duyuru_id?: string | null;
           gonderim_tarihi?: string;
           id?: string;
           kurum_id?: string;
+          metin?: string | null;
+          ogrenci_id?: string | null;
           okundu_mu?: boolean;
           tip?: Database['public']['Enums']['bildirim_tipi'];
         };

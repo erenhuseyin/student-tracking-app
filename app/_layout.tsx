@@ -10,7 +10,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
-import { usePushBildirimKaydi } from '@/lib/bildirimler';
+import { useBildirimYonlendirme, usePushBildirimKaydi } from '@/lib/bildirimler';
 import { OturumSaglayici, useOturum } from '@/lib/oturum';
 import { TemaTercihiSaglayici } from '@/lib/temaTercihi';
 import { ToastSaglayici } from '@/lib/toast';
@@ -22,6 +22,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 function Yonlendirici() {
   usePushBildirimKaydi();
+  useBildirimYonlendirme();
   const tema = useTema();
   const { durum, kullanici } = useOturum();
   const rol = durum === 'hazir' ? kullanici?.rol : undefined;

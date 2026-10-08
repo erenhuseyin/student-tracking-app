@@ -16,6 +16,8 @@ export default function Layout() {
         <Stack.Screen name="(sekmeler)" options={{ headerShown: false }} />
         <Stack.Screen name="cocuk/[ogrenciId]" />
         <Stack.Screen name="profil" />
+        <Stack.Screen name="kardes-ekle" />
+        <Stack.Screen name="bildirimler" />
       </Stack.Protected>
       <Stack.Screen name="pin-degistir" />
     </Stack>

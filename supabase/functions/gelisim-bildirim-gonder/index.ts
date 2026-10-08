@@ -134,6 +134,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return bos();
   }
 
+  // Push ve uygulama içi bildirim listesi aynı metni kullanır (notun kendisi yazılmaz).
+  const bildirimMetni = `${ogrenci.ad_soyad} için yeni kayıt: ${kategori.ad}`;
+
   // 5. Push token'ı olanlara tek batched istekle gönder
   const tokenliVeliler = (veliler ?? []).filter((v) => v.expo_push_token);
   if (tokenliVeliler.length > 0 && expoErisimTokeni) {
@@ -141,7 +144,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const mesajlar = tokenliVeliler.map((v) => ({
         to: v.expo_push_token,
         title: 'Gelişim Kaydı',
-        body: `${ogrenci.ad_soyad} için yeni kayıt: ${kategori.ad}`,
+        body: bildirimMetni,
         data: { ogrenci_id: kayit.ogrenci_id, tip: 'gelisim_kaydi' },
       }));
       const expoYaniti = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -174,6 +177,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       kurum_id: kayit.kurum_id,
       alici_kullanici_id: v.id,
       tip: 'gelisim_kaydi' as const,
+      baslik: 'Gelişim Kaydı',
+      metin: bildirimMetni,
+      ogrenci_id: kayit.ogrenci_id,
     })),
   );
   if (logHatasi) console.error('gelisim-bildirim-gonder: bildirim_log yazılamadı', logHatasi);

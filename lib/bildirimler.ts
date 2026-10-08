@@ -4,8 +4,11 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
+import { bildirimHedefi } from '@/lib/bildirimMerkezi';
 import { useOturum } from '@/lib/oturum';
 import { supabase } from '@/lib/supabase';
 
@@ -39,4 +42,32 @@ export function usePushBildirimKaydi(): void {
       iptalEdildi = true;
     };
   }, [durum, kullanici]);
+}
+
+// Telefondaki bildirime dokununca ilgili ekranı açar (uygulama açıkken ya da bildirimle açılırken).
+// Web'de bildirim yoktur. Hedef ekran lib/bildirimMerkezi.ts > bildirimHedefi'nde belirlenir.
+export function useBildirimYonlendirme(): void {
+  const router = useRouter();
+  const { durum, kullanici } = useOturum();
+  const rol = durum === 'hazir' ? kullanici?.rol : undefined;
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !rol) return;
+    const ac = (veri: unknown) => {
+      if (typeof veri !== 'object' || veri === null) return;
+      const { tip, ogrenci_id } = veri as { tip?: unknown; ogrenci_id?: unknown };
+      if (typeof tip !== 'string') return;
+      const hedef = bildirimHedefi(rol, { tip, ogrenci_id: typeof ogrenci_id === 'string' ? ogrenci_id : null });
+      if (hedef) router.push(hedef);
+    };
+
+    // Uygulama kapalıyken dokunulan bildirim.
+    Notifications.getLastNotificationResponseAsync()
+      .then((yanit) => {
+        if (yanit) ac(yanit.notification.request.content.data);
+      })
+      .catch(() => {});
+    const abonelik = Notifications.addNotificationResponseReceivedListener((yanit) => ac(yanit.notification.request.content.data));
+    return () => abonelik.remove();
+  }, [rol, router]);
 }

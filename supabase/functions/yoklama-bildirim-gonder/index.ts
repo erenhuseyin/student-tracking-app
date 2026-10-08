@@ -129,6 +129,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return yanit(200, { bildirilen_veli_sayisi: 0, push_gonderilen_sayisi: 0 });
   }
 
+  // Push ve uygulama içi bildirim listesi aynı metni kullanır.
+  const bildirimMetni = `${ogrenci.ad_soyad} için yoklama: ${DURUM_METNI[durum]}`;
+
   // 5. Push token'ı olanlara tek batched istekle gönder
   const tokenliVeliler = (veliler ?? []).filter((v) => v.expo_push_token);
   if (tokenliVeliler.length > 0 && expoErisimTokeni) {
@@ -136,7 +139,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const mesajlar = tokenliVeliler.map((v) => ({
         to: v.expo_push_token,
         title: 'Yoklama',
-        body: `${ogrenci.ad_soyad} için yoklama: ${DURUM_METNI[durum]}`,
+        body: bildirimMetni,
         data: { ogrenci_id: ogrenciId, tip: 'yoklama' },
       }));
       const expoYaniti = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -165,7 +168,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // 6. Her bildirilen veli için (token olsun olmasın) bildirim_log'a yaz
   const { error: logHatasi } = await servis.from('bildirim_log').insert(
-    (veliler ?? []).map((v) => ({ kurum_id: ogrenci.kurum_id, alici_kullanici_id: v.id, tip: 'yoklama' as const })),
+    (veliler ?? []).map((v) => ({
+      kurum_id: ogrenci.kurum_id,
+      alici_kullanici_id: v.id,
+      tip: 'yoklama' as const,
+      baslik: 'Yoklama',
+      metin: bildirimMetni,
+      ogrenci_id: ogrenciId,
+    })),
   );
   if (logHatasi) console.error('yoklama-bildirim-gonder: bildirim_log yazılamadı', logHatasi);
 
