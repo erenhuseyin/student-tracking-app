@@ -60,3 +60,9 @@ export type BasvuruTuru = Basvuru['tur'];
 
 export type BasvuruDurumu = Basvuru['durum'];
 
+// Velinin "çocuğum şu gün gelmeyecek" bildirimi; öğretmen o günün yoklamasında görür.
+export type DevamsizlikBildirimi = Tables<'devamsizlik_bildirimi'>;
+
+// Velinin kuruma yazdığı tek yönlü öneri/görüş; yalnızca kurum yöneticileri okur.
+export type Oneri = Tables<'oneri'>;
+

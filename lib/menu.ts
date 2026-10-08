@@ -79,6 +79,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     MENU_SEKMESI,
     { anahtar: 'subeler', etiket: 'Şubeler', ikon: 'business-outline', yer: 'menu', rota: '/subeler', yalnizKok: true },
     { anahtar: 'basvurular', etiket: 'Başvurular', ikon: 'mail-unread-outline', yer: 'menu', rota: '/basvurular', ozellik: 'basvuru' },
+    { anahtar: 'oneriler', etiket: 'Veli Önerileri', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneriler' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'roller', etiket: 'Roller ve Yetkiler', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     {
@@ -100,6 +101,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'cocuklarim', etiket: 'Çocuklarım', ikon: 'people-outline', yer: 'sekme', sekme: 'index' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
+    { anahtar: 'oneri', etiket: 'Öneri Gönder', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneri' },
     { anahtar: 'kardes-ekle', etiket: 'Kardeş Ekle', ikon: 'person-add-outline', yer: 'menu', rota: '/kardes-ekle' },
     { anahtar: 'pin-degistir', etiket: "PIN'imi Değiştir", ikon: 'key-outline', yer: 'menu', rota: '/pin-degistir' },
   ],

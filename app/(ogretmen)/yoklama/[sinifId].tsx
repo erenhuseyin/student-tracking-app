@@ -5,8 +5,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ekran } from '@/components/Ekran';
+import { Ikon } from '@/components/Ikon';
 import { Kart } from '@/components/Kart';
 import { Liste } from '@/components/Liste';
+import { gununDevamsizlikNedenleri } from '@/lib/devamsizlik';
 import { useOturum } from '@/lib/oturum';
 import { bugununTarihi, tarihGecerliMi, tarihiBicimle } from '@/lib/tarih';
 import { type Tema, useTema } from '@/lib/tema';
@@ -40,11 +42,15 @@ export default function OgretmenYoklama() {
   const [ogrenciler, setOgrenciler] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [kaydedenId, setKaydedenId] = useState<string | null>(null);
+  // Velilerin bu gün için bildirdiği devamsızlıklar (öğrenci id -> neden).
+  const [nedenler, setNedenler] = useState<Map<string, string>>(new Map());
 
   const yenile = useCallback(async () => {
     setHata(null);
     try {
-      setOgrenciler(await gununYoklamasiniGetir(sinifId, tarih));
+      const liste = await gununYoklamasiniGetir(sinifId, tarih);
+      setOgrenciler(liste);
+      setNedenler(await gununDevamsizlikNedenleri(tarih, liste.map((o) => o.id)));
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     }
@@ -98,6 +104,12 @@ export default function OgretmenYoklama() {
               <Text style={[styles.govde, styles.ad]}>{o.ad_soyad}</Text>
               {kaydedenId === o.id ? <ActivityIndicator size="small" color={tema.renkler.ana} /> : null}
             </View>
+            {nedenler.has(o.id) ? (
+              <View style={styles.veliNotu}>
+                <Ikon ad="information-circle-outline" boyut={18} renk={tema.renkler.uyari} />
+                <Text style={[styles.kucuk, styles.veliNotuMetni]}>Veli bildirdi: {nedenler.get(o.id)}</Text>
+              </View>
+            ) : null}
             <View style={styles.secici}>
               {YOKLAMA_DURUMLARI.map((durum) => {
                 const secili = o.yoklama_durumu === durum;
@@ -133,6 +145,14 @@ export default function OgretmenYoklama() {
 
 function olustur(t: Tema) {
   return StyleSheet.create({
+    veliNotu: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.bosluk.xs,
+    },
+    veliNotuMetni: {
+      flex: 1,
+    },
     ust: {
       gap: t.bosluk.xs,
       marginBottom: t.bosluk.m,

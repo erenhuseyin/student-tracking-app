@@ -507,8 +507,13 @@ set local role authenticated;
 select tst.esit('veliA1 kendi bildirimini görür', (select count(*) from public.bildirim_log)::text, '1');
 select tst.esit('veliA1 bildirim insert edemez',
   tst.dene($q$insert into public.bildirim_log (kurum_id, alici_kullanici_id, tip) values ('c0000000-0000-0000-0000-00000000000a','b0000000-0000-0000-0000-000000000008','yoklama')$q$), 'hata:42501');
-select tst.esit('veliA1 okundu_mu güncelleyemez',
-  tst.dene($q$update public.bildirim_log set okundu_mu = true$q$), 'hata:42501');
+-- 20261014120000: alıcı kendi bildirimini okundu olarak işaretleyebilir; başka kolon yazamaz.
+select tst.esit('veliA1 kendi bildirimini okundu yapar',
+  tst.dene($q$update public.bildirim_log set okundu_mu = true$q$), 'ok:1');
+select tst.esit('veliA1 bildirimin türünü değiştiremez',
+  tst.dene($q$update public.bildirim_log set tip = 'gelisim_kaydi'$q$), 'hata:42501');
+select tst.esit('veliA1 bildirimin metnini değiştiremez',
+  tst.dene($q$update public.bildirim_log set metin = 'x'$q$), 'hata:42501');
 
 reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
@@ -1486,6 +1491,123 @@ set local role anon;
 select tst.esit('anon başvuru okuyamaz', tst.dene($q$select 1 from public.basvuru$q$), 'hata:42501');
 select tst.esit('anon başvuru ekleyemez',
   tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local')$q$), 'hata:42501');
+
+-- ===========================================================================
+-- 24. DEVAMSIZLIK BİLDİRİMİ: veli kendi çocuğu için bildirir; öğretmen ve yönetici okur
+--   veliA1 (08) -> oA1, oA2 (sA1) | veliA2 (09) -> oA2, oA3 | ogrA1 (05) -> sA1 | ogrA2 (06) -> sA2
+-- ===========================================================================
+reset role;
+select tst.esit('neden boş olamaz', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date + 1, '  ', 'b0000000-0000-0000-0000-000000000008')$q$), 'hata:23514');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli çocuğu için yarını bildirir', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date + 1, 'hasta', 'b0000000-0000-0000-0000-000000000008')$q$), 'ok:1');
+select tst.esit('aynı güne ikinci bildirim olmaz', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date + 1, 'hasta', 'b0000000-0000-0000-0000-000000000008')$q$), 'hata:23505');
+select tst.esit('veli başkasının çocuğu için bildiremez', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a3', current_date + 1, 'hasta', 'b0000000-0000-0000-0000-000000000008')$q$), 'hata:42501');
+select tst.esit('veli başkası adına bildiremez', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date + 2, 'hasta', 'b0000000-0000-0000-0000-000000000009')$q$), 'hata:42501');
+select tst.esit('veli geçmiş gün için bildiremez', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date - 5, 'hasta', 'b0000000-0000-0000-0000-000000000008')$q$), 'hata:42501');
+select tst.esit('veli çok ileri bir gün için bildiremez', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date + 90, 'hasta', 'b0000000-0000-0000-0000-000000000008')$q$), 'hata:42501');
+select tst.esit('bildirim değiştirilemez', tst.dene($q$update public.devamsizlik_bildirimi set neden = 'x'$q$), 'hata:42501');
+select tst.esit('veli kendi bildirimini görür', (select count(*) from public.devamsizlik_bildirimi)::text, '1');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka veli (aynı sınıf, başka çocuk) göremez', (select count(*) from public.devamsizlik_bildirimi)::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('sınıfın öğretmeni bildirimi görür', (select count(*) from public.devamsizlik_bildirimi)::text, '1');
+select tst.esit('öğretmen bildirim yazamaz', tst.dene($q$insert into public.devamsizlik_bildirimi (kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', current_date + 3, 'hasta', 'b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('öğretmen bildirimi silemez', tst.dene($q$delete from public.devamsizlik_bildirimi$q$), 'ok:0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000006","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka sınıfın öğretmeni göremez', (select count(*) from public.devamsizlik_bildirimi)::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kurum admini bildirimi görür', (select count(*) from public.devamsizlik_bildirimi)::text, '1');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin admini göremez', (select count(*) from public.devamsizlik_bildirimi)::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli bildirimini geri alır', tst.dene($q$delete from public.devamsizlik_bildirimi$q$), 'ok:1');
+
+-- ===========================================================================
+-- 25. ÖNERİ: veli kendi kurumuna yazar (günde en fazla 5); yalnızca yönetici okur
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli öneri yazar', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', 'oneri')$q$), 'ok:1');
+select tst.esit('veli başkası adına yazamaz', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000009', 'oneri')$q$), 'hata:42501');
+select tst.esit('veli başka kuruma yazamaz', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000008', 'oneri')$q$), 'hata:42501');
+select tst.esit('veli kendi önerisini görür', (select count(*) from public.oneri)::text, '1');
+select tst.esit('veli okundu bilgisini değiştiremez', tst.dene($q$update public.oneri set okundu = true$q$), 'ok:0');
+select tst.esit('veli metni değiştiremez', tst.dene($q$update public.oneri set metin = 'x'$q$), 'hata:42501');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka veli öneriyi göremez', (select count(*) from public.oneri)::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen öneri göremez', (select count(*) from public.oneri)::text, '0');
+select tst.esit('öğretmen öneri yazamaz', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000005', 'oneri')$q$), 'hata:42501');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kurum admini öneriyi görür', (select count(*) from public.oneri)::text, '1');
+select tst.esit('kurum admini okundu yapar', tst.dene($q$update public.oneri set okundu = true$q$), 'ok:1');
+select tst.esit('kurum admini metni değiştiremez', tst.dene($q$update public.oneri set metin = 'x'$q$), 'hata:42501');
+select tst.esit('kurum admini öneri yazamaz', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000002', 'oneri')$q$), 'hata:42501');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini ana kuruma yazılan öneriyi göremez', (select count(*) from public.oneri)::text, '0');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin admini göremez', (select count(*) from public.oneri)::text, '0');
+
+-- Günlük sınır: aynı veli 24 saatte en fazla 5 öneri
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '2')$q$);
+select tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '3')$q$);
+select tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '4')$q$);
+select tst.esit('beşinci öneri kabul edilir', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '5')$q$), 'ok:1');
+select tst.esit('altıncı öneri günlük sınıra takılır', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '6')$q$), 'hata:23514');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;

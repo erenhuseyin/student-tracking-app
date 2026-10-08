@@ -1,10 +1,11 @@
 // Erişim: yalnızca veli. Çocuğun gelişim kayıtları, yoklama geçmişi ve sınıfının ders programı
 // (hepsi salt okunur).
 // Kurumun veliler için kapattığı bölüm gösterilmez (bkz. lib/menu.ts > useBolumAcik).
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { BosDurum } from '@/components/BosDurum';
+import { Buton } from '@/components/Buton';
 import { Ekran } from '@/components/Ekran';
 import { GelisimZamanCizelgesi } from '@/components/GelisimZamanCizelgesi';
 import { Secenekler } from '@/components/Secenekler';
@@ -22,6 +23,7 @@ const GORUNUMLER: { deger: Gorunum; etiket: string }[] = [
 ];
 
 export default function VeliCocukDetayi() {
+  const router = useRouter();
   const { ogrenciId } = useLocalSearchParams<{ ogrenciId: string }>();
   const [baslik, setBaslik] = useState('Çocuğum');
   const [sinifId, setSinifId] = useState<string | null>(null);
@@ -51,7 +53,17 @@ export default function VeliCocukDetayi() {
         <Secenekler secenekler={gorunumler} secili={gorunum} onSec={setSecilen} />
       ) : null}
       {gorunum === 'gelisim' ? <GelisimZamanCizelgesi ogrenciId={ogrenciId} /> : null}
-      {gorunum === 'yoklama' ? <YoklamaGecmisi ogrenciId={ogrenciId} /> : null}
+      {gorunum === 'yoklama' ? (
+        <>
+          <Buton
+            tur="ikincil"
+            ikon="calendar-clear-outline"
+            baslik="Gelmeyeceğini Bildir"
+            onPress={() => router.push({ pathname: '/devamsizlik-bildir', params: { ogrenciId } })}
+          />
+          <YoklamaGecmisi ogrenciId={ogrenciId} />
+        </>
+      ) : null}
       {gorunum === 'program' && sinifId ? <SinifProgrami sinifId={sinifId} /> : null}
       {gorunum ? null : (
         <BosDurum

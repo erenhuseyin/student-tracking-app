@@ -604,6 +604,44 @@ export type Database = {
           },
         ];
       };
+      devamsizlik_bildirimi: {
+        Row: {
+          giren_kullanici_id: string;
+          id: string;
+          kurum_id: string;
+          neden: string;
+          ogrenci_id: string;
+          olusturma_tarihi: string;
+          tarih: string;
+        };
+        Insert: {
+          giren_kullanici_id: string;
+          id?: string;
+          kurum_id: string;
+          neden: string;
+          ogrenci_id: string;
+          olusturma_tarihi?: string;
+          tarih: string;
+        };
+        Update: {
+          giren_kullanici_id?: string;
+          id?: string;
+          kurum_id?: string;
+          neden?: string;
+          ogrenci_id?: string;
+          olusturma_tarihi?: string;
+          tarih?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'devamsizlik_bildirimi_ogrenci_ayni_kurum_fkey';
+            columns: ['ogrenci_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'ogrenci';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+        ];
+      };
       duyuru: {
         Row: {
           baslik: string;
@@ -697,6 +735,44 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'kurum';
             referencedColumns: ['id'];
+          },
+        ];
+      };
+      oneri: {
+        Row: {
+          giren_kullanici_id: string;
+          id: string;
+          kok_kurum_id: string;
+          kurum_id: string;
+          metin: string;
+          okundu: boolean;
+          olusturma_tarihi: string;
+        };
+        Insert: {
+          giren_kullanici_id: string;
+          id?: string;
+          kok_kurum_id?: string;
+          kurum_id: string;
+          metin: string;
+          okundu?: boolean;
+          olusturma_tarihi?: string;
+        };
+        Update: {
+          giren_kullanici_id?: string;
+          id?: string;
+          kok_kurum_id?: string;
+          kurum_id?: string;
+          metin?: string;
+          okundu?: boolean;
+          olusturma_tarihi?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'oneri_giren_ayni_kurum_fkey';
+            columns: ['giren_kullanici_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kullanici';
+            referencedColumns: ['id', 'kurum_id'];
           },
         ];
       };

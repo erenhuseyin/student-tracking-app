@@ -18,6 +18,8 @@ export default function Layout() {
         <Stack.Screen name="profil" />
         <Stack.Screen name="kardes-ekle" />
         <Stack.Screen name="bildirimler" />
+        <Stack.Screen name="devamsizlik-bildir" />
+        <Stack.Screen name="oneri" />
       </Stack.Protected>
       <Stack.Screen name="pin-degistir" />
     </Stack>
