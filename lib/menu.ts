@@ -23,10 +23,12 @@ export const AYARLANABILIR_BOLUMLER: Record<AyarlanabilirRol, Bolum[]> = {
   ogretmen: [
     { anahtar: 'yoklama', etiket: 'Yoklama', aciklama: 'Yoklama alma, haftalık tablo ve katılım oranı' },
     { anahtar: 'gelisim', etiket: 'Gelişim', aciklama: 'Öğrenciye gelişim kaydı girme ve kayıtları görme' },
+    { anahtar: 'duyurular', etiket: 'Duyurular', aciklama: 'Duyuru ve etkinlikleri görme, kendi sınıfına duyuru yazma' },
   ],
   veli: [
     { anahtar: 'yoklama', etiket: 'Yoklama', aciklama: 'Çocuğun yoklama geçmişi ve katılım oranı' },
     { anahtar: 'gelisim', etiket: 'Gelişim', aciklama: 'Çocuğun gelişim kayıtları' },
+    { anahtar: 'duyurular', etiket: 'Duyurular', aciklama: 'Duyuru ve etkinlikleri görme, bildirim alma' },
   ],
 };
 
@@ -43,6 +45,8 @@ type Ortak = {
   ikon: IkonAdi;
   // Yalnızca kök kurumun (müşterinin) yöneticisi görür; şube yöneticisi görmez.
   yalnizKok?: boolean;
+  // Kurumun kapatabildiği bölüm (AYARLANABILIR_BOLUMLER'deki anahtar); kapalıysa öğe gizlenir.
+  bolum?: string;
 };
 
 // `sekme`: rol grubunun `(sekmeler)` klasöründeki dosya adı.
@@ -53,11 +57,21 @@ export type MenuOgesi = SekmeOgesi | MenuSatiri;
 
 const MENU_SEKMESI: SekmeOgesi = { anahtar: 'menu', etiket: 'Menü', ikon: 'menu-outline', yer: 'sekme', sekme: 'menu' };
 
+const DUYURULAR_SEKMESI: SekmeOgesi = {
+  anahtar: 'duyurular',
+  etiket: 'Duyurular',
+  ikon: 'megaphone-outline',
+  yer: 'sekme',
+  sekme: 'duyurular',
+  bolum: 'duyurular',
+};
+
 const MENULER: Record<Rol, MenuOgesi[]> = {
   kurum_admin: [
     { anahtar: 'siniflar', etiket: 'Sınıflar', ikon: 'school-outline', yer: 'sekme', sekme: 'index' },
     { anahtar: 'personel', etiket: 'Personel', ikon: 'people-outline', yer: 'sekme', sekme: 'personel' },
     { anahtar: 'subeler', etiket: 'Şubeler', ikon: 'business-outline', yer: 'sekme', sekme: 'subeler', yalnizKok: true },
+    DUYURULAR_SEKMESI,
     MENU_SEKMESI,
     { anahtar: 'roller', etiket: 'Roller ve Yetkiler', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     {
@@ -71,10 +85,12 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
   ],
   ogretmen: [
     { anahtar: 'siniflarim', etiket: 'Sınıflarım', ikon: 'school-outline', yer: 'sekme', sekme: 'index' },
+    DUYURULAR_SEKMESI,
     MENU_SEKMESI,
   ],
   veli: [
     { anahtar: 'cocuklarim', etiket: 'Çocuklarım', ikon: 'people-outline', yer: 'sekme', sekme: 'index' },
+    DUYURULAR_SEKMESI,
     MENU_SEKMESI,
     { anahtar: 'pin-degistir', etiket: "PIN'imi Değiştir", ikon: 'key-outline', yer: 'menu', rota: '/pin-degistir' },
   ],
@@ -91,10 +107,10 @@ export type Menu = {
 };
 
 export function useMenu(): Menu {
-  const { kullanici, kurum } = useOturum();
+  const { kullanici, kurum, kapaliBolumler } = useOturum();
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
   const ogeler = kullanici ? MENULER[kullanici.rol] : [];
-  const gorunur = (o: MenuOgesi) => !o.yalnizKok || kokKurumMu;
+  const gorunur = (o: MenuOgesi) => (!o.yalnizKok || kokKurumMu) && !(o.bolum && kapaliBolumler.includes(o.bolum));
 
   return {
     sekmeler: ogeler.filter((o) => o.yer === 'sekme').map((o) => ({ ...o, gorunur: gorunur(o) })),

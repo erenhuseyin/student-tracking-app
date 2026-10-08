@@ -8,6 +8,7 @@ export default function Layout() {
   // Kurumun öğretmenler için kapattığı bölümün ekranları adresle de açılamaz (bkz. kapali_bolum).
   const yoklamaAcik = useBolumAcik('yoklama');
   const gelisimAcik = useBolumAcik('gelisim');
+  const duyurularAcik = useBolumAcik('duyurular');
   return (
     <Stack screenOptions={tema.baslikCubuguSecenekleri}>
       {/* Sekmelerin başlık çubuğu kendi içindedir (components/RolSekmeleri). */}
@@ -21,6 +22,10 @@ export default function Layout() {
         <Stack.Screen name="ogrenci-gelisim/[ogrenciId]" />
         <Stack.Screen name="yeni-gelisim-kaydi" />
         <Stack.Screen name="gelisim-kaydi-duzenle/[id]" />
+      </Stack.Protected>
+      <Stack.Protected guard={duyurularAcik}>
+        <Stack.Screen name="yeni-duyuru" />
+        <Stack.Screen name="duyuru-duzenle/[id]" />
       </Stack.Protected>
     </Stack>
   );

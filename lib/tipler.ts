@@ -42,3 +42,11 @@ export type BildirimLog = Tables<'bildirim_log'>;
 export type GelisimKategorisi = Tables<'gelisim_kategorisi'>;
 
 export type GelisimKaydi = Tables<'gelisim_kaydi'>;
+
+export const DUYURU_TURLERI = Constants.public.Enums.duyuru_turu;
+
+export type DuyuruTuru = (typeof DUYURU_TURLERI)[number];
+
+// Kapsam: sinif_id doluysa o sınıf; boşsa kurum_id'nin tamamı (kök kurumsa şubeler dahil).
+export type Duyuru = Tables<'duyuru'>;
+

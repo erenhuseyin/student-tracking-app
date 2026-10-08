@@ -470,6 +470,73 @@ export type Database = {
           },
         ];
       };
+      duyuru: {
+        Row: {
+          baslik: string;
+          etkinlik_zamani: string | null;
+          giren_kullanici_id: string;
+          guncelleme_tarihi: string;
+          icerik: string;
+          id: string;
+          kok_kurum_id: string;
+          kurum_id: string;
+          olusturma_tarihi: string;
+          sinif_id: string | null;
+          tur: Database['public']['Enums']['duyuru_turu'];
+          yer: string | null;
+        };
+        Insert: {
+          baslik: string;
+          etkinlik_zamani?: string | null;
+          giren_kullanici_id: string;
+          guncelleme_tarihi?: string;
+          icerik: string;
+          id?: string;
+          kok_kurum_id?: string;
+          kurum_id: string;
+          olusturma_tarihi?: string;
+          sinif_id?: string | null;
+          tur?: Database['public']['Enums']['duyuru_turu'];
+          yer?: string | null;
+        };
+        Update: {
+          baslik?: string;
+          etkinlik_zamani?: string | null;
+          giren_kullanici_id?: string;
+          guncelleme_tarihi?: string;
+          icerik?: string;
+          id?: string;
+          kok_kurum_id?: string;
+          kurum_id?: string;
+          olusturma_tarihi?: string;
+          sinif_id?: string | null;
+          tur?: Database['public']['Enums']['duyuru_turu'];
+          yer?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'duyuru_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'duyuru_sinif_ayni_kurum_fkey';
+            columns: ['sinif_id', 'kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'sinif';
+            referencedColumns: ['id', 'kurum_id'];
+          },
+          {
+            foreignKeyName: 'duyuru_giren_kullanici_id_fkey';
+            columns: ['giren_kullanici_id'];
+            isOneToOne: false;
+            referencedRelation: 'kullanici';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       kapali_bolum: {
         Row: {
           bolum_anahtari: string;
@@ -552,7 +619,8 @@ export type Database = {
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
       yoklama_durumu: 'geldi' | 'gelmedi' | 'gec';
-      bildirim_tipi: 'yoklama' | 'gelisim_kaydi';
+      bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru';
+      duyuru_turu: 'duyuru' | 'etkinlik';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -572,7 +640,8 @@ export const Constants = {
     Enums: {
       rol: ['super_admin', 'kurum_admin', 'ogretmen', 'veli'],
       yoklama_durumu: ['geldi', 'gelmedi', 'gec'],
-      bildirim_tipi: ['yoklama', 'gelisim_kaydi'],
+      bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru'],
+      duyuru_turu: ['duyuru', 'etkinlik'],
     },
   },
 } as const;

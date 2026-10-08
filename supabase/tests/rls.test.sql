@@ -1217,6 +1217,97 @@ select tst.esit('kök admin bölümü yeniden açar',
 select tst.esit('kök admin başka müşterinin satırını silemez',
   tst.dene($q$delete from public.kapali_bolum where kurum_id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'ok:0');
 
+-- ===========================================================================
+-- 20. DUYURU: kapsam (müşteri / şube / sınıf), yazma yetkisi
+--   Bu noktada: adminA (02) kök admin, adminA2 (13) şube A2 admini, ogrA1 (05) -> sA1, ogrA2 (06) -> sA2,
+--   veliA1 (08) -> sA1, veliB (10) -> sB1.
+--   D1 müşteri geneli (A) | D2 şube geneli (A2) | D3 sınıf sA2 | D4 müşteri geneli (B)
+-- ===========================================================================
+reset role;
+
+select tst.esit('etkinlik zamansız olamaz',
+  tst.dene($q$insert into public.duyuru (kurum_id, tur, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'etkinlik', 'e', 'x', 'b0000000-0000-0000-0000-000000000002')$q$), 'hata:23514');
+select tst.esit('duyuruda yer olamaz',
+  tst.dene($q$insert into public.duyuru (kurum_id, baslik, icerik, yer, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'd', 'x', 'salon', 'b0000000-0000-0000-0000-000000000002')$q$), 'hata:23514');
+select tst.esit('boş başlık reddedilir', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', null, '  ', 'x', 'b0000000-0000-0000-0000-000000000002')$q$), 'hata:23514');
+select tst.esit('sınıf başka kurumla eşleştirilemez (bileşik FK)', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000b', 'd0000000-0000-0000-0000-0000000000a1', 'x', 'x', 'b0000000-0000-0000-0000-000000000003')$q$), 'hata:23503');
+
+insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values
+  ('c0000000-0000-0000-0000-00000000000a', null, 'D1', 'x', 'b0000000-0000-0000-0000-000000000002'),
+  ('c0000000-0000-0000-0000-0000000000a2', null, 'D2', 'x', 'b0000000-0000-0000-0000-000000000013'),
+  ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', 'D3', 'x', 'b0000000-0000-0000-0000-000000000006'),
+  ('c0000000-0000-0000-0000-00000000000b', null, 'D4', 'x', 'b0000000-0000-0000-0000-000000000003');
+select tst.esit('kok_kurum_id şube duyurusunda ana kurumdur',
+  (select kok_kurum_id::text from public.duyuru where baslik = 'D2'), 'c0000000-0000-0000-0000-00000000000a');
+
+-- adminA (kök admin): kendi kurumu + şubeleri
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin müşterinin tüm duyurularını görür', (select count(*) from public.duyuru)::text, '3');
+select tst.esit('kök admin sınıfa duyuru yazar', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 'D5', 'x', 'b0000000-0000-0000-0000-000000000002')$q$), 'ok:1');
+select tst.esit('kök admin başkası adına yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', null, 'x', 'x', 'b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('kök admin başka müşteriye yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000b', null, 'x', 'x', 'b0000000-0000-0000-0000-000000000002')$q$), 'hata:42501');
+select tst.esit('kök admin şube duyurusunu düzeltir', tst.dene($q$update public.duyuru set icerik = 'y' where baslik = 'D2'$q$), 'ok:1');
+select tst.esit('kapsam değiştirilemez (kolon yetkisi)', tst.dene($q$update public.duyuru set sinif_id = null where baslik = 'D5'$q$), 'hata:42501');
+select tst.esit('yazan kişi değiştirilemez (kolon yetkisi)',
+  tst.dene($q$update public.duyuru set giren_kullanici_id = 'b0000000-0000-0000-0000-000000000005' where baslik = 'D5'$q$), 'hata:42501');
+select tst.esit('etkinliğe çevirirken zaman zorunlu', tst.dene($q$update public.duyuru set tur = 'etkinlik' where baslik = 'D5'$q$), 'hata:23514');
+select tst.esit('kök admin duyuruyu etkinliğe çevirir',
+  tst.dene($q$update public.duyuru set tur = 'etkinlik', etkinlik_zamani = '2026-11-01 10:00+03', yer = 'Salon' where baslik = 'D5'$q$), 'ok:1');
+
+-- adminA2 (şube admini): ana kurumun genel duyurusunu okur, değiştiremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini müşteri geneli + kendi şubesini görür', (select count(*) from public.duyuru)::text, '2');
+select tst.esit('şube admini ana kurumun duyurusunu değiştiremez', tst.dene($q$update public.duyuru set icerik = 'z' where baslik = 'D1'$q$), 'ok:0');
+select tst.esit('şube admini ana kurumun duyurusunu silemez', tst.dene($q$delete from public.duyuru where baslik = 'D1'$q$), 'ok:0');
+select tst.esit('şube admini kendi şubesine yazar', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-0000000000a2', null, 'D6', 'x', 'b0000000-0000-0000-0000-000000000013')$q$), 'ok:1');
+select tst.esit('şube admini ana kuruma yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', null, 'x', 'x', 'b0000000-0000-0000-0000-000000000013')$q$), 'hata:42501');
+
+-- ogrA1 (sA1): müşteri geneli + kendi sınıfı; yalnızca kendi sınıfına yazar, yalnızca kendi yazdığını değiştirir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen müşteri geneli + kendi sınıfını görür', (select count(*) from public.duyuru)::text, '2');
+select tst.esit('öğretmen kendi sınıfına yazar', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 'D7', 'x', 'b0000000-0000-0000-0000-000000000005')$q$), 'ok:1');
+select tst.esit('öğretmen kurum geneli yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', null, 'x', 'x', 'b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('öğretmen atanmadığı sınıfa yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', 'x', 'x', 'b0000000-0000-0000-0000-000000000005')$q$), 'hata:42501');
+select tst.esit('öğretmen başkası adına yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 'x', 'x', 'b0000000-0000-0000-0000-000000000002')$q$), 'hata:42501');
+select tst.esit('öğretmen yöneticinin sınıf duyurusunu değiştiremez', tst.dene($q$update public.duyuru set icerik = 'z' where baslik = 'D5'$q$), 'ok:0');
+select tst.esit('öğretmen yöneticinin sınıf duyurusunu silemez', tst.dene($q$delete from public.duyuru where baslik = 'D5'$q$), 'ok:0');
+select tst.esit('öğretmen kendi duyurusunu değiştirir', tst.dene($q$update public.duyuru set icerik = 'z' where baslik = 'D7'$q$), 'ok:1');
+
+-- veliA1 (çocukları sA1'de): müşteri geneli + sA1; yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli müşteri geneli + çocuğunun sınıfını görür', (select count(*) from public.duyuru)::text, '3');
+select tst.esit('veli başka sınıfın duyurusunu görmez', (select count(*) from public.duyuru where baslik = 'D3')::text, '0');
+select tst.esit('veli şubenin duyurusunu görmez', (select count(*) from public.duyuru where baslik in ('D2', 'D6'))::text, '0');
+select tst.esit('veli yazamaz', tst.dene($q$insert into public.duyuru (kurum_id, sinif_id, baslik, icerik, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', 'x', 'x', 'b0000000-0000-0000-0000-000000000008')$q$), 'hata:42501');
+select tst.esit('veli değiştiremez', tst.dene($q$update public.duyuru set icerik = 'z'$q$), 'ok:0');
+select tst.esit('veli silemez', tst.dene($q$delete from public.duyuru$q$), 'ok:0');
+
+-- veliB: A'nın duyuruları sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin velisi yalnızca kendi kurumunu görür', (select count(*) from public.duyuru)::text, '1');
+
+-- ogrA1 kendi duyurusunu siler
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen kendi duyurusunu siler', tst.dene($q$delete from public.duyuru where baslik = 'D7'$q$), 'ok:1');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 
