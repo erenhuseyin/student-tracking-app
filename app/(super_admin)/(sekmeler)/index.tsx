@@ -1,15 +1,13 @@
 // Erişim: yalnızca super_admin
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Buton } from '@/components/Buton';
-import { CikisYapButonu } from '@/components/CikisYapButonu';
+import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { TemaDugmesi } from '@/components/TemaDugmesi';
 import { kurumlariGetir } from '@/lib/kurumlar';
 import { type Tema, useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
@@ -47,17 +45,7 @@ export default function SuperAdminAnaSayfa() {
 
   return (
     <Ekran>
-      <Stack.Screen
-        options={{
-          title: 'Kurumlar',
-          headerRight: () => (
-            <View style={styles.baslikEylemleri}>
-              <TemaDugmesi />
-              <CikisYapButonu />
-            </View>
-          ),
-        }}
-      />
+      <BaslikEkleButonu etiket="Yeni kurum ekle" onPress={() => router.push('/yeni-kurum')} />
 
       <Liste
         veri={kurumlar}
@@ -65,6 +53,7 @@ export default function SuperAdminAnaSayfa() {
         anahtar={(k) => k.id}
         bosIkon="business-outline"
         bosBaslik="Henüz kurum yok"
+        bosAciklama="Sağ üstteki + ile ilk kurumu ekleyin."
         satir={(k) =>
           k.ust_kurum_id ? (
             <View style={styles.sube}>
@@ -84,17 +73,12 @@ export default function SuperAdminAnaSayfa() {
           )
         }
       />
-
-      <Buton ikon="add" baslik="Yeni Kurum Ekle" onPress={() => router.push('/yeni-kurum')} />
     </Ekran>
   );
 }
 
 function olustur(t: Tema) {
   return StyleSheet.create({
-    baslikEylemleri: {
-      flexDirection: 'row',
-    },
     sube: {
       marginLeft: t.bosluk.xl,
     },
