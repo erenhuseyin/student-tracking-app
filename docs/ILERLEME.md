@@ -5,7 +5,7 @@
 ## Şu An Neredeyiz
 
 - **Aktif faz:** Faz 1 — MVP
-- **Aktif adım:** `redesign/defter` dalında görsel yeniden tasarım (2026-10-06) ve sekmeli gezinme (2026-10-08) tamamlandı — **henüz `main`'e birleştirilmedi, sekmeli gezinme ekranda doğrulanmadı**. Sırada Aşama B (profil, personel düzenleme, roller, menü yetkisi).
+- **Aktif adım:** `redesign/defter` dalında görsel yeniden tasarım, sekmeli gezinme ve Aşama B-D (profil, personel düzenleme, roller/yetkiler, duyurular, ders programı) kodlandı — **hiçbiri `main`'e birleştirilmedi, ekranda doğrulanmadı ve canlıya alınmadı** (bkz. Bilinen Sorunlar > "Canlıya alınmayı bekleyenler").
 - **Son güncelleme:** 2026-10-08
 
 ### Sıradaki İş (2026-10-08'de kullanıcıyla güncellenen sıra)
@@ -211,6 +211,27 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - [x] **4. adım — süper admin (yalnızca kod; ekranda görülmedi):** `(super_admin)/(sekmeler)/`: Kurumlar, Menü; "Yeni Kurum Ekle" başlıkta "+". Kullanım yeri kalmayan `TemaDugmesi` ve `CikisYapButonu` silindi.
   - [x] 5. adım — belgeler (bu dosya + spesifikasyon Bölüm 8-9).
   - **Kullanıcı 1. ve 2. adımı gördükten sonra "tüm adımları sormadan sırayla yap" dedi;** 3-5 arada durmadan yapıldı. Dört rolün hiçbiri Claude tarafından ekranda çalıştırılmadı.
+- [x] Profil, personel düzenleme, roller ve menü yetkisi (Aşama B) — 2026-10-08, `redesign/defter` dalında (**yalnızca kod; hiçbiri ekranda çalıştırılmadı, migration uygulanmadı, fonksiyon deploy edilmedi**)
+  - **Kullanıcı talimatı (yalnızca bu oturum için):** "hiçbir şeyi sormadan, önerdiğin şekilde ilerle". Aşağıdaki B2-B4, C ve D'deki tasarım kararları bu yüzden Claude'un önerileridir, kullanıcı onayından geçmedi.
+  - **B1 Profil:** `components/ProfilEkrani` + dört grupta `profil.tsx`; Menü'deki kullanıcı satırından açılır. Ad değiştirme (velide kilitli), **mevcut şifreyi sorarak** şifre değiştirme (kullanıcı kararı; `lib/profil.ts > sifremiDegistir` yeniden girişle doğrular), velide PIN satırı. `lib/oturum.tsx > kullaniciyiYenile`.
+  - **B2 Personel düzenleme:** `PersonelDetay`'da görev değiştirme (öğretmen ⇄ yönetici; yalnızca kurum admini, kendisi hariç; sınıf ataması varken kilitli — mevcut trigger), daveti kabul etmemiş kişide e-posta düzeltme ve "Daveti İptal Et". `personel-yonet`'e `eposta_degistir` ve `davet_iptal` işlemleri eklendi (ikisi de yalnızca `sifre_belirlendi = false` iken) — **fonksiyon yeniden deploy edilmeli**.
+  - **B3 + B4 tek ekranda: "Roller ve Yetkiler"** (`(kurum_admin)/roller.tsx`, Menü'den). Rol başına açıklama ve kişi sayısı; öğretmen ve veli için bölüm aç/kapa. **Yönetici bölümleri kapatılamaz** (kimse kendini dışarıda bırakamasın). Kök admin değiştirir, şube admini salt okunur görür.
+    - Migration `20261009120000_kapali_bolum.sql`: tablo **yalnızca kapatılanları** tutar (kapat = insert, aç = delete; güncelleme yok → kolon yetkisi/upsert sorunu yok). `rls.test.sql` 19. bölüm — **çalıştırılmadı**.
+    - `lib/oturum.tsx` oturum açılırken kullanıcının rolü için kapalı bölümleri okur (okunamazsa hepsi açık — migration uygulanmadan da uygulama çalışır); `lib/menu.ts > useBolumAcik`, `AYARLANABILIR_BOLUMLER` (yoklama, gelisim, duyurular, program). Kapalı bölümün ekranları öğretmen grubunda `Stack.Protected` ile adresle de açılmaz.
+    - **Bilinen sınırlar:** değişiklik kişinin bir sonraki girişinde görünür; yoklama/gelişim bildirimleri bu ayardan etkilenmez (yalnızca duyuru bildirimi kapalı role gitmez); bu bir görünürlük ayarıdır, RLS değişmez.
+  - **Plandan sapma:** plandaki tablo adı `menu_yetki (… gorunur)` yerine `kapali_bolum`; ayrı "roller" ekranı yerine tek ekran; rol sayısına dokununca süzülmüş liste yok.
+- [x] Duyurular ve etkinlikler (Aşama C) — 2026-10-08 (**yalnızca kod; migration uygulanmadı, fonksiyon deploy edilmedi**)
+  - Migration `20261010120000_duyuru.sql`: `duyuru` (kapsam = `kurum_id` + `sinif_id`: sınıf / şube geneli / kök kurumsa şubeler dahil tüm müşteri), `duyuru_turu` enum (duyuru | etkinlik; etkinlikte zaman zorunlu, yer isteğe bağlı), `bildirim_tipi`'ne `duyuru`. Kapsam ve yazan kişi sonradan değişmez (kolon yetkisi). `rls.test.sql` 20. bölüm — **çalıştırılmadı**.
+  - Yetki: kurum admini yönettiği kurumlarda tümü; **öğretmen yalnızca atandığı sınıfa yazar ve yalnızca kendi yazdığını değiştirir/siler**; şube admini ana kurumun genel duyurusunu okur, değiştiremez; veli kurum geneli + çocuğunun sınıfı.
+  - `supabase/functions/duyuru-bildirim-gonder` (**yeni, deploy edilmeli**): yalnızca duyuruyu yazan tetikler; sınıf duyurusu velilere, kurum geneli velilere + öğretmenlere; bildirimde yalnızca başlık; "Duyurular" bölümü kapalı role gitmez; yalnızca yeni duyuruda (düzeltmede yok).
+  - İstemci: `lib/duyurular.ts`, `DuyuruKarti`, `DuyuruListesi`, `DuyuruFormu`, `YeniDuyuruEkrani`, `DuyuruDuzenleEkrani`; üç rolde "Duyurular" sekmesi, yönetici ve öğretmende `yeni-duyuru` + `duyuru-duzenle/[id]`.
+  - Kapsam dışı: okundu takibi, etkinliğe katılım yanıtı, ek dosya/fotoğraf, kök adminin tek bir şubeye duyuru yazması (şube admini yazar), bildirime dokununca duyuruya gitme, 100'den eski duyurular (liste sınırı).
+- [x] Ders programı (Aşama D) — 2026-10-08 (**yalnızca kod; migration uygulanmadı**)
+  - Migration `20261011120000_ders_programi.sql`: `ders_programi` (sınıf, gün 1-7, başlangıç/bitiş saati, ders adı; aynı sınıf+gün+başlangıç tekil). **Ders adı serbest metin** (ayrı ders tablosu yok; form daha önce kullanılan adları önerir). Tek sürüm (haftalık geçmiş yok). `rls.test.sql` 21. bölüm — **çalıştırılmadı**.
+  - Yetki: kurum admini (yönettiği kurumlar) ve **sınıfın öğretmeni düzenler** (ders günleriyle aynı yetki); veli çocuğunun sınıfınınkini okur.
+  - **2026-10-06 kararıyla ilişkisi:** yoklama günde tek kalır, program bilgilendirme amaçlıdır. Program değişince `lib/dersProgrami.ts > dersGunleriniEsitle` sınıfın ders günlerini (`sinif_ders_plani`, bu haftadan itibaren) programdaki günlerle günceller (en iyi çaba). "Ders günleri" ekranı duruyor; programı olan sınıfta elle değişiklik bir sonraki program değişikliğinde üzerine yazılır.
+  - İstemci: `SinifProgrami` (günlere göre gruplu; düzenlenebilir), `GunlukProgram` (seçilen günün tüm dersleri, sınıf adıyla — "kurumun programı"), `DersSaatiEkrani`, `SinifProgramiEkrani`. Yönetici: sınıf ekranında "Ders Programı" + Menü'de "Ders Programı" (`/kurum-programi`); öğretmen: "Program" sekmesi + sınıf ekranında buton; veli: çocuk ekranında üçüncü görünüm.
+  - Kapsam dışı: derse öğretmen atama, çakışma denetimi (bir öğretmenin aynı saatte iki sınıfı), ızgara (saat × gün) görünümü, tatil/istisna, PDF.
 - [ ] EAS build (preview/production) + Play Console internal testing — **Faz 1'in son maddesi (tasarım gözle onaylandıktan sonra)**
 
 ## Alınan Teknik Kararlar (spesifikasyonda olmayan, oturum içi kararlar)
@@ -260,6 +281,16 @@ _(Örn: "auth_id ile kullanici tablosu arasında trigger ile otomatik senkroniza
 ## Bilinen Sorunlar / Yarım Kalanlar
 
 _(Bir sonraki oturuma devredilen, tam bitmeyen işler)_
+
+- **Canlıya alınmayı bekleyenler (2026-10-08; hiçbiri uygulanmadı/deploy edilmedi, sırayla):**
+  1. SQL Editor'de migration'lar: `20261009120000_kapali_bolum.sql`, `20261010120000_duyuru.sql`, `20261011120000_ders_programi.sql` (ve aşağıda yazıyorsa sonrakiler).
+  2. `supabase/tests/rls.test.sql` tam süiti (19-21. bölümler hiç çalıştırılmadı; düşen test olursa etiketiyle Claude'a ver — önceki turlarda yeni bölümlerde test-script hataları çıktı).
+  3. Edge Functions: `personel-yonet` (güncellendi), `duyuru-bildirim-gonder` (yeni).
+  4. `npx expo start --clear` ve gözle kontrol: sekmeler (4 rol), profil, personel düzenleme, Roller ve Yetkiler, duyurular, ders programı.
+  - Migration'lar uygulanmadan: kapalı bölüm okuması sessizce boş döner (uygulama çalışır); Duyurular ve Program sekmeleri hata mesajı gösterir.
+- **Rota tipleri (`.expo/types/router.d.ts`) `expo export` ile değil dev sunucusuyla üretiliyor (2026-10-08):** yeni rota eklendikten sonra `typecheck` "'/yeni-rota' is not assignable" hatası verirse dev sunucusu kısa süre çalıştırılmalı (`CI=1 npx expo start --port 8099`, ~25 sn, sonra kapat).
+- **macOS dosya erişimi kesintisi (2026-10-08):** oturum WebStorm'un terminalinden çalışıyor; WebStorm'un "Documents Folder" izni oturum ortasında kapandı, proje klasörünün tamamı `Operation not permitted` verdi (Desktop/Downloads açıktı). Kullanıcı System Settings > Privacy & Security > Files and Folders'tan izni açınca düzeldi. Neyin kapattığı bilinmiyor.
+- **Prettier bu projede yapılandırılmamış:** `npx prettier --write` varsayılan ayarla çift tırnak/80 sütuna çevirir; kullanılacaksa `--single-quote --print-width 120` ile, tercihen hiç kullanılmamalı.
 
 - **"Defter" yeniden tasarımı `main`'e birleştirilmeyi bekliyor (2026-10-06).** Dal: `redesign/defter` (main'den 9 commit ileride). Birleştirmeden önce: (1) kullanıcının gözle onayı (şimdiye kadar yalnızca Claude in Chrome ile geniş masaüstü penceresinde görüldü), (2) yeni development build (Manrope fontu + `userInterfaceStyle: 'automatic'` ikisi de native değişiklik — FCM kurulumundaki gibi iki ayrı adım değil ama yine de build gerektiriyor), (3) telefonda gerçek karanlık mod testi, (4) mat paletin (`markalar/varsayilan/marka.json`) kalıcı mı yoksa yalnızca bu oturumun denemesi mi olduğu netleşmeli — `genchareket` markası açılırken hangi palet esas alınacak sorusu hâlâ açık.
 
