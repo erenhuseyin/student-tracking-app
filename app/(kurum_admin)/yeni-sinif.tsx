@@ -9,9 +9,11 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { useOturum } from '@/lib/oturum';
 import { sinifEkle } from '@/lib/siniflar';
+import { useToast } from '@/lib/toast';
 
 export default function YeniSinif() {
   const router = useRouter();
+  const toast = useToast();
   // kurumId: kök admin bir şube için sınıf açıyorsa o şube; verilmezse kullanıcının kendi kurumu.
   const { kurumId } = useLocalSearchParams<{ kurumId?: string }>();
   const { kullanici } = useOturum();
@@ -30,6 +32,7 @@ export default function YeniSinif() {
     setHata(null);
     try {
       await sinifEkle(hedefKurumId, ad, donem);
+      toast('Sınıf eklendi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

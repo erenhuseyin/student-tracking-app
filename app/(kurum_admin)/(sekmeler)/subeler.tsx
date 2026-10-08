@@ -8,8 +8,8 @@ import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { OnayButonu } from '@/components/OnayButonu';
-import { subeleriGetir, subeSil } from '@/lib/kurumlar';
+import { IkonButon } from '@/components/IkonButon';
+import { subeleriGetir } from '@/lib/kurumlar';
 import { useOturum } from '@/lib/oturum';
 import { useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
@@ -45,6 +45,7 @@ export default function Subeler() {
       <Liste
         veri={subeler}
         hata={hata}
+        onYenile={yenile}
         anahtar={(s) => s.id}
         bosIkon="business-outline"
         bosBaslik="Henüz şube yok"
@@ -54,19 +55,7 @@ export default function Subeler() {
             baslik={s.ad}
             sol={<Ikon ad="business-outline" boyut={26} renk={tema.renkler.anaParlak} />}
             onPress={() => router.push(`/sube/${s.id}`)}
-            sag={
-              <OnayButonu
-                ikon="trash-outline"
-                onOnay={async () => {
-                  try {
-                    await subeSil(s.id);
-                    await yenile();
-                  } catch (e) {
-                    setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
-                  }
-                }}
-              />
-            }
+            sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sube-duzenle/${s.id}`)} />}
           />
         )}
       />

@@ -70,6 +70,15 @@ export async function subeleriGetir(ustKurumId: string): Promise<Kurum[]> {
   return data;
 }
 
+// Erişim: yalnızca kök kurumun admini (RLS + kurum_ad_degisikligi trigger'ı).
+export async function subeAdiniGuncelle(id: string, ad: string): Promise<void> {
+  const temizAd = ad.trim();
+  if (!temizAd) throw new Error('Şube adı gerekli.');
+  const { data, error } = await supabase.from('kurum').update({ ad: temizAd }).eq('id', id).select('id');
+  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+  if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
+}
+
 export async function subeEkle(ustKurumId: string, ad: string): Promise<Kurum> {
   const temizAd = ad.trim();
   if (!temizAd) throw new Error('Şube adı gerekli.');

@@ -1,5 +1,5 @@
 // Bir sınıfın haftalık ders programı, günlere göre gruplu. `duzenlenebilir` verilirse başlıkta
-// "+" ve her derste düzenle/sil gösterilir (kurum admini ve sınıfın öğretmeni; RLS zorlar).
+// "+" ve her derste düzenleme kalemi gösterilir; silme düzenleme ekranındadır (kurum admini ve sınıfın öğretmeni; RLS zorlar).
 // Kendi kaydırmasını yapar: kaydırmasız bir `Ekran` içinde kullanılır.
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -10,9 +10,8 @@ import { BosDurum } from '@/components/BosDurum';
 import { HataMesaji } from '@/components/HataMesaji';
 import { IkonButon } from '@/components/IkonButon';
 import { Kart } from '@/components/Kart';
-import { OnayButonu } from '@/components/OnayButonu';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { dersProgrami, dersSaatiSil, saatiKisalt } from '@/lib/dersProgrami';
+import { dersProgrami, saatiKisalt } from '@/lib/dersProgrami';
 import { GUN_ADLARI } from '@/lib/tarih';
 import { type Tema, useTema } from '@/lib/tema';
 import type { DersSaati } from '@/lib/tipler';
@@ -68,24 +67,11 @@ export function SinifProgrami({ sinifId, duzenlenebilir = false }: { sinifId: st
               </Text>
               <Text style={styles.ad}>{d.ders_adi}</Text>
               {duzenlenebilir ? (
-                <View style={styles.eylemler}>
-                  <IkonButon
-                    ikon="create-outline"
-                    etiket="Düzenle"
-                    onPress={() => router.push({ pathname: '/ders-saati', params: { sinifId, id: d.id } })}
-                  />
-                  <OnayButonu
-                    ikon="trash-outline"
-                    onOnay={async () => {
-                      try {
-                        await dersSaatiSil(d);
-                        await yenile();
-                      } catch (e) {
-                        setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
-                      }
-                    }}
-                  />
-                </View>
+                <IkonButon
+                  ikon="create-outline"
+                  etiket="Düzenle"
+                  onPress={() => router.push({ pathname: '/ders-saati', params: { sinifId, id: d.id } })}
+                />
               ) : null}
             </View>
           ))}
@@ -127,10 +113,6 @@ function olustur(t: Tema) {
     ad: {
       ...t.yazi.govde,
       flex: 1,
-    },
-    eylemler: {
-      flexDirection: 'row',
-      alignItems: 'center',
     },
   });
 }

@@ -5,12 +5,15 @@ import { useEffect, useState } from 'react';
 import { Ekran } from '@/components/Ekran';
 import { GelisimKaydiFormu } from '@/components/GelisimKaydiFormu';
 import { HataMesaji } from '@/components/HataMesaji';
+import { OnayButonu } from '@/components/OnayButonu';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { gelisimKaydiGetir, gelisimKaydiGuncelle, kategorileriGetir } from '@/lib/gelisim';
+import { gelisimKaydiGetir, gelisimKaydiGuncelle, gelisimKaydiSil, kategorileriGetir } from '@/lib/gelisim';
+import { useToast } from '@/lib/toast';
 import type { GelisimKategorisi, GelisimKaydi } from '@/lib/tipler';
 
 export default function GelisimKaydiDuzenle() {
   const router = useRouter();
+  const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [kayit, setKayit] = useState<GelisimKaydi | null>(null);
   const [kategoriler, setKategoriler] = useState<GelisimKategorisi[] | null>(null);
@@ -42,12 +45,27 @@ export default function GelisimKaydiDuzenle() {
           }}
           onKaydet={async (girdi) => {
             await gelisimKaydiGuncelle(kayit.id, girdi);
+            toast('Kayıt güncellendi');
             router.back();
           }}
         />
       ) : hata ? null : (
         <Yukleniyor />
       )}
+      {kayit ? (
+        <OnayButonu
+          etiket="Kaydı Sil"
+          onOnay={async () => {
+            try {
+              await gelisimKaydiSil(kayit.id);
+              toast('Kayıt silindi');
+              router.back();
+            } catch (e) {
+              setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
+            }
+          }}
+        />
+      ) : null}
     </Ekran>
   );
 }

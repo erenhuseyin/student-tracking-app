@@ -10,9 +10,11 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { subeEkle } from '@/lib/kurumlar';
 import { useOturum } from '@/lib/oturum';
+import { useToast } from '@/lib/toast';
 
 export default function YeniSube() {
   const router = useRouter();
+  const toast = useToast();
   const { kurum } = useOturum();
   const [ad, setAd] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -27,6 +29,7 @@ export default function YeniSube() {
     setHata(null);
     try {
       await subeEkle(kurum.id, ad);
+      toast('Şube eklendi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

@@ -10,9 +10,11 @@ import { gelisimKaydiEkle, kategorileriGetir } from '@/lib/gelisim';
 import { ogrenciGetir } from '@/lib/ogrenciler';
 import { useOturum } from '@/lib/oturum';
 import type { GelisimKategorisi, Ogrenci } from '@/lib/tipler';
+import { useToast } from '@/lib/toast';
 
 export default function YeniGelisimKaydi() {
   const router = useRouter();
+  const toast = useToast();
   const { ogrenciId } = useLocalSearchParams<{ ogrenciId: string }>();
   const { kullanici } = useOturum();
   const [ogrenci, setOgrenci] = useState<Ogrenci | null>(null);
@@ -38,6 +40,7 @@ export default function YeniGelisimKaydi() {
           kategoriler={kategoriler}
           onKaydet={async (girdi) => {
             await gelisimKaydiEkle(ogrenci.kurum_id, ogrenci.id, kullanici.id, girdi);
+            toast('Kayıt eklendi');
             router.back();
           }}
         />

@@ -10,6 +10,7 @@ import { Ekran } from '@/components/Ekran';
 import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
+import { OnayButonu } from '@/components/OnayButonu';
 import { Secenekler } from '@/components/Secenekler';
 import { Yukleniyor } from '@/components/Yukleniyor';
 import {
@@ -17,11 +18,13 @@ import {
   dersSaatiGetir,
   dersSaatiGuncelle,
   dersSaatindenGirdiye,
+  dersSaatiSil,
   kullanilanDersAdlari,
 } from '@/lib/dersProgrami';
 import { sinifGetir } from '@/lib/siniflar';
 import { GUN_KISA_ADLARI } from '@/lib/tarih';
 import { type Tema, useTema } from '@/lib/tema';
+import { useToast } from '@/lib/toast';
 import type { DersSaati, Sinif } from '@/lib/tipler';
 
 const GUN_SECENEKLERI = GUN_KISA_ADLARI.map((etiket, i) => ({ deger: String(i + 1), etiket }));
@@ -30,6 +33,7 @@ const EN_FAZLA_ONERI = 12;
 export function DersSaatiEkrani({ sinifId, id }: { sinifId: string; id?: string }) {
   const router = useRouter();
   const tema = useTema();
+  const toast = useToast();
   const styles = useMemo(() => olustur(tema), [tema]);
   const [sinif, setSinif] = useState<Sinif | null>(null);
   const [mevcut, setMevcut] = useState<DersSaati | null>(null);
@@ -69,6 +73,7 @@ export function DersSaatiEkrani({ sinifId, id }: { sinifId: string; id?: string 
       const girdi = { gun: gun ? Number(gun) : null, baslangic, bitis, dersAdi };
       if (mevcut) await dersSaatiGuncelle(mevcut, girdi);
       else await dersSaatiEkle(sinif.kurum_id, sinif.id, girdi);
+      toast(mevcut ? 'Ders kaydedildi' : 'Ders eklendi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
@@ -120,6 +125,20 @@ export function DersSaatiEkrani({ sinifId, id }: { sinifId: string; id?: string 
           ) : null}
           <HataMesaji mesaj={hata} />
           <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
+          {mevcut ? (
+            <OnayButonu
+              etiket="Dersi Sil"
+              onOnay={async () => {
+                try {
+                  await dersSaatiSil(mevcut);
+                  toast('Ders silindi');
+                  router.back();
+                } catch (e) {
+                  setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
+                }
+              }}
+            />
+          ) : null}
         </Kart>
       ) : hata ? (
         <HataMesaji mesaj={hata} />

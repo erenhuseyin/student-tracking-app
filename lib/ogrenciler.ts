@@ -61,6 +61,8 @@ export async function ogrenciGuncelle(id: string, adSoyad: string, dogumTarihi: 
 
 export async function ogrenciSil(id: string): Promise<void> {
   const { error } = await supabase.from('ogrenci').delete().eq('id', id);
+  // Yoklama kayıtları öğrenciyle birlikte silinmez (FK); yoklaması olan öğrenci bu yüzden silinemez.
+  if (error?.code === '23503') throw new Error('Bu öğrencinin yoklama kaydı var; kayıt silinemez.');
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
 }
 

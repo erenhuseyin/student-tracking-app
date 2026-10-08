@@ -2,9 +2,9 @@
 // `veri` null ise henüz yüklenmemiştir. `sutunlar` verilen bir ekran, masaüstü genişlikte
 // (>=1024) otomatik olarak Tablo görünümüne döner; vermeyen ekranlar her genişlikte kart
 // listesi olarak kalır (kademeli geçiş — bkz. lib/tema.ts dosya başı notu).
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { BosDurum } from '@/components/BosDurum';
 import { HataMesaji } from '@/components/HataMesaji';
@@ -22,9 +22,13 @@ type Props<T> = {
   bosBaslik: string;
   bosAciklama?: string;
   ust?: ReactElement;
+  // Listenin altında, satırlarla birlikte kayan içerik (liste boşken gösterilmez).
+  alt?: ReactElement;
   // Verilirse masaüstü genişlikte bu sütunlarla bir Tablo gösterilir.
   sutunlar?: TabloSutunu<T>[];
   onSatirPress?: (oge: T) => void;
+  // Verilirse liste aşağı çekilerek yenilenebilir (telefon). Web'de etkisizdir.
+  onYenile?: () => Promise<unknown> | void;
 };
 
 export function Liste<T>({
@@ -36,14 +40,25 @@ export function Liste<T>({
   bosBaslik,
   bosAciklama,
   ust,
+  alt,
   sutunlar,
   onSatirPress,
+  onYenile,
 }: Props<T>) {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
   const kirilma = useKirilma();
   const masaustuTablo = sutunlar && kirilma === 'masaustu';
   const satirlar = veri ?? [];
+  const [yenileniyor, setYenileniyor] = useState(false);
+  const yenile = async () => {
+    setYenileniyor(true);
+    try {
+      await onYenile?.();
+    } finally {
+      setYenileniyor(false);
+    }
+  };
 
   return (
     <View style={styles.kapsayici}>
@@ -75,7 +90,13 @@ export function Liste<T>({
           keyExtractor={anahtar}
           renderItem={({ item }) => satir(item)}
           ListHeaderComponent={veri && veri.length > 0 ? ust : null}
+          ListFooterComponent={veri && veri.length > 0 ? alt : null}
           ListEmptyComponent={hata ? null : <BosDurum ikon={bosIkon} baslik={bosBaslik} aciklama={bosAciklama} />}
+          refreshControl={
+            onYenile ? (
+              <RefreshControl refreshing={yenileniyor} onRefresh={yenile} tintColor={tema.renkler.anaParlak} colors={[tema.renkler.ana]} />
+            ) : undefined
+          }
         />
       )}
     </View>

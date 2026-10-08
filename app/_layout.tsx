@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { usePushBildirimKaydi } from '@/lib/bildirimler';
 import { OturumSaglayici, useOturum } from '@/lib/oturum';
 import { TemaTercihiSaglayici } from '@/lib/temaTercihi';
+import { ToastSaglayici } from '@/lib/toast';
 import { useTema } from '@/lib/tema';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -80,7 +81,9 @@ export default function RootLayout() {
   return (
     <TemaTercihiSaglayici>
       <OturumSaglayici>
-        <Yonlendirici />
+        <ToastSaglayici>
+          <Yonlendirici />
+        </ToastSaglayici>
       </OturumSaglayici>
     </TemaTercihiSaglayici>
   );

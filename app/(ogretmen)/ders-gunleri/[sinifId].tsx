@@ -16,9 +16,11 @@ import { sinifGetir } from '@/lib/siniflar';
 import { bugununTarihi, haftaBaslangici } from '@/lib/tarih';
 import { useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
+import { useToast } from '@/lib/toast';
 
 export default function DersGunleri() {
   const router = useRouter();
+  const toast = useToast();
   const tema = useTema();
   const { sinifId } = useLocalSearchParams<{ sinifId: string }>();
   const [sinif, setSinif] = useState<Sinif | null>(null);
@@ -41,6 +43,7 @@ export default function DersGunleri() {
     setHata(null);
     try {
       await dersGunleriniKaydet(sinif.kurum_id, sinif.id, gunler);
+      toast('Ders günleri kaydedildi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

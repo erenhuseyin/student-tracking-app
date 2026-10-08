@@ -101,6 +101,14 @@ export default function GelisimKategorileri() {
               />
             </View>
           </View>
+          {duzenlenen ? (
+            <OnayButonu
+              etiket="Kategoriyi Sil"
+              onOnay={async () => {
+                if (await calistir(() => kategoriSil(duzenlenen.id))) formuKapat();
+              }}
+            />
+          ) : null}
         </Kart>
       ) : (
         <Text style={tema.yazi.kucuk}>Kategorileri ana kurumun yöneticisi düzenler.</Text>
@@ -133,12 +141,6 @@ export default function GelisimKategorileri() {
                     etiket={k.aktif ? 'Pasif yap' : 'Aktif yap'}
                     renk={k.aktif ? tema.renkler.ana : tema.renkler.metinIkincil}
                     onPress={() => calistir(() => kategoriGuncelle(k.id, { aktif: !k.aktif }))}
-                  />
-                  <OnayButonu
-                    ikon="trash-outline"
-                    onOnay={async () => {
-                      await calistir(() => kategoriSil(k.id));
-                    }}
                   />
                 </>
               ) : undefined

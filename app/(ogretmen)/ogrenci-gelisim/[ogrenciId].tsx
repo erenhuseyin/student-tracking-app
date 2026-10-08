@@ -8,8 +8,7 @@ import { Ekran } from '@/components/Ekran';
 import { GelisimKaydiKarti } from '@/components/GelisimKaydiKarti';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
-import { OnayButonu } from '@/components/OnayButonu';
-import { type GelisimKaydiSatiri, gelisimKaydiSil, gelisimKayitlariniGetir } from '@/lib/gelisim';
+import { type GelisimKaydiSatiri, gelisimKayitlariniGetir } from '@/lib/gelisim';
 import { ogrenciGetir } from '@/lib/ogrenciler';
 import { useOturum } from '@/lib/oturum';
 import type { Ogrenci } from '@/lib/tipler';
@@ -55,24 +54,11 @@ export default function OgrenciGelisimKayitlari() {
             <GelisimKaydiKarti
               kayit={k}
               eylemler={
-                <>
-                  <IkonButon
-                    ikon="create-outline"
-                    etiket="Düzenle"
-                    onPress={() => router.push(`/gelisim-kaydi-duzenle/${k.id}`)}
-                  />
-                  <OnayButonu
-                    ikon="trash-outline"
-                    onOnay={async () => {
-                      try {
-                        await gelisimKaydiSil(k.id);
-                        await yenile();
-                      } catch (e) {
-                        setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
-                      }
-                    }}
-                  />
-                </>
+                <IkonButon
+                  ikon="create-outline"
+                  etiket="Düzenle"
+                  onPress={() => router.push(`/gelisim-kaydi-duzenle/${k.id}`)}
+                />
               }
             />
           ) : (

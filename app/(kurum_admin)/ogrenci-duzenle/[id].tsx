@@ -11,7 +11,8 @@ import { Kart } from '@/components/Kart';
 import { OnayButonu } from '@/components/OnayButonu';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { ogrenciGetir, ogrenciGuncelle, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
+import { ogrenciGetir, ogrenciGuncelle, ogrenciSil, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
+import { useToast } from '@/lib/toast';
 import { useTema } from '@/lib/tema';
 
 export default function OgrenciDuzenle() {
@@ -31,6 +32,8 @@ export default function OgrenciDuzenle() {
 
   const [pinHata, setPinHata] = useState<string | null>(null);
   const [pinBasarili, setPinBasarili] = useState(false);
+  const [silmeHatasi, setSilmeHatasi] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let iptalEdildi = false;
@@ -57,11 +60,23 @@ export default function OgrenciDuzenle() {
     setHata(null);
     try {
       await ogrenciGuncelle(id, adSoyad, dogumTarihi);
+      toast('Öğrenci kaydedildi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     } finally {
       setGonderiliyor(false);
+    }
+  };
+
+  const sil = async () => {
+    setSilmeHatasi(null);
+    try {
+      await ogrenciSil(id);
+      toast('Öğrenci silindi');
+      router.back();
+    } catch (e) {
+      setSilmeHatasi(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     }
   };
 
@@ -139,6 +154,16 @@ export default function OgrenciDuzenle() {
                 <Buton tur="ikincil" baslik="TCKN Ata" onPress={tcknAtaTikla} yukleniyor={tcknGonderiliyor} />
               </>
             )}
+          </Kart>
+
+          <Kart>
+            <Text style={tema.yazi.bolum}>Kaydı sil</Text>
+            <Text style={tema.yazi.kucuk}>
+              Yoklama kaydı olan öğrenci silinemez. Silinen öğrencinin gelişim kayıtları da silinir; bu işlem geri
+              alınamaz.
+            </Text>
+            <HataMesaji mesaj={silmeHatasi} />
+            <OnayButonu etiket="Öğrenciyi Sil" onOnay={sil} />
           </Kart>
         </>
       )}

@@ -1,5 +1,6 @@
 // Tek bir duyuru/etkinlik: tür, kapsam, başlık, (etkinlikse) zaman ve yer, içerik. `eylemler`
-// verilirse sağ üstte gösterilir (düzenle/sil).
+// verilirse sağ üstte gösterilir (düzenleme kalemi). `kapsamiGizle`: kapsam adı bilinmeyen
+// yerlerde (veli ana ekranı) yalnızca tarih yazılır.
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -11,7 +12,9 @@ import { DUYURU_TURU_ETIKETLERI, type DuyuruSatiri, etkinlikZamaniniBicimle, etk
 import { tarihiBicimle } from '@/lib/tarih';
 import { type Tema, useTema } from '@/lib/tema';
 
-export function DuyuruKarti({ duyuru, eylemler }: { duyuru: DuyuruSatiri; eylemler?: ReactNode }) {
+type Props = { duyuru: DuyuruSatiri; eylemler?: ReactNode; kapsamiGizle?: boolean };
+
+export function DuyuruKarti({ duyuru, eylemler, kapsamiGizle = false }: Props) {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
   const etkinlik = duyuru.tur === 'etkinlik';
@@ -26,7 +29,9 @@ export function DuyuruKarti({ duyuru, eylemler }: { duyuru: DuyuruSatiri; eyleml
             zemin={etkinlik ? tema.renkler.vurguSoluk : tema.renkler.anaSoluk}
           />
           <Text style={tema.yazi.kucuk}>
-            {[duyuru.sinif_adi ?? 'Tüm kurum', tarihiBicimle(etkinlikZamaniniParcala(duyuru.olusturma_tarihi).tarih)].join(' · ')}
+            {[kapsamiGizle ? null : (duyuru.sinif_adi ?? 'Tüm kurum'), tarihiBicimle(etkinlikZamaniniParcala(duyuru.olusturma_tarihi).tarih)]
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
         </View>
         {eylemler ? <View style={styles.eylemler}>{eylemler}</View> : null}

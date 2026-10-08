@@ -7,11 +7,14 @@ import { Ekran } from '@/components/Ekran';
 import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
+import { OnayButonu } from '@/components/OnayButonu';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { sinifGetir, sinifGuncelle } from '@/lib/siniflar';
+import { sinifGetir, sinifGuncelle, sinifSil } from '@/lib/siniflar';
+import { useToast } from '@/lib/toast';
 
 export default function SinifDuzenle() {
   const router = useRouter();
+  const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [ad, setAd] = useState('');
   const [donem, setDonem] = useState('');
@@ -43,11 +46,23 @@ export default function SinifDuzenle() {
     setHata(null);
     try {
       await sinifGuncelle(id, ad, donem);
+      toast('Sınıf kaydedildi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     } finally {
       setGonderiliyor(false);
+    }
+  };
+
+  const sil = async () => {
+    setHata(null);
+    try {
+      await sinifSil(id);
+      toast('Sınıf silindi');
+      router.back();
+    } catch (e) {
+      setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     }
   };
 
@@ -63,6 +78,7 @@ export default function SinifDuzenle() {
           <Girdi etiket="Dönem" value={donem} onChangeText={setDonem} editable={!gonderiliyor} onSubmitEditing={kaydet} />
           <HataMesaji mesaj={hata} />
           <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
+          <OnayButonu etiket="Sınıfı Sil" onOnay={sil} />
         </Kart>
       )}
     </Ekran>

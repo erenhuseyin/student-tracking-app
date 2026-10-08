@@ -10,9 +10,11 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { kurumEkle } from '@/lib/kurumlar';
 import { useTema } from '@/lib/tema';
+import { useToast } from '@/lib/toast';
 
 export default function YeniKurum() {
   const router = useRouter();
+  const toast = useToast();
   const tema = useTema();
   const [ad, setAd] = useState('');
   const [markaKodu, setMarkaKodu] = useState('');
@@ -24,6 +26,7 @@ export default function YeniKurum() {
     setHata(null);
     try {
       await kurumEkle(ad, markaKodu);
+      toast('Kurum eklendi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

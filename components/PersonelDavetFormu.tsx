@@ -15,9 +15,11 @@ import { PERSONEL_ROL_ETIKETLERI, personelDavetEt, type PersonelRolu } from '@/l
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
+import { useToast } from '@/lib/toast';
 
 export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; roller: PersonelRolu[] }) {
   const router = useRouter();
+  const toast = useToast();
   const tema = useTema();
   const [adSoyad, setAdSoyad] = useState('');
   const [eposta, setEposta] = useState('');
@@ -51,7 +53,10 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
     setHata(null);
     try {
       const sonuc = await personelDavetEt({ kurumId, adSoyad, eposta, rol, sinifIdleri: seciliSiniflar });
-      if (sonuc.eposta_gonderildi) router.back();
+      if (sonuc.eposta_gonderildi) {
+        toast('Personel eklendi, davet e-postası gönderildi');
+        router.back();
+      }
       else setEpostaGitmedi(true);
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

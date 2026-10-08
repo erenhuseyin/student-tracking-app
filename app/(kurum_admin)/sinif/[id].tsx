@@ -8,8 +8,7 @@ import { Ekran } from '@/components/Ekran';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { OnayButonu } from '@/components/OnayButonu';
-import { ogrencileriGetir, ogrenciSil } from '@/lib/ogrenciler';
+import { ogrencileriGetir } from '@/lib/ogrenciler';
 import { sinifGetir } from '@/lib/siniflar';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 import { tarihiBicimle } from '@/lib/tarih';
@@ -45,6 +44,7 @@ export default function SinifDetay() {
       <Liste
         veri={ogrenciler}
         hata={hata}
+        onYenile={yenile}
         anahtar={(o) => o.id}
         bosIkon="people-outline"
         bosBaslik="Bu sınıfta henüz öğrenci yok"
@@ -53,22 +53,7 @@ export default function SinifDetay() {
             baslik={o.ad_soyad}
             altBaslik={tarihiBicimle(o.dogum_tarihi)}
             sol={<Avatar ad={o.ad_soyad} />}
-            sag={
-              <>
-                <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/ogrenci-duzenle/${o.id}`)} />
-                <OnayButonu
-                  ikon="trash-outline"
-                  onOnay={async () => {
-                    try {
-                      await ogrenciSil(o.id);
-                      await yenile();
-                    } catch (e) {
-                      setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
-                    }
-                  }}
-                />
-              </>
-            }
+            sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/ogrenci-duzenle/${o.id}`)} />}
           />
         )}
       />

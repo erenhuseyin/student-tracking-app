@@ -10,9 +10,11 @@ import { Kart } from '@/components/Kart';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { useOturum } from '@/lib/oturum';
 import { ogrenciEkle } from '@/lib/ogrenciler';
+import { useToast } from '@/lib/toast';
 
 export default function YeniOgrenci() {
   const router = useRouter();
+  const toast = useToast();
   // kurumId: sınıfın kurumu (kök admin şube sınıfına öğrenci ekliyorsa şube).
   const { sinifId, kurumId } = useLocalSearchParams<{ sinifId: string; kurumId?: string }>();
   const { kullanici } = useOturum();
@@ -31,6 +33,7 @@ export default function YeniOgrenci() {
     setHata(null);
     try {
       await ogrenciEkle(hedefKurumId, sinifId, adSoyad, dogumTarihi);
+      toast('Öğrenci eklendi');
       router.back();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');

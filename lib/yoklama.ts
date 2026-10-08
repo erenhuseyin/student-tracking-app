@@ -74,22 +74,6 @@ export async function sinifYoklamalariniGetir(
   return { ogrenciler, yoklamalar };
 }
 
-// Velinin çocukları, bugüne ait yoklama durumlarıyla. RLS (ogrenci_veli_oku, yoklama_veli_oku)
-// yalnızca velinin kendi çocuklarını döndürdüğü için ek filtre gerekmez.
-export async function veliCocuklariniBugunkuYoklamaylaGetir(): Promise<OgrenciYoklamaSatiri[]> {
-  const { data: cocuklar, error: cocukHatasi } = await supabase.from('ogrenci').select('*').order('ad_soyad');
-  if (cocukHatasi) throw new Error(hataMesajinaCevir(cocukHatasi.message));
-
-  const { data: yoklamalar, error: yoklamaHatasi } = await supabase
-    .from('yoklama')
-    .select('ogrenci_id, durum')
-    .eq('tarih', bugununTarihi());
-  if (yoklamaHatasi) throw new Error(hataMesajinaCevir(yoklamaHatasi.message));
-
-  const durumHaritasi = new Map(yoklamalar.map((y) => [y.ogrenci_id, y.durum]));
-  return cocuklar.map((o) => ({ ...o, yoklama_durumu: durumHaritasi.get(o.id) ?? null }));
-}
-
 export async function yoklamaKaydet(
   kurumId: string,
   ogrenciId: string,

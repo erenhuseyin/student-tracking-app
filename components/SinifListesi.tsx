@@ -1,4 +1,5 @@
-// Bir kurumun (kök ya da şube) sınıf listesi + düzenle/sil; yeni sınıf ekleme başlık çubuğundaki "+".
+// Bir kurumun (kök ya da şube) sınıf listesi; satırdaki kalem düzenleme ekranını açar (silme de
+// oradadır), yeni sınıf ekleme başlık çubuğundaki "+".
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -8,8 +9,7 @@ import { Ikon } from '@/components/Ikon';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { OnayButonu } from '@/components/OnayButonu';
-import { siniflariGetir, sinifSil } from '@/lib/siniflar';
+import { siniflariGetir } from '@/lib/siniflar';
 import { type Tema, useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
 
@@ -44,6 +44,7 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
       <Liste
         veri={siniflar}
         hata={hata}
+        onYenile={yenile}
         anahtar={(s) => s.id}
         bosIkon="school-outline"
         bosBaslik="Henüz sınıf yok"
@@ -54,22 +55,7 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
             altBaslik={s.donem}
             sol={<Ikon ad="school-outline" boyut={26} renk={tema.renkler.anaParlak} />}
             onPress={() => router.push(`/sinif/${s.id}`)}
-            sag={
-              <>
-                <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sinif-duzenle/${s.id}`)} />
-                <OnayButonu
-                  ikon="trash-outline"
-                  onOnay={async () => {
-                    try {
-                      await sinifSil(s.id);
-                      await yenile();
-                    } catch (e) {
-                      setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
-                    }
-                  }}
-                />
-              </>
-            }
+            sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sinif-duzenle/${s.id}`)} />}
           />
         )}
       />

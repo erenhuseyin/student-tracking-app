@@ -8,12 +8,14 @@ import { Ekran } from '@/components/Ekran';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Yukleniyor } from '@/components/Yukleniyor';
 import { duyuruEkle } from '@/lib/duyurular';
+import { useToast } from '@/lib/toast';
 import { useOturum } from '@/lib/oturum';
 import { siniflariGetir } from '@/lib/siniflar';
 import type { Sinif } from '@/lib/tipler';
 
 export function YeniDuyuruEkrani() {
   const router = useRouter();
+  const toast = useToast();
   const { kullanici, kurum } = useOturum();
   const [siniflar, setSiniflar] = useState<Sinif[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function YeniDuyuruEkrani() {
               // Sınıfa özel duyuru sınıfın kurumunda durur (bileşik FK); kurum geneli yazanın kurumunda.
               const sinif = siniflar?.find((s) => s.id === kapsam?.sinifId);
               await duyuruEkle(sinif?.kurum_id ?? kurum.id, sinif?.id ?? null, kullanici.id, girdi);
+              toast('Duyuru yayınlandı');
               router.back();
             }}
           />

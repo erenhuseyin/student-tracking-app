@@ -1,6 +1,6 @@
 // "Duyurular" sekmesinin gövdesi (kurum admini, öğretmen, veli). RLS kapsamdaki duyuruları
 // döndürür; `yazabilir` verilirse başlıkta "+" ve kullanıcının değiştirebildiği duyurularda
-// düzenle/sil gösterilir (veritabanı yine de son sözü söyler).
+// düzenleme kalemi gösterilir (silme düzenleme ekranındadır; veritabanı yine de son sözü söyler).
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
@@ -9,8 +9,7 @@ import { DuyuruKarti } from '@/components/DuyuruKarti';
 import { Ekran } from '@/components/Ekran';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
-import { OnayButonu } from '@/components/OnayButonu';
-import { type DuyuruSatiri, duyurulariGetir, duyuruSil } from '@/lib/duyurular';
+import { type DuyuruSatiri, duyurulariGetir } from '@/lib/duyurular';
 import { useOturum } from '@/lib/oturum';
 
 export function DuyuruListesi({ yazabilir = false }: { yazabilir?: boolean }) {
@@ -48,6 +47,7 @@ export function DuyuruListesi({ yazabilir = false }: { yazabilir?: boolean }) {
       <Liste
         veri={duyurular}
         hata={hata}
+        onYenile={yenile}
         anahtar={(d) => d.id}
         bosIkon="megaphone-outline"
         bosBaslik="Henüz duyuru yok"
@@ -57,20 +57,7 @@ export function DuyuruListesi({ yazabilir = false }: { yazabilir?: boolean }) {
             duyuru={d}
             eylemler={
               degistirebilir(d) ? (
-                <>
-                  <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/duyuru-duzenle/${d.id}`)} />
-                  <OnayButonu
-                    ikon="trash-outline"
-                    onOnay={async () => {
-                      try {
-                        await duyuruSil(d.id);
-                        await yenile();
-                      } catch (e) {
-                        setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
-                      }
-                    }}
-                  />
-                </>
+                <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/duyuru-duzenle/${d.id}`)} />
               ) : undefined
             }
           />
