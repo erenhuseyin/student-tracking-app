@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { bildirimHedefi } from '@/lib/bildirimMerkezi';
@@ -44,30 +44,50 @@ export function usePushBildirimKaydi(): void {
   }, [durum, kullanici]);
 }
 
+// Aynı bildirime verilen yanıt bir kez işlenir. `getLastNotificationResponseAsync` son yanıtı
+// tekrar tekrar döndürür; her dönüşte yönlendirme yapılırsa uygulama aynı ekranı sonsuz kez açar.
+const islenenYanitlar = new Set<string>();
+
 // Telefondaki bildirime dokununca ilgili ekranı açar (uygulama açıkken ya da bildirimle açılırken).
 // Web'de bildirim yoktur. Hedef ekran lib/bildirimMerkezi.ts > bildirimHedefi'nde belirlenir.
 export function useBildirimYonlendirme(): void {
   const router = useRouter();
+  // Efekt yalnızca rol değişince yeniden kurulsun diye router ref'te tutulur: `useRouter()`'ın
+  // döndürdüğü nesne her gezinmede değişebilir ve efekti (dolayısıyla yönlendirmeyi) yeniden tetikler.
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
   const { durum, kullanici } = useOturum();
   const rol = durum === 'hazir' ? kullanici?.rol : undefined;
 
   useEffect(() => {
     if (Platform.OS === 'web' || !rol) return;
-    const ac = (veri: unknown) => {
+    const ac = (yanit: Notifications.NotificationResponse) => {
+      const kimlik = yanit.notification.request.identifier;
+      if (islenenYanitlar.has(kimlik)) return;
+      islenenYanitlar.add(kimlik);
+      // Bir sonraki açılışta aynı bildirim yeniden işlenmesin.
+      try {
+        Notifications.clearLastNotificationResponse();
+      } catch {
+        // desteklenmiyorsa yukarıdaki küme bu oturum için yeterlidir
+      }
+      const veri: unknown = yanit.notification.request.content.data;
       if (typeof veri !== 'object' || veri === null) return;
       const { tip, ogrenci_id } = veri as { tip?: unknown; ogrenci_id?: unknown };
       if (typeof tip !== 'string') return;
       const hedef = bildirimHedefi(rol, { tip, ogrenci_id: typeof ogrenci_id === 'string' ? ogrenci_id : null });
-      if (hedef) router.push(hedef);
+      if (hedef) routerRef.current.push(hedef);
     };
 
     // Uygulama kapalıyken dokunulan bildirim.
     Notifications.getLastNotificationResponseAsync()
       .then((yanit) => {
-        if (yanit) ac(yanit.notification.request.content.data);
+        if (yanit) ac(yanit);
       })
       .catch(() => {});
-    const abonelik = Notifications.addNotificationResponseReceivedListener((yanit) => ac(yanit.notification.request.content.data));
+    const abonelik = Notifications.addNotificationResponseReceivedListener(ac);
     return () => abonelik.remove();
-  }, [rol, router]);
+  }, [rol]);
 }
