@@ -11,7 +11,7 @@ import { Kart } from '@/components/Kart';
 import { OnayButonu } from '@/components/OnayButonu';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { ogrenciGetir, ogrenciGuncelle, ogrenciSil, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
+import { ogrenciAktifliginiAyarla, ogrenciGetir, ogrenciGuncelle, ogrenciSil, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
 import { useToast } from '@/lib/toast';
 import { useTema } from '@/lib/tema';
 
@@ -22,6 +22,7 @@ export default function OgrenciDuzenle() {
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
   const [tckn, setTckn] = useState<string | null>(null);
+  const [aktif, setAktif] = useState(true);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export default function OgrenciDuzenle() {
         setAdSoyad(o.ad_soyad);
         setDogumTarihi(o.dogum_tarihi);
         setTckn(o.tckn);
+        setAktif(o.aktif);
       })
       .catch((e: Error) => {
         if (!iptalEdildi) setHata(e.message);
@@ -66,6 +68,17 @@ export default function OgrenciDuzenle() {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     } finally {
       setGonderiliyor(false);
+    }
+  };
+
+  const aktifligiDegistir = async (yeni: boolean) => {
+    setSilmeHatasi(null);
+    try {
+      await ogrenciAktifliginiAyarla(id, yeni);
+      setAktif(yeni);
+      toast(yeni ? 'Öğrenci yeniden aktif' : 'Öğrenci pasife alındı');
+    } catch (e) {
+      setSilmeHatasi(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     }
   };
 
@@ -157,10 +170,29 @@ export default function OgrenciDuzenle() {
           </Kart>
 
           <Kart>
-            <Text style={tema.yazi.bolum}>Kaydı sil</Text>
+            <Text style={tema.yazi.bolum}>Kayıt durumu</Text>
+            {aktif ? (
+              <>
+                <Text style={tema.yazi.kucuk}>
+                  Öğrenci ayrıldıysa pasife alın: sınıf listelerinde ve yoklamada görünmez, geçmiş kayıtları korunur.
+                  İsterseniz sonradan yeniden aktifleştirebilirsiniz.
+                </Text>
+                <OnayButonu
+                  etiket="Pasife Al"
+                  soru="Öğrenci pasife alınsın mı?"
+                  onayEtiketi="Evet, pasife al"
+                  onOnay={() => aktifligiDegistir(false)}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={tema.yazi.kucuk}>Bu öğrenci pasif: sınıf listelerinde ve yoklamada görünmüyor.</Text>
+                <Buton tur="ikincil" baslik="Yeniden Aktifleştir" onPress={() => aktifligiDegistir(true)} />
+              </>
+            )}
             <Text style={tema.yazi.kucuk}>
-              Yoklama kaydı olan öğrenci silinemez. Silinen öğrencinin gelişim kayıtları da silinir; bu işlem geri
-              alınamaz.
+              Yanlışlıkla açılmış bir kaydı tümüyle silebilirsiniz; yoklama kaydı olan öğrenci silinemez, gelişim, ezber ve
+              kitap kayıtları öğrenciyle birlikte silinir.
             </Text>
             <HataMesaji mesaj={silmeHatasi} />
             <OnayButonu etiket="Öğrenciyi Sil" onOnay={sil} />

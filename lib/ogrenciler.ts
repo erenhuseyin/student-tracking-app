@@ -24,8 +24,15 @@ function girdiyiDogrula(adSoyad: string, dogumTarihi: string): { ad_soyad: strin
   return { ad_soyad: temizAd, dogum_tarihi: temizTarih };
 }
 
+// Sınıfın aktif öğrencileri. Pasife alınmış (ayrılmış) öğrenciler sınıf listelerinde, yoklamada ve
+// takip ekranlarında görünmez; yönetici onları Öğrenciler ekranındaki "Pasifler" süzgeciyle bulur.
 export async function ogrencileriGetir(sinifId: string): Promise<Ogrenci[]> {
-  const { data, error } = await supabase.from('ogrenci').select('*').eq('sinif_id', sinifId).order('ad_soyad');
+  const { data, error } = await supabase
+    .from('ogrenci')
+    .select('*')
+    .eq('sinif_id', sinifId)
+    .eq('aktif', true)
+    .order('ad_soyad');
   if (error) throw new Error(hataMesajinaCevir(error.message));
   return data;
 }
@@ -94,6 +101,34 @@ export async function ogrenciGuncelle(id: string, adSoyad: string, dogumTarihi: 
   const { data, error } = await supabase.from('ogrenci').update(girdi).eq('id', id).select().single();
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
   return data;
+}
+
+// Erişim: kurum admini (yönettiği kurumlar). Pasife alınan öğrencinin kayıtları korunur.
+export async function ogrenciAktifliginiAyarla(id: string, aktif: boolean): Promise<void> {
+  const { data, error } = await supabase.from('ogrenci').update({ aktif }).eq('id', id).select('id');
+  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+  if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
+}
+
+export type OgrenciAramasi = { arama: string; sinifId: string | null; durum: 'aktif' | 'pasif' };
+export const OGRENCI_SAYFA_BOYUTU = 30;
+
+// Yöneticinin tüm öğrencileri arayıp süzdüğü liste (RLS: yönettiği kurumlar). Sunucuda süzülür ve
+// sayfalanır: kurum büyüdükçe tüm listeyi indirmemek ve varsayılan 1000 satır sınırına takılmamak için.
+export async function ogrencileriAra(
+  { arama, sinifId, durum }: OgrenciAramasi,
+  sayfa: number,
+): Promise<{ ogrenciler: Ogrenci[]; toplam: number }> {
+  let sorgu = supabase.from('ogrenci').select('*', { count: 'exact' }).eq('aktif', durum === 'aktif');
+  if (sinifId) sorgu = sorgu.eq('sinif_id', sinifId);
+  // % ve _ ilike joker karakterleridir; kullanıcının yazdığı metinde kaçırılır.
+  const temiz = arama.trim().replace(/[%_\\]/g, (k) => `\\${k}`);
+  if (temiz) sorgu = sorgu.ilike('ad_soyad', `%${temiz}%`);
+  const { data, error, count } = await sorgu
+    .order('ad_soyad')
+    .range(sayfa * OGRENCI_SAYFA_BOYUTU, (sayfa + 1) * OGRENCI_SAYFA_BOYUTU - 1);
+  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+  return { ogrenciler: data, toplam: count ?? data.length };
 }
 
 export async function ogrenciSil(id: string): Promise<void> {

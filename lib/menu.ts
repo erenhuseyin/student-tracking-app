@@ -79,11 +79,13 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'personel', etiket: 'Personel', ikon: 'people-outline', yer: 'sekme', sekme: 'personel' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
+    { anahtar: 'ogrenciler', etiket: 'Öğrenciler', ikon: 'search-outline', yer: 'menu', rota: '/ogrenciler' },
     { anahtar: 'subeler', etiket: 'Şubeler', ikon: 'business-outline', yer: 'menu', rota: '/subeler', yalnizKok: true },
     { anahtar: 'basvurular', etiket: 'Başvurular', ikon: 'mail-unread-outline', yer: 'menu', rota: '/basvurular', ozellik: 'basvuru' },
     { anahtar: 'oneriler', etiket: 'Veli Önerileri', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneriler' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'kademeler', etiket: 'Kademeler', ikon: 'layers-outline', yer: 'menu', rota: '/kademeler', ozellik: 'icerik_takibi' },
+    { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'download-outline', yer: 'menu', rota: '/raporlar' },
     { anahtar: 'roller', etiket: 'Roller ve Yetkiler', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     {
       anahtar: 'gelisim-kategorileri',

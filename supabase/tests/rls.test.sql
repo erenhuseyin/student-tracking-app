@@ -1609,6 +1609,140 @@ select tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin
 select tst.esit('beşinci öneri kabul edilir', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '5')$q$), 'ok:1');
 select tst.esit('altıncı öneri günlük sınıra takılır', tst.dene($q$insert into public.oneri (kurum_id, giren_kullanici_id, metin) values ('c0000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000008', '6')$q$), 'hata:23514');
 
+-- ===========================================================================
+-- 26. İÇERİK TAKİBİ: kademe/ders/konu/ezber tanımları, konu ilerlemesi, ezber, kitap
+--   adminA (02) kök admin | adminA2 (13) şube admini | ogrA1 (05) -> sA1 | ogrA2 (06) -> sA2
+--   veliA1 (08) -> oA1, oA2 (sA1) | veliA2 (09) -> oA2, oA3 | adminB (03)
+-- ===========================================================================
+reset role;
+select tst.esit('kademe şubede tanımlanamaz (trigger)', tst.dene($q$insert into public.kademe (kurum_id, ad) values ('c0000000-0000-0000-0000-0000000000a2', 'x')$q$), 'hata:23514');
+insert into public.kademe (id, kurum_id, ad) values ('10000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-00000000000a', 'Kademe I'), ('10000000-0000-0000-0000-00000000000b', 'c0000000-0000-0000-0000-00000000000b', 'B Kademe');
+insert into public.kademe_dersi (id, kurum_id, kademe_id, ad) values ('20000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'Siyer');
+insert into public.ders_konusu (id, kurum_id, ders_id, ad, sira) values ('30000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a', 'Konu 1', 1);
+insert into public.ezber_maddesi (id, kurum_id, kademe_id, ad, sira) values ('40000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'Madde 1', 1);
+select tst.esit('ders başka müşterinin kademesine bağlanamaz (bileşik FK)',
+  tst.dene($q$insert into public.kademe_dersi (kurum_id, kademe_id, ad) values ('c0000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-00000000000a', 'x')$q$), 'hata:23503');
+select tst.esit('sınıf başka müşterinin kademesini izleyemez (trigger)',
+  tst.dene($q$update public.sinif set kademe_id = '10000000-0000-0000-0000-00000000000b' where id = 'd0000000-0000-0000-0000-0000000000a1'$q$), 'hata:23503');
+
+-- adminA: tanımları yönetir, sınıfa kademe atar
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin kademe ekler', tst.dene($q$insert into public.kademe (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'Kademe II')$q$), 'ok:1');
+select tst.esit('kök admin konu ekler', tst.dene($q$insert into public.ders_konusu (kurum_id, ders_id, ad, sira) values ('c0000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a', 'Konu 2', 2)$q$), 'ok:1');
+select tst.esit('kök admin başka müşteriye kademe ekleyemez', tst.dene($q$insert into public.kademe (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000b', 'x')$q$), 'hata:42501');
+select tst.esit('kök admin yalnızca kendi kademelerini görür', (select count(*) from public.kademe)::text, '2');
+select tst.esit('kök admin sınıfa kademe atar', tst.dene($q$update public.sinif set kademe_id = '10000000-0000-0000-0000-00000000000a' where id in ('d0000000-0000-0000-0000-0000000000a1', 'd0000000-0000-0000-0000-0000000000a2')$q$), 'ok:2');
+select tst.esit('konu başka derse taşınamaz (kolon yetkisi)', tst.dene($q$update public.ders_konusu set kurum_id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'hata:42501');
+
+-- adminA2 (şube admini): okur, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini kademeleri okur', (select count(*) from public.kademe)::text, '2');
+select tst.esit('şube admini kademe ekleyemez', tst.dene($q$insert into public.kademe (kurum_id, ad) values ('c0000000-0000-0000-0000-00000000000a', 'x')$q$), 'hata:42501');
+select tst.esit('şube admini konu silemez', tst.dene($q$delete from public.ders_konusu$q$), 'ok:0');
+
+-- ogrA1 (sA1): tanımları okur; kendi sınıfının ilerlemesini, kendi öğrencisinin ezber ve kitabını yazar
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen konuları okur', (select count(*) from public.ders_konusu)::text, '2');
+select tst.esit('öğretmen konu ekleyemez', tst.dene($q$insert into public.ders_konusu (kurum_id, ders_id, ad) values ('c0000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a', 'x')$q$), 'hata:42501');
+select tst.esit('öğretmen kendi sınıfında konuyu işaretler',
+  tst.dene($q$insert into public.sinif_konu_ilerleme (kurum_id, sinif_id, konu_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '30000000-0000-0000-0000-00000000000a')$q$), 'ok:1');
+select tst.esit('aynı konu iki kez işaretlenemez',
+  tst.dene($q$insert into public.sinif_konu_ilerleme (kurum_id, sinif_id, konu_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a1', '30000000-0000-0000-0000-00000000000a')$q$), 'hata:23505');
+select tst.esit('öğretmen başka sınıfta işaretleyemez',
+  tst.dene($q$insert into public.sinif_konu_ilerleme (kurum_id, sinif_id, konu_id) values ('c0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-0000000000a2', '30000000-0000-0000-0000-00000000000a')$q$), 'hata:42501');
+select tst.esit('öğretmen öğrencisinin ezberini girer',
+  tst.dene($q$insert into public.ogrenci_ezber (kurum_id, ogrenci_id, madde_id, durum) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', '40000000-0000-0000-0000-00000000000a', 'devam')$q$), 'ok:1');
+select tst.esit('öğretmen ezber durumunu günceller', tst.dene($q$update public.ogrenci_ezber set durum = 'tamam'$q$), 'ok:1');
+select tst.esit('öğretmen başka sınıfın öğrencisine ezber giremez',
+  tst.dene($q$insert into public.ogrenci_ezber (kurum_id, ogrenci_id, madde_id, durum) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a3', '40000000-0000-0000-0000-00000000000a', 'devam')$q$), 'hata:42501');
+select tst.esit('öğretmen öğrencisine kitap ekler',
+  tst.dene($q$insert into public.kitap_okuma (kurum_id, ogrenci_id, baslik) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'Küçük Prens')$q$), 'ok:1');
+select tst.esit('öğretmen başka sınıfın öğrencisine kitap ekleyemez',
+  tst.dene($q$insert into public.kitap_okuma (kurum_id, ogrenci_id, baslik) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a3', 'x')$q$), 'hata:42501');
+select tst.esit('kitabın bitişi başlangıçtan önce olamaz',
+  tst.dene($q$update public.kitap_okuma set baslama_tarihi = '2026-10-10', bitis_tarihi = '2026-10-01'$q$), 'hata:23514');
+select tst.esit('kitap başka öğrenciye taşınamaz (kolon yetkisi)', tst.dene($q$update public.kitap_okuma set ogrenci_id = 'e0000000-0000-0000-0000-0000000000a3'$q$), 'hata:42501');
+
+-- ogrA2 (sA2): sA1'in kayıtlarını görmez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000006","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka sınıfın öğretmeni ilerlemeyi görmez', (select count(*) from public.sinif_konu_ilerleme)::text, '0');
+select tst.esit('başka sınıfın öğretmeni ezberi görmez', (select count(*) from public.ogrenci_ezber)::text, '0');
+select tst.esit('başka sınıfın öğretmeni kitabı görmez', (select count(*) from public.kitap_okuma)::text, '0');
+
+-- veliA1 (oA1'in velisi): okur, yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli çocuğunun ezberini görür', (select count(*) from public.ogrenci_ezber)::text, '1');
+select tst.esit('veli çocuğunun kitabını görür', (select count(*) from public.kitap_okuma)::text, '1');
+select tst.esit('veli sınıfın konu ilerlemesini görür', (select count(*) from public.sinif_konu_ilerleme)::text, '1');
+select tst.esit('veli ezber yazamaz', tst.dene($q$update public.ogrenci_ezber set durum = 'devam'$q$), 'ok:0');
+select tst.esit('veli kitap ekleyemez', tst.dene($q$insert into public.kitap_okuma (kurum_id, ogrenci_id, baslik) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'x')$q$), 'hata:42501');
+select tst.esit('veli kitap silemez', tst.dene($q$delete from public.kitap_okuma$q$), 'ok:0');
+
+-- veliA2 (oA2, oA3): oA1'in kayıtlarını görmez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka veli ezberi görmez', (select count(*) from public.ogrenci_ezber)::text, '0');
+select tst.esit('başka veli kitabı görmez', (select count(*) from public.kitap_okuma)::text, '0');
+
+-- adminB: A'nın tanımları ve kayıtları sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin admini yalnızca kendi kademesini görür', (select count(*) from public.kademe)::text, '1');
+select tst.esit('başka müşterinin admini ezber görmez', (select count(*) from public.ogrenci_ezber)::text, '0');
+
+-- Kademe silinince tanımlar ve takip kayıtları da silinir; sınıfın bağı boşalır
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin kademeyi siler', tst.dene($q$delete from public.kademe where id = '10000000-0000-0000-0000-00000000000a'$q$), 'ok:1');
+reset role;
+select tst.esit('kademeyle birlikte konular silinir', (select count(*) from public.ders_konusu where kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '0');
+select tst.esit('kademeyle birlikte konu ilerlemesi silinir', (select count(*) from public.sinif_konu_ilerleme)::text, '0');
+select tst.esit('kademeyle birlikte ezber kayıtları silinir', (select count(*) from public.ogrenci_ezber)::text, '0');
+select tst.esit('sınıfın kademe bağı boşalır', (select count(*) from public.sinif where kademe_id is not null)::text, '0');
+
+-- ===========================================================================
+-- 27. PASİF ÖĞRENCİ ve MAZERETLİ YOKLAMA
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kurum admini öğrenciyi pasife alır', tst.dene($q$update public.ogrenci set aktif = false where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen öğrenciyi aktifleştiremez', tst.dene($q$update public.ogrenci set aktif = true where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+select tst.esit('öğretmen mazeretli yoklama girer',
+  tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a2', '2026-12-01', 'mazeretli', 'b0000000-0000-0000-0000-000000000005')$q$), 'ok:1');
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli pasif çocuğunu görmeye devam eder', (select count(*) from public.ogrenci where id = 'e0000000-0000-0000-0000-0000000000a1')::text, '1');
+select tst.esit('veli aktifliği değiştiremez', tst.dene($q$update public.ogrenci set aktif = true where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

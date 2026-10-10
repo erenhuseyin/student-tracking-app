@@ -27,6 +27,7 @@ export async function gununYoklamasiniGetir(sinifId: string, tarih: string): Pro
     .from('ogrenci')
     .select('*')
     .eq('sinif_id', sinifId)
+    .eq('aktif', true)
     .order('ad_soyad');
   if (ogrenciHatasi) throw new Error(hataMesajinaCevir(ogrenciHatasi.message));
 
@@ -57,6 +58,7 @@ export async function sinifYoklamalariniGetir(
     .from('ogrenci')
     .select('*')
     .eq('sinif_id', sinifId)
+    .eq('aktif', true)
     .order('ad_soyad');
   if (ogrenciHatasi) throw new Error(hataMesajinaCevir(ogrenciHatasi.message));
   if (ogrenciler.length === 0) return { ogrenciler, yoklamalar: [] };

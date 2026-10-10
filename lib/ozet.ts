@@ -30,7 +30,7 @@ export async function yoneticiOzetiniGetir(basvuruAcik: boolean): Promise<Yoneti
 
   const [siniflar, ogrenciler, personel, yoklamalar, planlar, basvurular] = await Promise.all([
     supabase.from('sinif').select('id, ad').order('ad'),
-    supabase.from('ogrenci').select('id, sinif_id'),
+    supabase.from('ogrenci').select('id, sinif_id').eq('aktif', true),
     supabase.from('kullanici').select('id', { count: 'exact', head: true }).eq('rol', 'ogretmen').eq('aktif', true),
     supabase.from('yoklama').select('ogrenci_id, tarih, durum').gte('tarih', pazartesi),
     supabase.from('sinif_ders_plani').select('*').order('baslangic_tarihi', { ascending: false }),
