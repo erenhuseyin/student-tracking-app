@@ -23,9 +23,9 @@ const CORS_BASLIKLARI = {
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const YOKLAMA_DURUMLARI = ['geldi', 'gelmedi', 'gec'] as const;
+const YOKLAMA_DURUMLARI = ['geldi', 'gelmedi', 'gec', 'mazeretli'] as const;
 type YoklamaDurumu = (typeof YOKLAMA_DURUMLARI)[number];
-const DURUM_METNI: Record<YoklamaDurumu, string> = { geldi: 'Geldi', gelmedi: 'Gelmedi', gec: 'Geç' };
+const DURUM_METNI: Record<YoklamaDurumu, string> = { geldi: 'Geldi', gelmedi: 'Gelmedi', gec: 'Geç', mazeretli: 'Mazeretli' };
 
 function yanit(durum: number, govde: Record<string, unknown>): Response {
   return new Response(JSON.stringify(govde), {

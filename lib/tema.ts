@@ -188,6 +188,7 @@ function temaKur(mod: 'acik' | 'karanlik'): Tema {
     geldi: { renk: r.basari, soluk: r.basariSoluk },
     gelmedi: { renk: r.hata, soluk: r.hataSoluk },
     gec: { renk: r.uyari, soluk: r.uyariSoluk },
+    mazeretli: { renk: r.metinIkincil, soluk: r.ayirici },
   };
   return {
     mod,

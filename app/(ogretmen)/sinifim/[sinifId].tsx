@@ -9,8 +9,10 @@ import { Buton } from '@/components/Buton';
 import { Ekran } from '@/components/Ekran';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { ICERIK_OZELLIGI } from '@/lib/icerik';
 import { useBolumAcik } from '@/lib/menu';
 import { ogrencileriGetir } from '@/lib/ogrenciler';
+import { useOzellik } from '@/lib/ozellikler';
 import { sinifGetir } from '@/lib/siniflar';
 import { type Tema, useTema } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
@@ -26,6 +28,9 @@ export default function OgretmenSinifi() {
   const yoklamaAcik = useBolumAcik('yoklama');
   const gelisimAcik = useBolumAcik('gelisim');
   const programAcik = useBolumAcik('program');
+  // Kurumda içerik takibi açıksa ve öğretmenler için kapatılmadıysa.
+  const icerikBolumu = useBolumAcik('icerik');
+  const icerikAcik = useOzellik(ICERIK_OZELLIGI) && icerikBolumu;
 
   useFocusEffect(
     useCallback(() => {
@@ -67,6 +72,20 @@ export default function OgretmenSinifi() {
           baslik="Ders Programı"
           onPress={() => router.push(`/ders-programi/${sinifId}`)}
         />
+      ) : null}
+
+      {icerikAcik ? (
+        <View style={styles.butonlar}>
+          <View style={styles.buton}>
+            <Buton tur="ikincil" baslik="Dersler" onPress={() => router.push(`/ders-takibi/${sinifId}`)} />
+          </View>
+          <View style={styles.buton}>
+            <Buton tur="ikincil" baslik="Ezber" onPress={() => router.push(`/ezber/${sinifId}`)} />
+          </View>
+          <View style={styles.buton}>
+            <Buton tur="ikincil" baslik="Kitap" onPress={() => router.push(`/kitap/${sinifId}`)} />
+          </View>
+        </View>
       ) : null}
 
       <Liste

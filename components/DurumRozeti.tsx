@@ -10,6 +10,7 @@ const IKONLAR: Record<YoklamaDurumu, IkonAdi> = {
   geldi: 'checkmark-circle',
   gelmedi: 'close-circle',
   gec: 'time-outline',
+  mazeretli: 'document-text-outline',
 };
 
 export function DurumRozeti({ durum }: { durum: YoklamaDurumu | null }) {

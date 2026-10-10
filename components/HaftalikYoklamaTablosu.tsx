@@ -16,6 +16,7 @@ const DURUM_IKONLARI: Record<YoklamaDurumu, IkonAdi> = {
   geldi: 'checkmark',
   gelmedi: 'close',
   gec: 'time-outline',
+  mazeretli: 'document-text-outline',
 };
 
 const AD_GENISLIGI = 116;

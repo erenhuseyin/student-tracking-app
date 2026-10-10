@@ -15,6 +15,7 @@ export const YOKLAMA_ETIKETLERI: Record<YoklamaDurumu, string> = {
   geldi: 'Geldi',
   gelmedi: 'Gelmedi',
   gec: 'Geç',
+  mazeretli: 'Mazeretli',
 };
 
 export type OgrenciYoklamaSatiri = Ogrenci & { yoklama_durumu: YoklamaDurumu | null };

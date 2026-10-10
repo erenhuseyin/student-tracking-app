@@ -66,3 +66,16 @@ export type DevamsizlikBildirimi = Tables<'devamsizlik_bildirimi'>;
 // Velinin kuruma yazdığı tek yönlü öneri/görüş; yalnızca kurum yöneticileri okur.
 export type Oneri = Tables<'oneri'>;
 
+// İçerik takibi tanımları (müşteri düzeyinde): kademe -> ders -> konu, ezber maddeleri.
+export type Kademe = Tables<'kademe'>;
+export type KademeDersi = Tables<'kademe_dersi'>;
+export type DersKonusu = Tables<'ders_konusu'>;
+export type EzberMaddesi = Tables<'ezber_maddesi'>;
+
+export type EzberDurumu = Tables<'ogrenci_ezber'>['durum'];
+export type OgrenciEzber = Tables<'ogrenci_ezber'>;
+
+export const KITAP_DURUMLARI = Constants.public.Enums.kitap_durumu;
+export type KitapDurumu = (typeof KITAP_DURUMLARI)[number];
+export type KitapOkuma = Tables<'kitap_okuma'>;
+

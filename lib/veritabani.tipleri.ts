@@ -115,6 +115,7 @@ export type Database = {
           ad: string;
           donem: string;
           id: string;
+          kademe_id: string | null;
           kurum_id: string;
           olusturma_tarihi: string;
         };
@@ -122,6 +123,7 @@ export type Database = {
           ad: string;
           donem: string;
           id?: string;
+          kademe_id?: string | null;
           kurum_id: string;
           olusturma_tarihi?: string;
         };
@@ -129,6 +131,7 @@ export type Database = {
           ad?: string;
           donem?: string;
           id?: string;
+          kademe_id?: string | null;
           kurum_id?: string;
           olusturma_tarihi?: string;
         };
@@ -145,6 +148,7 @@ export type Database = {
       ogrenci: {
         Row: {
           ad_soyad: string;
+          aktif: boolean;
           dogum_tarihi: string;
           id: string;
           kok_kurum_id: string;
@@ -155,6 +159,7 @@ export type Database = {
         };
         Insert: {
           ad_soyad: string;
+          aktif?: boolean;
           dogum_tarihi: string;
           id?: string;
           kok_kurum_id?: string;
@@ -165,6 +170,7 @@ export type Database = {
         };
         Update: {
           ad_soyad?: string;
+          aktif?: boolean;
           dogum_tarihi?: string;
           id?: string;
           kok_kurum_id?: string;
@@ -776,6 +782,203 @@ export type Database = {
           },
         ];
       };
+      kademe: {
+        Row: {
+          ad: string;
+          id: string;
+          kurum_id: string;
+          olusturma_tarihi: string;
+          sira: number;
+        };
+        Insert: {
+          ad: string;
+          id?: string;
+          kurum_id: string;
+          olusturma_tarihi?: string;
+          sira?: number;
+        };
+        Update: {
+          ad?: string;
+          id?: string;
+          kurum_id?: string;
+          olusturma_tarihi?: string;
+          sira?: number;
+        };
+        Relationships: [
+
+        ];
+      };
+      kademe_dersi: {
+        Row: {
+          ad: string;
+          id: string;
+          kademe_id: string;
+          kurum_id: string;
+          sira: number;
+        };
+        Insert: {
+          ad: string;
+          id?: string;
+          kademe_id: string;
+          kurum_id: string;
+          sira?: number;
+        };
+        Update: {
+          ad?: string;
+          id?: string;
+          kademe_id?: string;
+          kurum_id?: string;
+          sira?: number;
+        };
+        Relationships: [
+
+        ];
+      };
+      ders_konusu: {
+        Row: {
+          ad: string;
+          ders_id: string;
+          id: string;
+          kurum_id: string;
+          sira: number;
+        };
+        Insert: {
+          ad: string;
+          ders_id: string;
+          id?: string;
+          kurum_id: string;
+          sira?: number;
+        };
+        Update: {
+          ad?: string;
+          ders_id?: string;
+          id?: string;
+          kurum_id?: string;
+          sira?: number;
+        };
+        Relationships: [
+
+        ];
+      };
+      ezber_maddesi: {
+        Row: {
+          ad: string;
+          id: string;
+          kademe_id: string;
+          kurum_id: string;
+          sira: number;
+        };
+        Insert: {
+          ad: string;
+          id?: string;
+          kademe_id: string;
+          kurum_id: string;
+          sira?: number;
+        };
+        Update: {
+          ad?: string;
+          id?: string;
+          kademe_id?: string;
+          kurum_id?: string;
+          sira?: number;
+        };
+        Relationships: [
+
+        ];
+      };
+      sinif_konu_ilerleme: {
+        Row: {
+          giren_kullanici_id: string | null;
+          konu_id: string;
+          kurum_id: string;
+          sinif_id: string;
+          tamamlanma_tarihi: string;
+        };
+        Insert: {
+          giren_kullanici_id?: string | null;
+          konu_id: string;
+          kurum_id: string;
+          sinif_id: string;
+          tamamlanma_tarihi?: string;
+        };
+        Update: {
+          giren_kullanici_id?: string | null;
+          konu_id?: string;
+          kurum_id?: string;
+          sinif_id?: string;
+          tamamlanma_tarihi?: string;
+        };
+        Relationships: [
+
+        ];
+      };
+      ogrenci_ezber: {
+        Row: {
+          durum: Database['public']['Enums']['ezber_durumu'];
+          guncelleme_tarihi: string;
+          kurum_id: string;
+          madde_id: string;
+          ogrenci_id: string;
+        };
+        Insert: {
+          durum: Database['public']['Enums']['ezber_durumu'];
+          guncelleme_tarihi?: string;
+          kurum_id: string;
+          madde_id: string;
+          ogrenci_id: string;
+        };
+        Update: {
+          durum?: Database['public']['Enums']['ezber_durumu'];
+          guncelleme_tarihi?: string;
+          kurum_id?: string;
+          madde_id?: string;
+          ogrenci_id?: string;
+        };
+        Relationships: [
+
+        ];
+      };
+      kitap_okuma: {
+        Row: {
+          baslama_tarihi: string | null;
+          baslik: string;
+          bitis_tarihi: string | null;
+          durum: Database['public']['Enums']['kitap_durumu'];
+          id: string;
+          kurum_id: string;
+          not_metni: string | null;
+          ogrenci_id: string;
+          olusturma_tarihi: string;
+          yazar: string | null;
+        };
+        Insert: {
+          baslama_tarihi?: string | null;
+          baslik: string;
+          bitis_tarihi?: string | null;
+          durum?: Database['public']['Enums']['kitap_durumu'];
+          id?: string;
+          kurum_id: string;
+          not_metni?: string | null;
+          ogrenci_id: string;
+          olusturma_tarihi?: string;
+          yazar?: string | null;
+        };
+        Update: {
+          baslama_tarihi?: string | null;
+          baslik?: string;
+          bitis_tarihi?: string | null;
+          durum?: Database['public']['Enums']['kitap_durumu'];
+          id?: string;
+          kurum_id?: string;
+          not_metni?: string | null;
+          ogrenci_id?: string;
+          olusturma_tarihi?: string;
+          yazar?: string | null;
+        };
+        Relationships: [
+
+        ];
+      };
       sinif_ders_plani: {
         Row: {
           baslangic_tarihi: string;
@@ -828,7 +1031,9 @@ export type Database = {
     };
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
-      yoklama_durumu: 'geldi' | 'gelmedi' | 'gec';
+      ezber_durumu: 'devam' | 'tamam';
+      kitap_durumu: 'baslamadi' | 'okuyor' | 'bitti';
+      yoklama_durumu: 'geldi' | 'gelmedi' | 'gec' | 'mazeretli';
       basvuru_durumu: 'bekliyor' | 'onaylandi' | 'reddedildi';
       basvuru_turu: 'ogrenci' | 'personel';
       bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru' | 'basvuru';
@@ -851,7 +1056,9 @@ export const Constants = {
   public: {
     Enums: {
       rol: ['super_admin', 'kurum_admin', 'ogretmen', 'veli'],
-      yoklama_durumu: ['geldi', 'gelmedi', 'gec'],
+      ezber_durumu: ['devam', 'tamam'],
+      kitap_durumu: ['baslamadi', 'okuyor', 'bitti'],
+      yoklama_durumu: ['geldi', 'gelmedi', 'gec', 'mazeretli'],
       basvuru_durumu: ['bekliyor', 'onaylandi', 'reddedildi'],
       basvuru_turu: ['ogrenci', 'personel'],
       bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru', 'basvuru'],

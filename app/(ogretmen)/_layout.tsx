@@ -10,6 +10,7 @@ export default function Layout() {
   const gelisimAcik = useBolumAcik('gelisim');
   const duyurularAcik = useBolumAcik('duyurular');
   const programAcik = useBolumAcik('program');
+  const icerikAcik = useBolumAcik('icerik');
   return (
     <Stack screenOptions={tema.baslikCubuguSecenekleri}>
       {/* Sekmelerin başlık çubuğu kendi içindedir (components/RolSekmeleri). */}
@@ -31,6 +32,13 @@ export default function Layout() {
       <Stack.Protected guard={programAcik}>
         <Stack.Screen name="ders-programi/[sinifId]" />
         <Stack.Screen name="ders-saati" />
+      </Stack.Protected>
+      <Stack.Protected guard={icerikAcik}>
+        <Stack.Screen name="ders-takibi/[sinifId]" />
+        <Stack.Screen name="ezber/[sinifId]" />
+        <Stack.Screen name="ogrenci-ezber/[ogrenciId]" />
+        <Stack.Screen name="kitap/[sinifId]" />
+        <Stack.Screen name="ogrenci-kitap/[ogrenciId]" />
       </Stack.Protected>
     </Stack>
   );

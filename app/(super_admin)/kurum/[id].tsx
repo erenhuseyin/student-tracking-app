@@ -39,11 +39,11 @@ export default function KurumDetay() {
     };
   }, [id]);
 
-  const basvuruyuAyarla = async (acik: boolean) => {
+  const ozelligiAyarla = async (ad: string, acik: boolean) => {
     setDegisiyor(true);
     setHata(null);
     try {
-      setKurum(await kurumOzelligiAyarla(id, 'basvuru', acik));
+      setKurum(await kurumOzelligiAyarla(id, ad, acik));
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     } finally {
@@ -62,12 +62,22 @@ export default function KurumDetay() {
           <OnayKutusu
             etiket="Uygulamadan başvuru (öğrenci ön kaydı, öğretmen başvurusu)"
             secili={ozellikAcik(kurum, 'basvuru')}
-            onDegis={basvuruyuAyarla}
-            calisiyor={degisiyor}
+            onDegis={(acik) => ozelligiAyarla('basvuru', acik)}
+            pasif={degisiyor}
           />
           <Text style={tema.yazi.kucuk}>
             Açıkken giriş ekranlarında başvuru bağlantısı çıkar ve giriş yapmamış kişiler bu kuruma başvuru gönderebilir;
             yöneticiler Menü &gt; Başvurular&apos;dan onaylar.
+          </Text>
+          <OnayKutusu
+            etiket="İçerik takibi (kademe, ders/konu, ezber, kitap)"
+            secili={ozellikAcik(kurum, 'icerik_takibi')}
+            onDegis={(acik) => ozelligiAyarla('icerik_takibi', acik)}
+            pasif={degisiyor}
+          />
+          <Text style={tema.yazi.kucuk}>
+            Açıkken yöneticide Menü &gt; Kademeler, sınıf ekranlarında Dersler / Ezber / Kitap çıkar; veli çocuğunun ezber
+            ve kitap ilerlemesini görür.
           </Text>
           <HataMesaji mesaj={hata} />
         </Kart>

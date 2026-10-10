@@ -1,6 +1,7 @@
 // Erişim: yalnızca kurum_admin
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Buton } from '@/components/Buton';
@@ -8,17 +9,22 @@ import { Ekran } from '@/components/Ekran';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { ICERIK_OZELLIGI } from '@/lib/icerik';
 import { ogrencileriGetir } from '@/lib/ogrenciler';
+import { useOzellik } from '@/lib/ozellikler';
 import { sinifGetir } from '@/lib/siniflar';
+import { useTema } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 import { tarihiBicimle } from '@/lib/tarih';
 
 export default function SinifDetay() {
   const router = useRouter();
+  const tema = useTema();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [sinif, setSinif] = useState<Sinif | null>(null);
   const [ogrenciler, setOgrenciler] = useState<Ogrenci[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const icerikAcik = useOzellik(ICERIK_OZELLIGI);
 
   const yenile = useCallback(async () => {
     setHata(null);
@@ -58,6 +64,19 @@ export default function SinifDetay() {
         )}
       />
 
+      {icerikAcik ? (
+        <View style={{ flexDirection: 'row', gap: tema.bosluk.m }}>
+          <View style={{ flex: 1 }}>
+            <Buton tur="ikincil" baslik="Dersler" onPress={() => router.push(`/ders-takibi/${id}`)} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Buton tur="ikincil" baslik="Ezber" onPress={() => router.push(`/ezber/${id}`)} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Buton tur="ikincil" baslik="Kitap" onPress={() => router.push(`/kitap/${id}`)} />
+          </View>
+        </View>
+      ) : null}
       <Buton tur="ikincil" ikon="calendar-outline" baslik="Ders Programı" onPress={() => router.push(`/ders-programi/${id}`)} />
       <Buton tur="ikincil" ikon="grid-outline" baslik="Haftalık Yoklama ve Katılım" onPress={() => router.push(`/sinif-katilim/${id}`)} />
       <Buton
