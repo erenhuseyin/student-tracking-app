@@ -175,9 +175,11 @@ function olustur(t: Tema) {
       flex: 1,
       fontFamily: t.yaziTipi.yariKalin,
     },
+    // Dört durum (Geldi / Gelmedi / Geç / Mazeretli) telefon genişliğine sığsın diye aralık dar,
+    // yazı bir boy küçüktür.
     secici: {
       flexDirection: 'row',
-      gap: t.bosluk.s,
+      gap: t.bosluk.xs,
     },
     secenek: {
       flex: 1,
@@ -190,7 +192,7 @@ function olustur(t: Tema) {
       backgroundColor: t.renkler.yuzey,
     },
     secenekMetni: {
-      ...t.yazi.govde,
+      ...t.yazi.kucuk,
       fontFamily: t.yaziTipi.yariKalin,
       color: t.renkler.metinIkincil,
     },

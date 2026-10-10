@@ -27,16 +27,20 @@ Bir eğitim kurumu için, öğretmenlerin öğrenci gelişimini kaydedebildiği,
 - **kurum** — id, ad, ayarlar, ust_kurum_id (şube ise ana kurumu), marka_kodu (yalnızca ana kurumda), ozellikler (müşteriye özel özellik bayrakları)
 - **sinif** — id, kurum_id, ad, dönem
 - **kullanici** — id, auth_id (Supabase auth), rol, kurum_id, ad_soyad
-- **ogrenci** — id, kurum_id, kok_kurum_id (otomatik), sinif_id, ad_soyad, doğum_tarihi, tckn (müşteri başına tekil)
+- **ogrenci** — id, kurum_id, kok_kurum_id (otomatik), sinif_id, ad_soyad, doğum_tarihi, tckn (müşteri başına tekil), aktif (pasif = ayrılmış; kayıtları korunur)
 - **veli_ogrenci** — veli_id, ogrenci_id (çoka çok ilişki — bir veli birden fazla çocuk, bir öğrencinin birden fazla velisi olabilir)
 - **ogretmen_sinif** — ogretmen_id, sinif_id (atama tablosu)
-- **yoklama** — id, ogrenci_id, tarih, durum (geldi/gelmedi/geç), giren_kullanici_id
+- **yoklama** — id, ogrenci_id, tarih, durum (geldi/gelmedi/geç/mazeretli), giren_kullanici_id
 - **sinif_ders_plani** — id, kurum_id, sinif_id, baslangic_tarihi (geçerli olduğu ilk haftanın pazartesisi), ders_gunleri (1=Pzt … 7=Paz)
 - **gelisim_kategorisi** — id, kurum_id (kök kurum = müşteri), ad, sira, aktif
 - **gelisim_kaydi** — id, kurum_id, kok_kurum_id (otomatik), ogrenci_id, kategori_id, not_metni, olcek_degeri (isteğe bağlı 1-5), tarih, giren_kullanici_id, foto_yolu (ileride; private storage yolu)
 - **duyuru** — id, kurum_id, kok_kurum_id (otomatik), sinif_id (boşsa kurum geneli; kök kurumsa şubeler dahil), tur (duyuru/etkinlik), baslik, icerik, etkinlik_zamani, yer, giren_kullanici_id
 - **kapali_bolum** — kurum_id (kök kurum), rol (öğretmen/veli), bolum_anahtari — müşterinin o rol için kapattığı bölümler (satır yoksa açık)
 - **ders_programi** — id, kurum_id, sinif_id, gun (1-7), baslangic_saati, bitis_saati, ders_adi
+- **kademe / kademe_dersi / ders_konusu / ezber_maddesi** — müşteri (kök kurum) düzeyinde müfredat tanımları; `sinif.kademe_id` sınıfın izlediği kademe
+- **sinif_konu_ilerleme** — sinif_id, konu_id, tamamlanma_tarihi (satır varsa konu işlendi)
+- **ogrenci_ezber** — ogrenci_id, madde_id, durum (devam/tamam; satır yoksa başlamadı)
+- **kitap_okuma** — id, ogrenci_id, baslik, yazar, durum (başlamadı/okuyor/bitti), tarihler
 - **devamsizlik_bildirimi** — id, kurum_id, ogrenci_id, tarih, neden, giren_kullanici_id (velinin önceden bildirdiği devamsızlık; yoklamayı değiştirmez)
 - **oneri** — id, kurum_id, kok_kurum_id (otomatik), giren_kullanici_id, metin, okundu (veliden kuruma tek yönlü)
 - **basvuru** — id, kurum_id, kok_kurum_id (otomatik), tur (öğrenci/personel), durum (bekliyor/onaylandı/reddedildi), ad_soyad, öğrenci alanları (dogum_tarihi, tckn, veli_ad_soyad, veli_telefon) ya da eposta, karar bilgisi
@@ -123,6 +127,10 @@ supabase/
 
 ## 9. Netleşen Kararlar
 
+- **İçerik takibi müşteri bazlı bir özelliktir (2026-10-10).** Kademe (müfredat) → ders → konu, ezber listesi ve kitap okuma takibi, Genç Hareket'in mevcut aracından (GH KÂŞİF) alındı. Tanımları ana kurumun yöneticisi yapar; sınıf bir kademeyi izler; konu ilerlemesini, öğrenci ezberini ve kitaplarını sınıfın öğretmeni ve yönetici girer; veli çocuğunun ezber ve kitaplarını görür. Her kurumun işi olmadığı için `kurum.ozellikler.icerik_takibi` ile açılır.
+- **Mazeretli yoklama (2026-10-10).** Dördüncü yoklama durumu. Katılım oranında ne katıldı ne katılmadı sayılır: paydaya girmez, ayrıca gösterilir.
+- **Öğrenci silinmez, pasife alınır (2026-10-10).** Ayrılan öğrenci pasife alınır; listelerde ve yoklamada görünmez, tüm kayıtları korunur, yeniden aktifleştirilebilir. Silme yalnızca yanlış açılmış kayıt içindir (yoklaması olan öğrenci silinemez).
+- **Dışa aktarma yalnızca web'de (2026-10-10).** Yönetici raporları Excel'in açtığı CSV olarak tarayıcıdan indirilir; telefonda dışa aktarma yoktur.
 - **Mesajlaşma yok; veli tek yönlü yazar (2026-10-08).** Veli–öğretmen mesajlaşması yapılmayacak. Veliden kuruma iki tek yönlü kanal var: **devamsızlık bildirimi** (çocuğun gelmeyeceği gün + neden; öğretmen o günün yoklamasında görür, yoklamayı yine öğretmen işaretler) ve **öneri** (yalnızca yöneticiler okur, günde en fazla 5; uygulamadan yanıt yazılmaz).
 - **Dönem geçişi yok (2026-10-08).** Sınıflar yıl sonunda üst sınıfa "geçirilmez": bir sınıf (ör. vakıfta "Bilinçli Mucitler") yıllarca aynı adla ve aynı ekiple sürebilir. `sinif.donem` yalnızca bilgi alanıdır.
 - **Aidat/ödeme takibi kapsam dışı (2026-10-08, şimdilik).**
