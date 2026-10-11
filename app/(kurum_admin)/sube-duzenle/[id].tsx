@@ -1,5 +1,5 @@
-// Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i (RLS: şube admini kendi şubesinin adını
-// değiştiremez, şube silemez). Şubenin adını değiştirir ya da şubeyi siler.
+// Erişim: kurum_admin, yalnızca kendi altındaki birimler için (RLS: yönetici kendi biriminin adını
+// değiştiremez, kendi birimini silemez). Birimin adını değiştirir ya da birimi siler.
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
@@ -11,7 +11,8 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { OnayButonu } from '@/components/OnayButonu';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { kurumGetir, subeAdiniGuncelle, subeSil } from '@/lib/kurumlar';
+import { altKurumSil, kurumAdiniGuncelle, kurumGetir } from '@/lib/kurumlar';
+import { seviyeAdi } from '@/lib/seviye';
 import { useTema } from '@/lib/tema';
 import { useToast } from '@/lib/toast';
 
@@ -23,6 +24,7 @@ export default function SubeDuzenle() {
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [ad, setAd] = useState('');
+  const [seviye, setSeviye] = useState('Birim');
   const [yukleniyor, setYukleniyor] = useState(true);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -31,7 +33,9 @@ export default function SubeDuzenle() {
     let iptalEdildi = false;
     kurumGetir(id)
       .then((sube) => {
-        if (!iptalEdildi) setAd(sube.ad);
+        if (iptalEdildi) return;
+        setAd(sube.ad);
+        setSeviye(seviyeAdi(sube.seviye));
       })
       .catch((e) => {
         if (!iptalEdildi) setHata(mesajaCevir(e));
@@ -48,8 +52,8 @@ export default function SubeDuzenle() {
     setGonderiliyor(true);
     setHata(null);
     try {
-      await subeAdiniGuncelle(id, ad);
-      toast('Şube kaydedildi');
+      await kurumAdiniGuncelle(id, ad);
+      toast(`${seviye} kaydedildi`);
       router.back();
     } catch (e) {
       setHata(mesajaCevir(e));
@@ -61,8 +65,8 @@ export default function SubeDuzenle() {
   const sil = async () => {
     setHata(null);
     try {
-      await subeSil(id);
-      toast('Şube silindi');
+      await altKurumSil(id);
+      toast(`${seviye} silindi`);
       router.back();
     } catch (e) {
       setHata(mesajaCevir(e));
@@ -71,17 +75,17 @@ export default function SubeDuzenle() {
 
   return (
     <Ekran kaydirilabilir>
-      <Stack.Screen options={{ title: 'Şubeyi Düzenle' }} />
+      <Stack.Screen options={{ title: yukleniyor ? '' : `${seviye} Düzenle` }} />
 
       {yukleniyor ? (
         <Yukleniyor />
       ) : (
         <Kart>
-          <Girdi etiket="Şube adı" value={ad} onChangeText={setAd} editable={!gonderiliyor} onSubmitEditing={kaydet} />
+          <Girdi etiket={`${seviye} adı`} value={ad} onChangeText={setAd} editable={!gonderiliyor} onSubmitEditing={kaydet} />
           <HataMesaji mesaj={hata} />
           <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
-          <Text style={tema.yazi.kucuk}>Sınıfı, öğrencisi ya da personeli olan şube silinemez; önce onlar kaldırılmalı.</Text>
-          <OnayButonu etiket="Şubeyi Sil" onOnay={sil} />
+          <Text style={tema.yazi.kucuk}>Alt birimi, sınıfı, öğrencisi ya da personeli olan birim silinemez; önce onlar kaldırılmalı.</Text>
+          <OnayButonu etiket="Sil" onOnay={sil} />
         </Kart>
       )}
     </Ekran>

@@ -33,12 +33,12 @@ export function DuyuruListesi({ yazabilir = false }: { yazabilir?: boolean }) {
     }, [yenile]),
   );
 
-  // Öğretmen yalnızca kendi yazdığını; kurum admini kendi kurumundakileri ve — ana kurumun
-  // yöneticisiyse — şubelerdekileri değiştirir. Şube yöneticisi ana kurumun duyurusunu yalnızca okur.
+  // Öğretmen yalnızca kendi yazdığını; yönetici kendi kurumundaki ve altındaki birimlerdeki
+  // duyuruları değiştirir. Üst birimden gelen duyuruyu yalnızca okur.
   const degistirebilir = (d: DuyuruSatiri) => {
     if (!yazabilir || !kullanici) return false;
     if (kullanici.rol === 'ogretmen') return d.giren_kullanici_id === kullanici.id;
-    return d.kurum_id === kurum?.id || kurum?.ust_kurum_id === null;
+    return kurum !== null && !kurum.yol.slice(0, -1).includes(d.kurum_id);
   };
 
   return (

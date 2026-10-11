@@ -16,6 +16,8 @@ type MarkaDosyasi = {
   scheme: string;
   androidPackage: string;
   easProjectId: string;
+  // İsteğe bağlı; kurum ağacındaki seviyelerin adları, kökten aşağı (bkz. lib/seviye.ts).
+  seviyeAdlari?: string[];
   renkler: {
     ana: string;
     ikonArkaplan: string;
@@ -105,6 +107,7 @@ const config: ExpoConfig = {
     marka: {
       kod: marka.kod,
       ad: marka.ad,
+      seviyeAdlari: marka.seviyeAdlari,
       renkler: marka.renkler,
     },
   },

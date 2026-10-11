@@ -1,6 +1,6 @@
 // Erişim: yalnızca kurum_admin. Roller sabittir (yönetici, öğretmen, veli); burada her rolün ne
 // yaptığı ve — öğretmen ile veli için — hangi bölümleri gördüğü yer alır. Bölümleri yalnızca
-// kök kurumun (müşterinin) yöneticisi açıp kapatır (RLS de bunu zorlar); şube yöneticisi salt okunur görür.
+// kök kurumun (müşterinin) yöneticisi açıp kapatır (RLS de bunu zorlar); alt birim yöneticisi salt okunur görür.
 import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -11,16 +11,24 @@ import { Kart } from '@/components/Kart';
 import { OnayKutusu } from '@/components/OnayKutusu';
 import { Rozet } from '@/components/Rozet';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { bolumGorunurlugunuAyarla, kapaliBolumleriGetir, type KapaliBolum, rolSayilariniGetir } from '@/lib/bolumler';
+import {
+  bolumGorunurlugunuAyarla,
+  kapaliBolumleriGetir,
+  type KapaliBolum,
+  rolSayilariniGetir,
+  yoneticiSeviyeSayilariniGetir,
+} from '@/lib/bolumler';
 import { AYARLANABILIR_BOLUMLER, type AyarlanabilirRol, ROL_ETIKETLERI } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
+import { seviyeAdi } from '@/lib/seviye';
 import { type Tema, useTema } from '@/lib/tema';
 
 type Sayilar = Awaited<ReturnType<typeof rolSayilariniGetir>>;
+type SeviyeSayilari = Awaited<ReturnType<typeof yoneticiSeviyeSayilariniGetir>>;
 
 const ROL_ACIKLAMALARI: Record<'kurum_admin' | AyarlanabilirRol, string> = {
   kurum_admin:
-    'Sınıfları, öğrencileri ve personeli yönetir. Ana kurumun yöneticisi şubeleri de yönetir. Yöneticinin bölümleri kapatılamaz.',
+    'Bağlı olduğu birimin ve altındaki tüm birimlerin sınıflarını, öğrencilerini ve personelini yönetir; üstündeki ya da yanındaki birimleri göremez. Yöneticinin bölümleri kapatılamaz.',
   ogretmen: 'Yalnızca atandığı sınıfları ve o sınıfların öğrencilerini görür.',
   veli: 'Yalnızca kendi çocuğunun kayıtlarını görür.',
 };
@@ -35,6 +43,7 @@ export default function Roller() {
   const kokKurumId = kokKurum?.id;
 
   const [sayilar, setSayilar] = useState<Sayilar | null>(null);
+  const [seviyeSayilari, setSeviyeSayilari] = useState<SeviyeSayilari>([]);
   const [kapalilar, setKapalilar] = useState<KapaliBolum[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [degisen, setDegisen] = useState<string | null>(null);
@@ -44,10 +53,11 @@ export default function Roller() {
       if (!kokKurumId) return;
       let iptalEdildi = false;
       setHata(null);
-      Promise.all([rolSayilariniGetir(), kapaliBolumleriGetir(kokKurumId)])
-        .then(([s, k]) => {
+      Promise.all([rolSayilariniGetir(), kapaliBolumleriGetir(kokKurumId), yoneticiSeviyeSayilariniGetir()])
+        .then(([s, k, ys]) => {
           if (iptalEdildi) return;
           setSayilar(s);
+          setSeviyeSayilari(ys);
           setKapalilar(k);
         })
         .catch((e: Error) => {
@@ -93,6 +103,12 @@ export default function Roller() {
       <Kart>
         {baslik('kurum_admin')}
         <Text style={tema.yazi.kucuk}>{ROL_ACIKLAMALARI.kurum_admin}</Text>
+        {seviyeSayilari.map((s) => (
+          <View key={s.seviye} style={styles.baslik}>
+            <Text style={tema.yazi.govde}>{seviyeAdi(s.seviye)} yöneticisi</Text>
+            <Text style={tema.yazi.kucuk}>{s.sayi} kişi</Text>
+          </View>
+        ))}
       </Kart>
 
       {kapalilar
@@ -119,7 +135,7 @@ export default function Roller() {
 
       <Text style={tema.yazi.kucuk}>
         {kokKurumMu
-          ? 'Kapattığınız bölüm o roldeki herkesin uygulamasında gizlenir (şubeler dahil); değişiklik kişinin bir sonraki girişinde görünür. Bu ayar yalnızca ekranları gizler: kimin hangi veriye erişebildiği role bağlıdır ve buradan değişmez. Bildirimler bu ayardan etkilenmez.'
+          ? 'Kapattığınız bölüm o roldeki herkesin uygulamasında gizlenir (alt birimler dahil); değişiklik kişinin bir sonraki girişinde görünür. Bu ayar yalnızca ekranları gizler: kimin hangi veriye erişebildiği role bağlıdır ve buradan değişmez. Bildirimler bu ayardan etkilenmez.'
           : 'Bu ayarları yalnızca ana kurumun yöneticisi değiştirebilir.'}
       </Text>
     </Ekran>

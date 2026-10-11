@@ -32,7 +32,7 @@ export async function bolumGorunurlugunuAyarla(
   if (error && error.code !== '23505') throw new Error(hataMesajinaCevir(error.message));
 }
 
-// Rol başına kişi sayısı (yönetilen kurumlar: kendi kurumu + şubeleri; RLS süzer).
+// Rol başına kişi sayısı (yönetilen kurumlar: kendi kurumu + altındaki birimler; RLS süzer).
 export async function rolSayilariniGetir(): Promise<Record<'kurum_admin' | 'ogretmen' | 'veli', number>> {
   const { data, error } = await supabase.from('kullanici').select('rol').eq('aktif', true);
   if (error) throw new Error(hataMesajinaCevir(error.message));
@@ -41,4 +41,22 @@ export async function rolSayilariniGetir(): Promise<Record<'kurum_admin' | 'ogre
     if (k.rol !== 'super_admin') sayilar[k.rol] += 1;
   }
   return sayilar;
+}
+
+// Yöneticilerin bağlı oldukları kurumun seviyesine göre sayısı (seviyeye göre sıralı). Çağıranın
+// üstündeki yöneticiler RLS gereği görünmez.
+export async function yoneticiSeviyeSayilariniGetir(): Promise<{ seviye: number; sayi: number }[]> {
+  const [yoneticiler, kurumlar] = await Promise.all([
+    supabase.from('kullanici').select('kurum_id').eq('rol', 'kurum_admin').eq('aktif', true),
+    supabase.from('kurum').select('id, seviye'),
+  ]);
+  const hata = yoneticiler.error ?? kurumlar.error;
+  if (hata) throw new Error(hataMesajinaCevir(hata.message));
+  const seviyeler = new Map((kurumlar.data ?? []).map((k) => [k.id, k.seviye]));
+  const sayilar = new Map<number, number>();
+  for (const y of yoneticiler.data ?? []) {
+    const seviye = y.kurum_id ? seviyeler.get(y.kurum_id) : undefined;
+    if (seviye) sayilar.set(seviye, (sayilar.get(seviye) ?? 0) + 1);
+  }
+  return [...sayilar.entries()].sort((a, b) => a[0] - b[0]).map(([seviye, sayi]) => ({ seviye, sayi }));
 }

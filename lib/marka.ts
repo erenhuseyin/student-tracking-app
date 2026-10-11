@@ -5,6 +5,8 @@ import Constants from 'expo-constants';
 export type Marka = {
   kod: string;
   ad: string;
+  // İsteğe bağlı; kurum ağacındaki seviyelerin adları, kökten aşağı (bkz. lib/seviye.ts).
+  seviyeAdlari?: string[];
   renkler: {
     ana: string;
     ikonArkaplan: string;

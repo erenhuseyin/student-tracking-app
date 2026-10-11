@@ -5,7 +5,8 @@ import type { Href } from 'expo-router';
 
 import type { IkonAdi } from '@/components/Ikon';
 import { useOturum } from '@/lib/oturum';
-import type { Rol } from '@/lib/tipler';
+import { altBirimAcabilir, seviyeAdiCogul, yoneticiEtiketi } from '@/lib/seviye';
+import type { Kurum, Rol } from '@/lib/tipler';
 
 export const ROL_ETIKETLERI: Record<Rol, string> = {
   super_admin: 'Süper yönetici',
@@ -13,6 +14,11 @@ export const ROL_ETIKETLERI: Record<Rol, string> = {
   ogretmen: 'Öğretmen',
   veli: 'Veli',
 };
+
+// Yönetici, bağlı olduğu kurumun seviyesiyle gösterilir ("Bölge yöneticisi").
+export function rolEtiketi(rol: Rol, kurum: Pick<Kurum, 'seviye'> | null): string {
+  return rol === 'kurum_admin' ? yoneticiEtiketi(kurum) : ROL_ETIKETLERI[rol];
+}
 
 // Müşterinin (kök kurum yöneticisinin) öğretmen ve veliler için kapatabildiği bölümler
 // ("Roller ve Yetkiler" ekranı; tablo: kapali_bolum). Yönetici bölümleri kapatılamaz.
@@ -47,8 +53,11 @@ type Ortak = {
   anahtar: string;
   etiket: string;
   ikon: IkonAdi;
-  // Yalnızca kök kurumun (müşterinin) yöneticisi görür; şube yöneticisi görmez.
+  // Yalnızca kök kurumun (müşterinin) yöneticisi görür; alt birim yöneticisi görmez.
   yalnizKok?: boolean;
+  // Altına birim açılabilen (en alt seviyede olmayan) kurumun yöneticisi görür; etiketi bir alt
+  // seviyenin adıdır (lib/seviye.ts).
+  altBirimler?: boolean;
   // Kurumun kapatabildiği bölüm (AYARLANABILIR_BOLUMLER'deki anahtar); kapalıysa öğe gizlenir.
   bolum?: string;
   // Müşteriye özel özellik bayrağı (kurum.ozellikler; yalnızca süper admin açar); kapalıysa öğe gizlenir.
@@ -80,7 +89,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
     { anahtar: 'ogrenciler', etiket: 'Öğrenciler', ikon: 'search-outline', yer: 'menu', rota: '/ogrenciler' },
-    { anahtar: 'subeler', etiket: 'Şubeler', ikon: 'business-outline', yer: 'menu', rota: '/subeler', yalnizKok: true },
+    { anahtar: 'subeler', etiket: 'Alt Birimler', ikon: 'business-outline', yer: 'menu', rota: '/subeler', altBirimler: true },
     { anahtar: 'basvurular', etiket: 'Başvurular', ikon: 'mail-unread-outline', yer: 'menu', rota: '/basvurular', ozellik: 'basvuru' },
     { anahtar: 'oneriler', etiket: 'Veli Önerileri', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneriler' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
@@ -131,11 +140,15 @@ export function useMenu(): Menu {
     typeof ozellikler === 'object' && ozellikler !== null && !Array.isArray(ozellikler) && ozellikler[ad] === true;
   const gorunur = (o: MenuOgesi) =>
     (!o.yalnizKok || kokKurumMu) &&
+    (!o.altBirimler || altBirimAcabilir(kurum)) &&
     !(o.bolum && kapaliBolumler.includes(o.bolum)) &&
     (!o.ozellik || ozellikAcik(o.ozellik));
 
   return {
     sekmeler: ogeler.filter((o) => o.yer === 'sekme').map((o) => ({ ...o, gorunur: gorunur(o) })),
-    menuSatirlari: ogeler.filter((o) => o.yer === 'menu').filter(gorunur),
+    menuSatirlari: ogeler
+      .filter((o) => o.yer === 'menu')
+      .filter(gorunur)
+      .map((o) => (o.altBirimler && kurum ? { ...o, etiket: seviyeAdiCogul(kurum.seviye + 1) } : o)),
   };
 }

@@ -1,36 +1,41 @@
-// Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i. Şube admini Menü'de bu satırı görmez
-// (lib/menu.ts); adresle açsa bile RLS ona şube göstermez ve şube eklemesine izin vermez.
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+// Erişim: kurum_admin. Bir düğümün doğrudan altındaki birimler (kökün bölgeleri, bölgenin ilçeleri …).
+// `ustId` verilmezse yöneticinin kendi kurumunun altı listelenir. RLS yönetici olmayan ya da başka
+// daldaki birimi göstermez; en alt seviyedeki yönetici Menü'de bu satırı görmez (lib/menu.ts).
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
+import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { IkonButon } from '@/components/IkonButon';
-import { subeleriGetir } from '@/lib/kurumlar';
+import { altKurumlariGetir } from '@/lib/kurumlar';
 import { useOturum } from '@/lib/oturum';
+import { altBirimAcabilir, seviyeAdiCogul, seviyeAdiKucuk } from '@/lib/seviye';
 import { useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
+import { useKurum } from '@/lib/useKurum';
 
-export default function Subeler() {
+export default function AltBirimler() {
   const router = useRouter();
   const tema = useTema();
-  const { kurum } = useOturum();
-  const [subeler, setSubeler] = useState<Kurum[] | null>(null);
+  const { kurum: kendiKurumu } = useOturum();
+  const { ustId: ustParam } = useLocalSearchParams<{ ustId?: string }>();
+  const ustId = ustParam ?? kendiKurumu?.id;
+  const { kurum: ust, hata: ustHatasi } = useKurum(ustId);
+  const [birimler, setBirimler] = useState<Kurum[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
-  const kurumId = kurum?.id;
 
   const yenile = useCallback(async () => {
-    if (!kurumId) return;
+    if (!ustId) return;
     setHata(null);
     try {
-      setSubeler(await subeleriGetir(kurumId));
+      setBirimler(await altKurumlariGetir(ustId));
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     }
-  }, [kurumId]);
+  }, [ustId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -38,25 +43,30 @@ export default function Subeler() {
     }, [yenile]),
   );
 
+  const altSeviye = (ust?.seviye ?? 1) + 1;
+  const ad = seviyeAdiKucuk(altSeviye);
+
   return (
     <Ekran>
-      <Stack.Screen options={{ title: 'Şubeler' }} />
-      <BaslikEkleButonu etiket="Yeni şube ekle" onPress={() => router.push('/yeni-sube')} />
+      <Stack.Screen options={{ title: ust ? (ustParam ? `${ust.ad} · ${seviyeAdiCogul(altSeviye)}` : seviyeAdiCogul(altSeviye)) : '' }} />
+      {altBirimAcabilir(ust) ? (
+        <BaslikEkleButonu etiket={`Yeni ${ad} ekle`} onPress={() => router.push(`/yeni-sube?ustId=${ustId}`)} />
+      ) : null}
 
       <Liste
-        veri={subeler}
-        hata={hata}
+        veri={birimler}
+        hata={hata ?? ustHatasi}
         onYenile={yenile}
-        anahtar={(s) => s.id}
+        anahtar={(b) => b.id}
         bosIkon="business-outline"
-        bosBaslik="Henüz şube yok"
-        bosAciklama="Sağ üstteki + ile ilk şubeyi ekleyin."
-        satir={(s) => (
+        bosBaslik={`Henüz ${ad} yok`}
+        bosAciklama={`Sağ üstteki + ile ilk ${ad} kaydını ekleyin.`}
+        satir={(b) => (
           <ListeSatiri
-            baslik={s.ad}
+            baslik={b.ad}
             sol={<Ikon ad="business-outline" boyut={26} renk={tema.renkler.anaParlak} />}
-            onPress={() => router.push(`/sube/${s.id}`)}
-            sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sube-duzenle/${s.id}`)} />}
+            onPress={() => router.push(`/sube/${b.id}`)}
+            sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sube-duzenle/${b.id}`)} />}
           />
         )}
       />

@@ -15,28 +15,37 @@ export type Database = {
           ad: string;
           ayarlar: Json;
           id: string;
+          kok_kurum_id: string;
           marka_kodu: string | null;
           olusturma_tarihi: string;
           ozellikler: Json;
+          seviye: number;
           ust_kurum_id: string | null;
+          yol: string[];
         };
         Insert: {
           ad: string;
           ayarlar?: Json;
           id?: string;
+          kok_kurum_id?: string;
           marka_kodu?: string | null;
           olusturma_tarihi?: string;
           ozellikler?: Json;
+          seviye?: number;
           ust_kurum_id?: string | null;
+          yol?: string[];
         };
         Update: {
           ad?: string;
           ayarlar?: Json;
           id?: string;
+          kok_kurum_id?: string;
           marka_kodu?: string | null;
           olusturma_tarihi?: string;
           ozellikler?: Json;
+          seviye?: number;
           ust_kurum_id?: string | null;
+          yol?: string[];
         };
         Relationships: [
           {

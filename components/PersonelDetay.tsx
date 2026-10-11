@@ -14,6 +14,7 @@ import { OnayKutusu } from '@/components/OnayKutusu';
 import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
 import { Secenekler } from '@/components/Secenekler';
 import { Yukleniyor } from '@/components/Yukleniyor';
+import { rolEtiketi } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import {
   ogretmenSinifAta,
@@ -32,6 +33,7 @@ import {
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Kullanici, Sinif } from '@/lib/tipler';
+import { useKurum } from '@/lib/useKurum';
 
 const ROL_SECENEKLERI: { deger: PersonelRolu; etiket: string }[] = [
   { deger: 'ogretmen', etiket: PERSONEL_ROL_ETIKETLERI.ogretmen },
@@ -62,6 +64,7 @@ export function PersonelDetay({ id }: { id: string }) {
   const tema = useTema();
   const { kullanici } = useOturum();
   const [personel, setPersonel] = useState<Kullanici | null>(null);
+  const { kurum: personelKurumu } = useKurum(personel?.kurum_id ?? undefined);
   const [adSoyad, setAdSoyad] = useState('');
   const [siniflar, setSiniflar] = useState<Sinif[]>([]);
   const [atananlar, setAtananlar] = useState<string[]>([]);
@@ -237,7 +240,7 @@ export function PersonelDetay({ id }: { id: string }) {
         {rolDegisebilir ? null : (
           <Girdi
             etiket="Görev"
-            value={PERSONEL_ROL_ETIKETLERI[personel.rol as PersonelRolu] ?? personel.rol}
+            value={rolEtiketi(personel.rol, personelKurumu)}
             editable={false}
           />
         )}

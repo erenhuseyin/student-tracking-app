@@ -11,7 +11,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Ikon } from '@/components/Ikon';
 import { Kart } from '@/components/Kart';
 import { ListeSatiri } from '@/components/ListeSatiri';
-import { ROL_ETIKETLERI } from '@/lib/menu';
+import { rolEtiketi } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { EN_AZ_SIFRE_UZUNLUGU } from '@/lib/personel';
 import { adimiGuncelle, sifremiDegistir } from '@/lib/profil';
@@ -89,7 +89,7 @@ export function ProfilEkrani() {
           editable={!veli && !adKaydediliyor}
         />
         {kullanici.eposta ? <Girdi etiket="E-posta (değiştirilemez)" value={kullanici.eposta} editable={false} /> : null}
-        <Girdi etiket="Görev" value={ROL_ETIKETLERI[kullanici.rol]} editable={false} />
+        <Girdi etiket="Görev" value={rolEtiketi(kullanici.rol, kurum)} editable={false} />
         {kurumAdi ? <Girdi etiket="Kurum" value={kurumAdi} editable={false} /> : null}
         <HataMesaji mesaj={adMesaji?.metin} tur={adMesaji?.tur} />
         {veli ? null : (

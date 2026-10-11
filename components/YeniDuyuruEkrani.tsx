@@ -10,8 +10,15 @@ import { Yukleniyor } from '@/components/Yukleniyor';
 import { duyuruEkle } from '@/lib/duyurular';
 import { useToast } from '@/lib/toast';
 import { useOturum } from '@/lib/oturum';
+import { EN_FAZLA_SEVIYE, seviyeAdiKucuk } from '@/lib/seviye';
 import { siniflariGetir } from '@/lib/siniflar';
 import type { Sinif } from '@/lib/tipler';
+
+// Yöneticinin kurumuna yazdığı genel duyuru altındaki tüm birimleri de kapsar.
+function kapsamEtiketi(seviye: number): string {
+  const ad = seviyeAdiKucuk(seviye);
+  return seviye < EN_FAZLA_SEVIYE ? `Tüm ${ad} (alt birimler dahil)` : `Tüm ${ad}`;
+}
 
 export function YeniDuyuruEkrani() {
   const router = useRouter();
@@ -32,7 +39,7 @@ export function YeniDuyuruEkrani() {
 
   const kapsamlar: DuyuruKapsami[] | null = siniflar
     ? [
-        ...(yonetici ? [{ sinifId: null, etiket: kurum?.ust_kurum_id === null ? 'Tüm kurum (şubeler dahil)' : 'Tüm şube' }] : []),
+        ...(yonetici ? [{ sinifId: null, etiket: kurum ? kapsamEtiketi(kurum.seviye) : '' }] : []),
         ...siniflar.map((s) => ({ sinifId: s.id, etiket: s.ad })),
       ]
     : null;

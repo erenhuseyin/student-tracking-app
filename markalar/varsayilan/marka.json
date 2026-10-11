@@ -6,6 +6,7 @@
   "scheme": "ogrencitakip",
   "androidPackage": "com.ergenecode.ogrencitakip",
   "easProjectId": "238b87a6-fa82-44b9-9dbd-304631fa0b0a",
+  "seviyeAdlari": ["Genel Merkez", "Bölge", "İlçe", "Semt"],
   "renkler": {
     "ana": "#3E5C47",
     "anaParlak": "#6E8F78",

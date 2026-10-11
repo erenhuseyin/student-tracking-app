@@ -45,12 +45,12 @@ async function kurumlariGetir(
   const hata = 'Kurum bilgisi alınamadı. Lütfen tekrar deneyin.';
   const { data: kurum, error } = await supabase.from('kurum').select('*').eq('id', kurumId).maybeSingle();
   if (error || !kurum) return { kurum: null, kokKurum: null, hata };
-  if (!kurum.ust_kurum_id) return { kurum, kokKurum: kurum, hata: null };
+  if (kurum.kok_kurum_id === kurum.id) return { kurum, kokKurum: kurum, hata: null };
 
   const { data: kokKurum, error: kokHatasi } = await supabase
     .from('kurum')
     .select('*')
-    .eq('id', kurum.ust_kurum_id)
+    .eq('id', kurum.kok_kurum_id)
     .maybeSingle();
   if (kokHatasi || !kokKurum) return { kurum: null, kokKurum: null, hata };
   return { kurum, kokKurum, hata: null };

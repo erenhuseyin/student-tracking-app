@@ -9,7 +9,7 @@ import { Kart } from '@/components/Kart';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { OnayButonu } from '@/components/OnayButonu';
 import { Secenekler } from '@/components/Secenekler';
-import { ROL_ETIKETLERI, useMenu } from '@/lib/menu';
+import { rolEtiketi, useMenu } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { useTema } from '@/lib/tema';
 import { type TemaTercihi, useTemaTercihi } from '@/lib/temaTercihi';
@@ -33,7 +33,7 @@ export function MenuEkrani() {
         <ListeSatiri
           buyuk
           baslik={kullanici.ad_soyad}
-          altBaslik={[ROL_ETIKETLERI[kullanici.rol], kurum?.ad].filter(Boolean).join(' · ')}
+          altBaslik={[rolEtiketi(kullanici.rol, kurum), kurum?.ad].filter(Boolean).join(' · ')}
           sol={<Avatar ad={kullanici.ad_soyad} boyut={48} />}
           onPress={() => router.push('/profil')}
         />

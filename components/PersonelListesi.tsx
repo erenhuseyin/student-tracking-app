@@ -10,9 +10,11 @@ import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
-import { PERSONEL_ROL_ETIKETLERI, type PersonelRolu, personelleriGetir } from '@/lib/personel';
+import { rolEtiketi } from '@/lib/menu';
+import { personelleriGetir } from '@/lib/personel';
 import { type Tema, useTema } from '@/lib/tema';
 import type { Kullanici } from '@/lib/tipler';
+import { useKurum } from '@/lib/useKurum';
 
 export function PersonelListesi({ kurumId }: { kurumId: string }) {
   const router = useRouter();
@@ -20,6 +22,7 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
   const styles = useMemo(() => olustur(tema), [tema]);
   const [personel, setPersonel] = useState<Kullanici[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const { kurum } = useKurum(kurumId);
 
   useFocusEffect(
     useCallback(() => {
@@ -54,7 +57,7 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad_soyad}
-            altBaslik={[PERSONEL_ROL_ETIKETLERI[k.rol as PersonelRolu], k.eposta].filter(Boolean).join(' · ')}
+            altBaslik={[rolEtiketi(k.rol, kurum), k.eposta].filter(Boolean).join(' · ')}
             sol={<Avatar ad={k.ad_soyad} />}
             sag={<PersonelDurumRozeti personel={k} />}
             onPress={() => router.push(`/personel/${k.id}`)}
