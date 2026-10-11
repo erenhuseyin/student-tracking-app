@@ -563,10 +563,8 @@ insert into public.ogrenci (id, kurum_id, sinif_id, ad_soyad, dogum_tarihi) valu
 insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values
   ('c0000000-0000-0000-0000-0000000000a1', 'e0000000-0000-0000-0000-000000000a11', '2026-10-01', 'geldi', 'b0000000-0000-0000-0000-000000000012');
 
--- 2 seviye sınırı (şema; postgres rolüyle)
-select tst.esit('şubenin altına şube açılamaz',
-  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-0000000000a1')$q$), 'hata:23514');
-select tst.esit('şubesi olan kurum şube yapılamaz',
+-- Ağaç kuralları (şema; postgres rolüyle). Seviye sınırı 28. bölümde sınanır.
+select tst.esit('altında birim olan kurum taşınamaz',
   tst.dene($q$update public.kurum set ust_kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'hata:23514');
 select tst.esit('kurum kendi üstü olamaz',
   tst.dene($q$update public.kurum set ust_kurum_id = id where id = 'c0000000-0000-0000-0000-00000000000b'$q$), 'hata:23514');
@@ -632,8 +630,10 @@ select tst.esit('şube admini kökü güncelleyemez',
   tst.dene($q$update public.kurum set ayarlar = '{"x":2}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:0');
 select tst.esit('şube admini kardeş şube açamaz',
   tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-00000000000a')$q$), 'hata:42501');
-select tst.esit('şube admini kendi altına şube açamaz',
-  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-0000000000a1')$q$), 'hata:23514');
+select tst.esit('şube admini kendi altına birim açar',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('Alt birim A1', 'c0000000-0000-0000-0000-0000000000a1') returning id$q$), 'ok:1');
+select tst.esit('şube admini açtığı birimi siler',
+  tst.dene($q$delete from public.kurum where ad = 'Alt birim A1'$q$), 'ok:1');
 select tst.esit('şube admini kendi adını değiştiremez',
   tst.dene($q$update public.kurum set ad = 'x' where id = 'c0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
 select tst.esit('şube admini kendi şubesini silemez',
@@ -1742,6 +1742,190 @@ set local role authenticated;
 
 select tst.esit('veli pasif çocuğunu görmeye devam eder', (select count(*) from public.ogrenci where id = 'e0000000-0000-0000-0000-0000000000a1')::text, '1');
 select tst.esit('veli aktifliği değiştiremez', tst.dene($q$update public.ogrenci set aktif = true where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+
+-- ===========================================================================
+-- 28. KURUM AĞACI (4 seviye): yönetici bağlı olduğu düğümü ve altını yönetir
+--   Kurum G (kök) -> Bölge G1 -> İlçe G11 -> Semt G111 (sinif sG, ogrenci oG, veliG)
+--                              -> İlçe G12
+--                 -> Bölge G2 (sinif sG2)
+--   Kimlikler: 40 adminG, 41 adminG1 (bölge), 42 adminG11 (ilçe), 43 adminG111 (semt),
+--              44 adminG2 (komşu bölge), 45 veliG (semt), 46 adminG12 (kardeş ilçe)
+-- ===========================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'adming@test.local'),
+  ('a0000000-0000-0000-0000-000000000041', 'authenticated', 'authenticated', 'adming1@test.local'),
+  ('a0000000-0000-0000-0000-000000000042', 'authenticated', 'authenticated', 'adming11@test.local'),
+  ('a0000000-0000-0000-0000-000000000043', 'authenticated', 'authenticated', 'adming111@test.local'),
+  ('a0000000-0000-0000-0000-000000000044', 'authenticated', 'authenticated', 'adming2@test.local'),
+  ('a0000000-0000-0000-0000-000000000045', 'authenticated', 'authenticated', 'velig@test.local'),
+  ('a0000000-0000-0000-0000-000000000046', 'authenticated', 'authenticated', 'adming12@test.local');
+
+insert into public.kurum (id, ad, ust_kurum_id) values
+  ('c0000000-0000-0000-0000-0000000000d0', 'Kurum G', null),
+  ('c0000000-0000-0000-0000-0000000000d1', 'Bölge G1', 'c0000000-0000-0000-0000-0000000000d0'),
+  ('c0000000-0000-0000-0000-0000000000d2', 'Bölge G2', 'c0000000-0000-0000-0000-0000000000d0'),
+  ('c0000000-0000-0000-0000-000000000d11', 'İlçe G11', 'c0000000-0000-0000-0000-0000000000d1'),
+  ('c0000000-0000-0000-0000-000000000d12', 'İlçe G12', 'c0000000-0000-0000-0000-0000000000d1'),
+  ('c0000000-0000-0000-0000-00000000d111', 'Semt G111', 'c0000000-0000-0000-0000-000000000d11');
+
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad) values
+  ('b0000000-0000-0000-0000-000000000040', 'a0000000-0000-0000-0000-000000000040', 'kurum_admin', 'c0000000-0000-0000-0000-0000000000d0', 'adminG'),
+  ('b0000000-0000-0000-0000-000000000041', 'a0000000-0000-0000-0000-000000000041', 'kurum_admin', 'c0000000-0000-0000-0000-0000000000d1', 'adminG1'),
+  ('b0000000-0000-0000-0000-000000000042', 'a0000000-0000-0000-0000-000000000042', 'kurum_admin', 'c0000000-0000-0000-0000-000000000d11', 'adminG11'),
+  ('b0000000-0000-0000-0000-000000000043', 'a0000000-0000-0000-0000-000000000043', 'kurum_admin', 'c0000000-0000-0000-0000-00000000d111', 'adminG111'),
+  ('b0000000-0000-0000-0000-000000000044', 'a0000000-0000-0000-0000-000000000044', 'kurum_admin', 'c0000000-0000-0000-0000-0000000000d2', 'adminG2'),
+  ('b0000000-0000-0000-0000-000000000045', 'a0000000-0000-0000-0000-000000000045', 'veli', 'c0000000-0000-0000-0000-00000000d111', 'veliG'),
+  ('b0000000-0000-0000-0000-000000000046', 'a0000000-0000-0000-0000-000000000046', 'kurum_admin', 'c0000000-0000-0000-0000-000000000d12', 'adminG12');
+
+insert into public.sinif (id, kurum_id, ad, donem) values
+  ('d0000000-0000-0000-0000-00000000d111', 'c0000000-0000-0000-0000-00000000d111', 'sG', '2026'),
+  ('d0000000-0000-0000-0000-0000000000d2', 'c0000000-0000-0000-0000-0000000000d2', 'sG2', '2026');
+
+insert into public.ogrenci (id, kurum_id, sinif_id, ad_soyad, dogum_tarihi) values
+  ('e0000000-0000-0000-0000-00000000d111', 'c0000000-0000-0000-0000-00000000d111', 'd0000000-0000-0000-0000-00000000d111', 'oG', '2020-03-01');
+
+insert into public.veli_ogrenci (kurum_id, veli_id, ogrenci_id) values
+  ('c0000000-0000-0000-0000-00000000d111', 'b0000000-0000-0000-0000-000000000045', 'e0000000-0000-0000-0000-00000000d111');
+
+insert into public.duyuru (kurum_id, baslik, icerik, giren_kullanici_id) values
+  ('c0000000-0000-0000-0000-0000000000d1', 'Bölge G1 duyurusu', 'x', 'b0000000-0000-0000-0000-000000000041'),
+  ('c0000000-0000-0000-0000-0000000000d2', 'Bölge G2 duyurusu', 'x', 'b0000000-0000-0000-0000-000000000044');
+
+-- Türetilmiş kolonlar ve seviye sınırı (şema; postgres rolüyle)
+select tst.esit('semt 4. seviyedir', (select seviye from public.kurum where id = 'c0000000-0000-0000-0000-00000000d111')::text, '4');
+select tst.esit('semtin kökü Kurum G', (select kok_kurum_id from public.kurum where id = 'c0000000-0000-0000-0000-00000000d111')::text, 'c0000000-0000-0000-0000-0000000000d0');
+select tst.esit('semtin yolu 4 düğüm', (select array_length(yol, 1) from public.kurum where id = 'c0000000-0000-0000-0000-00000000d111')::text, '4');
+select tst.esit('semt öğrencisinin kökü Kurum G', (select kok_kurum_id from public.ogrenci where id = 'e0000000-0000-0000-0000-00000000d111')::text, 'c0000000-0000-0000-0000-0000000000d0');
+select tst.esit('5. seviye açılamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-00000000d111')$q$), 'hata:23514');
+select tst.esit('kurum kendi altındaki düğüme bağlanamaz',
+  tst.dene($q$update public.kurum set ust_kurum_id = 'c0000000-0000-0000-0000-00000000d111' where id = 'c0000000-0000-0000-0000-00000000d111'$q$), 'hata:23514');
+
+-- adminG (kök): ağacın tamamı
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000040","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök yönetici ağacın tamamını görür', (select count(*) from public.kurum)::text, '6');
+select tst.esit('kök yönetici semt ve bölge sınıflarını görür', (select count(*) from public.sinif)::text, '2');
+select tst.esit('kök yönetici semt öğrencisini günceller',
+  tst.dene($q$update public.ogrenci set ad_soyad = 'oG-yeni' where id = 'e0000000-0000-0000-0000-00000000d111'$q$), 'ok:1');
+
+-- adminG1 (bölge): kendi bölgesi + ilçeleri + semti; komşu bölge ve kök yok
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000041","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('bölge yöneticisi kurum (kendi + 3 alt + kök)', (select count(*) from public.kurum)::text, '5');
+select tst.esit('bölge yöneticisi komşu bölgeyi okuyamaz',
+  (select count(*) from public.kurum where id = 'c0000000-0000-0000-0000-0000000000d2')::text, '0');
+select tst.esit('bölge yöneticisi semt sınıfını görür', (select count(*) from public.sinif)::text, '1');
+select tst.esit('bölge yöneticisi semt öğrencisini görür', (select count(*) from public.ogrenci)::text, '1');
+select tst.esit('bölge yöneticisi alt düğüm kullanıcılarını görür (kendisi dahil 5)', (select count(*) from public.kullanici)::text, '5');
+select tst.esit('bölge yöneticisi semte sınıf ekler',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-00000000d111','sGy','2026')$q$), 'ok:1');
+select tst.esit('bölge yöneticisi köke sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-0000000000d0','x','2026')$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi komşu bölgeye sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-0000000000d2','x','2026')$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi ilçe açar (returning ile)',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('İlçe G13', 'c0000000-0000-0000-0000-0000000000d1') returning id$q$), 'ok:1');
+select tst.esit('bölge yöneticisi ilçesinin altına semt açar',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('Semt G112', 'c0000000-0000-0000-0000-000000000d11') returning id$q$), 'ok:1');
+select tst.esit('istemcinin yazdığı yol/seviye ezilir',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id, seviye, yol, kok_kurum_id) values ('İlçe G14', 'c0000000-0000-0000-0000-0000000000d1', 1, array['c0000000-0000-0000-0000-0000000000d2']::uuid[], 'c0000000-0000-0000-0000-0000000000d2') returning id$q$), 'ok:1');
+select tst.esit('ezilen seviye 3', (select seviye from public.kurum where ad = 'İlçe G14')::text, '3');
+select tst.esit('bölge yöneticisi açtığı düğümleri siler',
+  tst.dene($q$delete from public.kurum where ad in ('İlçe G13', 'Semt G112', 'İlçe G14')$q$), 'ok:3');
+select tst.esit('bölge yöneticisi yeni bölge açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-0000000000d0')$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi komşu bölgenin altına açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-0000000000d2')$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi semtin adını değiştirir',
+  tst.dene($q$update public.kurum set ad = 'Semt G111 yeni' where id = 'c0000000-0000-0000-0000-00000000d111'$q$), 'ok:1');
+select tst.esit('bölge yöneticisi kendi adını değiştiremez',
+  tst.dene($q$update public.kurum set ad = 'x' where id = 'c0000000-0000-0000-0000-0000000000d1'$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi kökü güncelleyemez',
+  tst.dene($q$update public.kurum set ayarlar = '{"x":1}'::jsonb where id = 'c0000000-0000-0000-0000-0000000000d0'$q$), 'ok:0');
+select tst.esit('istemci yol kolonunu güncelleyemez',
+  tst.dene($q$update public.kurum set yol = array[id] where id = 'c0000000-0000-0000-0000-00000000d111'$q$), 'hata:42501');
+select tst.esit('istemci düğümü taşıyamaz',
+  tst.dene($q$update public.kurum set ust_kurum_id = 'c0000000-0000-0000-0000-000000000d12' where id = 'c0000000-0000-0000-0000-00000000d111'$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi kendi bölgesini silemez',
+  tst.dene($q$delete from public.kurum where id = 'c0000000-0000-0000-0000-0000000000d1'$q$), 'ok:0');
+select tst.esit('bölge yöneticisi komşu bölgenin duyurusunu göremez',
+  (select count(*) from public.duyuru where kurum_id = 'c0000000-0000-0000-0000-0000000000d2')::text, '0');
+
+-- adminG11 (ilçe): kendi ilçesi + semti; kardeş ilçe yok
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000042","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('ilçe yöneticisi kurum (kendi + semt + bölge + kök)', (select count(*) from public.kurum)::text, '4');
+select tst.esit('ilçe yöneticisi semt sınıflarını görür', (select count(*) from public.sinif)::text, '2');
+select tst.esit('ilçe yöneticisi kardeş ilçeye sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-000000000d12','x','2026')$q$), 'hata:42501');
+select tst.esit('ilçe yöneticisi kardeş ilçenin altına semt açamaz',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-000000000d12')$q$), 'hata:42501');
+select tst.esit('ilçe yöneticisi bölgeyi güncelleyemez',
+  tst.dene($q$update public.kurum set ayarlar = '{"x":1}'::jsonb where id = 'c0000000-0000-0000-0000-0000000000d1'$q$), 'ok:0');
+select tst.esit('ilçe yöneticisi bölge yöneticisini göremez',
+  (select count(*) from public.kullanici where kurum_id = 'c0000000-0000-0000-0000-0000000000d1')::text, '0');
+
+-- adminG12 (kardeş ilçe): semtin verisini göremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000046","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kardeş ilçe yöneticisi semt verisini göremez',
+  ((select count(*) from public.sinif) + (select count(*) from public.ogrenci))::text, '0');
+select tst.esit('kardeş ilçe yöneticisi semti okuyamaz',
+  (select count(*) from public.kurum where id = 'c0000000-0000-0000-0000-00000000d111')::text, '0');
+
+-- adminG111 (semt): yalnızca kendi düğümü; altına düğüm açamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000043","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('semt yöneticisi kurum (kendi + 3 üst)', (select count(*) from public.kurum)::text, '4');
+select tst.esit('semt yöneticisi kendi sınıflarını görür', (select count(*) from public.sinif)::text, '2');
+select tst.esit('semt yöneticisi altına düğüm açamaz (5. seviye)',
+  tst.dene($q$insert into public.kurum (ad, ust_kurum_id) values ('x', 'c0000000-0000-0000-0000-00000000d111')$q$), 'hata:23514');
+select tst.esit('semt yöneticisi ilçeye sınıf ekleyemez',
+  tst.dene($q$insert into public.sinif (kurum_id, ad, donem) values ('c0000000-0000-0000-0000-000000000d11','x','2026')$q$), 'hata:42501');
+select tst.esit('semt yöneticisi bölge duyurusunu okur',
+  (select count(*) from public.duyuru where kurum_id = 'c0000000-0000-0000-0000-0000000000d1')::text, '1');
+select tst.esit('semt yöneticisi bölge duyurusunu değiştiremez',
+  tst.dene($q$update public.duyuru set baslik = 'x' where kurum_id = 'c0000000-0000-0000-0000-0000000000d1'$q$), 'ok:0');
+
+-- adminG2 (komşu bölge): G1 ağacından hiçbir şey
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000044","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('komşu bölge yöneticisi kurum (kendi + kök)', (select count(*) from public.kurum)::text, '2');
+select tst.esit('komşu bölge yöneticisi yalnızca kendi sınıfı', (select count(*) from public.sinif)::text, '1');
+select tst.esit('komşu bölge yöneticisi semt öğrencisini göremez', (select count(*) from public.ogrenci)::text, '0');
+select tst.esit('komşu bölge yöneticisi G1 duyurusunu göremez',
+  (select count(*) from public.duyuru where kurum_id = 'c0000000-0000-0000-0000-0000000000d1')::text, '0');
+
+-- veliG (semtte): üst düğümlerin genel duyurusunu okur, komşu bölgeninkini okumaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000045","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('semt velisi bölge duyurusunu okur', (select count(*) from public.duyuru)::text, '1');
+select tst.esit('semt velisi kurum (kendi + 3 üst)', (select count(*) from public.kurum)::text, '4');
+select tst.esit('semt velisi yalnızca çocuğunu görür', (select count(*) from public.ogrenci)::text, '1');
+
+-- adminA (başka müşteri): G ağacından hiçbir şey
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşteri G ağacını göremez',
+  (select count(*) from public.kurum where kok_kurum_id = 'c0000000-0000-0000-0000-0000000000d0')::text, '0');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
