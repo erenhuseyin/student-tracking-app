@@ -136,16 +136,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
     alicilar = (data ?? []) as Alici[];
   } else {
-    // Kök kuruma yazılmış duyuru şubeleri de kapsar.
-    let kurumIdleri = [duyuru.kurum_id];
-    if (duyuru.kurum_id === duyuru.kok_kurum_id) {
-      const { data: subeler, error: subeHatasi } = await servis.from('kurum').select('id').eq('ust_kurum_id', duyuru.kurum_id);
-      if (subeHatasi) {
-        console.error('duyuru-bildirim-gonder: şubeler okunamadı', subeHatasi);
-        return bos();
-      }
-      kurumIdleri = [duyuru.kurum_id, ...(subeler ?? []).map((s) => s.id)];
+    // Bir düğüme yazılmış genel duyuru o düğümün altındaki tüm düğümleri de kapsar.
+    const { data: dugumler, error: dugumHatasi } = await servis.from('kurum').select('id').contains('yol', [duyuru.kurum_id]);
+    if (dugumHatasi) {
+      console.error('duyuru-bildirim-gonder: alt kurumlar okunamadı', dugumHatasi);
+      return bos();
     }
+    const kurumIdleri = (dugumler ?? []).map((k) => k.id);
+    if (kurumIdleri.length === 0) return bos();
     const { data, error } = await servis
       .from('kullanici')
       .select(ALICI_KOLONLARI)

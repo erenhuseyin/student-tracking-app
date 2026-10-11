@@ -128,10 +128,10 @@ async function epostaGonder(alici: string, degiskenler: Record<string, string>):
 // E-postada görünen kurum adı: müşterinin (kök kurumun) adı.
 async function kurumAdiniGetir(servis: SupabaseClient, kurumId: string | null): Promise<string> {
   if (!kurumId) return 'Yönetim';
-  const { data: kurum } = await servis.from('kurum').select('ad, ust_kurum_id').eq('id', kurumId).maybeSingle();
+  const { data: kurum } = await servis.from('kurum').select('ad, kok_kurum_id').eq('id', kurumId).maybeSingle();
   if (!kurum) return '';
-  if (!kurum.ust_kurum_id) return kurum.ad;
-  const { data: kok } = await servis.from('kurum').select('ad').eq('id', kurum.ust_kurum_id).maybeSingle();
+  if (kurum.kok_kurum_id === kurumId) return kurum.ad;
+  const { data: kok } = await servis.from('kurum').select('ad').eq('id', kurum.kok_kurum_id).maybeSingle();
   return kok?.ad ?? kurum.ad;
 }
 
@@ -405,18 +405,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     hedefKurumId = cagiran.kurum_id;
     if (govde.kurum_id !== undefined && govde.kurum_id !== cagiran.kurum_id) {
       if (typeof govde.kurum_id !== 'string' || !UUID_RE.test(govde.kurum_id)) return hata(400, 'kurum_id geçerli olmalı.');
-      // Yalnızca çağıranın şubesi olabilir. RLS okumaya güvenilmez: şube admini kendi kökünü
-      // de okuyabildiği için üst-alt ilişkisi burada açıkça kontrol edilir.
+      // Yalnızca çağıranın altındaki bir düğüm olabilir. RLS okumaya güvenilmez: yönetici kendi
+      // üst düğümlerini de okuyabildiği için üst-alt ilişkisi burada açıkça kontrol edilir.
       const { data: hedefKurum, error: hedefKurumHatasi } = await kullaniciClient
         .from('kurum')
-        .select('id, ust_kurum_id')
+        .select('id, yol')
         .eq('id', govde.kurum_id)
         .maybeSingle();
       if (hedefKurumHatasi) {
         console.error('personel-yonet: hedef kurum okunamadı', hedefKurumHatasi);
         return hata(500, 'İşlem şu an yapılamıyor.');
       }
-      if (!hedefKurum || hedefKurum.ust_kurum_id !== cagiran.kurum_id) return hata(403, 'Bu kuruma personel ekleme yetkiniz yok.');
+      if (!hedefKurum || !(hedefKurum.yol as string[]).includes(cagiran.kurum_id)) return hata(403, 'Bu kuruma personel ekleme yetkiniz yok.');
       hedefKurumId = hedefKurum.id;
     }
   } else {

@@ -97,9 +97,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const servis = createClient(supabaseUrl, servisAnahtar, istemciSecenekleri);
 
   // 1. Velinin müşterisi (kök kurum) ve marka kodu
-  const { data: kurum } = await servis.from('kurum').select('id, ust_kurum_id').eq('id', cagiran.kurum_id).maybeSingle();
+  const { data: kurum } = await servis.from('kurum').select('id, kok_kurum_id').eq('id', cagiran.kurum_id).maybeSingle();
   if (!kurum) return hata(500, 'İşlem şu an yapılamıyor.');
-  const kokKurumId = kurum.ust_kurum_id ?? kurum.id;
+  const kokKurumId = kurum.kok_kurum_id;
   const { data: kokKurum } = await servis.from('kurum').select('marka_kodu').eq('id', kokKurumId).maybeSingle();
   if (!kokKurum?.marka_kodu) return hata(500, 'İşlem şu an yapılamıyor.');
 

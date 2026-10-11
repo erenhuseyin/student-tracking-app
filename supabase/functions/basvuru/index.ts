@@ -70,16 +70,28 @@ function tarihGecerliMi(tarih: string): boolean {
 
 type Musteri = { kokKurumId: string; acik: boolean; kurumlar: { id: string; ad: string }[] };
 
-// Uygulamanın müşterisi (marka kodu) ve başvurulabilecek kurumları: ana kurum + şubeleri.
+// Uygulamanın müşterisi (marka kodu) ve başvurulabilecek kurumları: ana kurum + altındaki tüm
+// birimler. Alt birimin adı üstleriyle birlikte verilir ("İstanbul › Küçükçekmece › İkitelli").
 async function musteriyiGetir(servis: SupabaseClient, markaKodu: string): Promise<Musteri | null> {
   const { data: kok } = await servis.from('kurum').select('id, ad, ozellikler').eq('marka_kodu', markaKodu).is('ust_kurum_id', null).maybeSingle();
   if (!kok) return null;
-  const { data: subeler } = await servis.from('kurum').select('id, ad').eq('ust_kurum_id', kok.id).order('ad');
+  const { data: dugumler } = await servis.from('kurum').select('id, ad, yol').eq('kok_kurum_id', kok.id);
+  const adlar = new Map((dugumler ?? []).map((k) => [k.id as string, k.ad as string]));
+  const altBirimler = (dugumler ?? [])
+    .filter((k) => k.id !== kok.id)
+    .map((k) => ({
+      id: k.id as string,
+      ad: (k.yol as string[])
+        .slice(1)
+        .map((id) => adlar.get(id) ?? '')
+        .join(' › '),
+    }))
+    .sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
   const ozellikler = kok.ozellikler as Record<string, unknown> | null;
   return {
     kokKurumId: kok.id,
     acik: typeof ozellikler === 'object' && ozellikler !== null && ozellikler.basvuru === true,
-    kurumlar: [{ id: kok.id, ad: kok.ad }, ...(subeler ?? [])],
+    kurumlar: [{ id: kok.id, ad: kok.ad }, ...altBirimler],
   };
 }
 
