@@ -33,7 +33,8 @@ export type DuyuruGirdisi = {
   yer: string;
 };
 
-export type DuyuruSatiri = Duyuru & { sinif_adi: string | null };
+// kurum_adi: duyurunun yazıldığı birim (genel duyuruda kapsam olarak gösterilir).
+export type DuyuruSatiri = Duyuru & { sinif_adi: string | null; kurum_adi?: string | null };
 
 const ikiHane = (n: number) => String(n).padStart(2, '0');
 
@@ -90,15 +91,22 @@ function girdiyiDogrula(girdi: DuyuruGirdisi) {
 
 // RLS çağıranın kapsamındaki duyuruları döndürür; en yeni üstte. Sınıf adları ayrı sorguyla
 // eklenir (bkz. lib/yoklama.ts): RLS'in izin verdiği sınıflar yeterlidir, çünkü sınıfa özel
-// duyuruyu yalnızca o sınıfı görebilenler okur.
+// duyuruyu yalnızca o sınıfı görebilenler okur. Birim adları da öyle: herkes kendi kurumunu ve
+// üstlerini, yönetici ayrıca altındaki birimleri okur; okunamazsa kart "Tüm kurum" yazar.
 export async function duyurulariGetir(): Promise<DuyuruSatiri[]> {
-  const [{ data, error }, siniflar] = await Promise.all([
+  const [{ data, error }, siniflar, kurumlar] = await Promise.all([
     supabase.from('duyuru').select('*').order('olusturma_tarihi', { ascending: false }).limit(LISTE_SINIRI),
     siniflariGetir(),
+    supabase.from('kurum').select('id, ad'),
   ]);
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
   const adHaritasi = new Map(siniflar.map((s) => [s.id, s.ad]));
-  return data.map((d) => ({ ...d, sinif_adi: d.sinif_id ? (adHaritasi.get(d.sinif_id) ?? 'Sınıf') : null }));
+  const kurumAdlari = new Map((kurumlar.data ?? []).map((k) => [k.id, k.ad]));
+  return data.map((d) => ({
+    ...d,
+    sinif_adi: d.sinif_id ? (adHaritasi.get(d.sinif_id) ?? 'Sınıf') : null,
+    kurum_adi: kurumAdlari.get(d.kurum_id) ?? null,
+  }));
 }
 
 export async function duyuruGetir(id: string): Promise<Duyuru> {

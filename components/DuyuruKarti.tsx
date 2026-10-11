@@ -29,7 +29,7 @@ export function DuyuruKarti({ duyuru, eylemler, kapsamiGizle = false }: Props) {
             zemin={etkinlik ? tema.renkler.vurguSoluk : tema.renkler.anaSoluk}
           />
           <Text style={tema.yazi.kucuk}>
-            {[kapsamiGizle ? null : (duyuru.sinif_adi ?? 'Tüm kurum'), tarihiBicimle(etkinlikZamaniniParcala(duyuru.olusturma_tarihi).tarih)]
+            {[kapsamiGizle ? null : (duyuru.sinif_adi ?? duyuru.kurum_adi ?? 'Tüm kurum'), tarihiBicimle(etkinlikZamaniniParcala(duyuru.olusturma_tarihi).tarih)]
               .filter(Boolean)
               .join(' · ')}
           </Text>
