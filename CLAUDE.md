@@ -1,6 +1,6 @@
 # Proje: Öğrenci Gelişim Takip Uygulaması
 
-Multi-tenant, cross-platform (Android + iOS + web) bir eğitim uygulaması. Öğretmenler öğrenci gelişimini kaydeder, veliler takip eder. Ürün birden çok müşteriye satılır: her müşterinin şubeleri olabilir ve her müşteri kendi adı/ikonu/rengiyle ayrı bir uygulamaya (white-label) sahiptir — hepsi tek kod tabanı ve tek Supabase projesinden.
+Multi-tenant, cross-platform (Android + iOS + web) bir eğitim uygulaması. Öğretmenler öğrenci gelişimini kaydeder, veliler takip eder. Ürün birden çok müşteriye satılır: her müşterinin alt birimleri (bölge, ilçe, semt ya da şube) olabilir ve her müşteri kendi adı/ikonu/rengiyle ayrı bir uygulamaya (white-label) sahiptir — hepsi tek kod tabanı ve tek Supabase projesinden.
 
 Detaylı ürün spesifikasyonu (veri modeli, roller, fazlar, KVKK notları) için: @docs/proje-spesifikasyonu.md
 Güncel ilerleme durumu ve önceki oturumlardan alınan kararlar için: @docs/ILERLEME.md
@@ -15,7 +15,7 @@ Güncel ilerleme durumu ve önceki oturumlardan alınan kararlar için: @docs/IL
 ## Kesin Kurallar
 
 - **Multi-tenant izolasyon:** Her tabloda `kurum_id` zorunlu. Yeni bir tablo eklerken RLS politikası olmadan tabloyu kapatma — bir kurumun verisi başka kuruma asla sızmamalı.
-- **Kurum hiyerarşisi:** ana kurum (kök = müşteri) → şube, en fazla 2 seviye (`kurum.ust_kurum_id`). Kök kurumun admini kendi kurumunu ve şubelerini yönetir, şube admini yalnızca kendi şubesini. Kurum admini için politika yazarken `kurum_id = mevcut_kurum_id()` yazma; `kurum_id in (select gizli.yonetilen_kurum_idleri())` kullan.
+- **Kurum hiyerarşisi:** kök kurum (= müşteri) altında en fazla 4 seviyeli ağaç (ör. Genel Merkez → Bölge → İlçe → Semt; `kurum.ust_kurum_id`, türetilmiş `kok_kurum_id` / `seviye` / `yol`). Yönetici (`kurum_admin`) bağlı olduğu düğümü ve altındaki tüm düğümleri yönetir; üstünü ve yanını göremez. Roller sabittir, seviye için yeni rol açma. Kurum admini için politika yazarken `kurum_id = mevcut_kurum_id()` yazma; `kurum_id in (select gizli.yonetilen_kurum_idleri())` kullan. Üst düğümden alta inen içerik (duyuru) için `gizli.ust_kurum_idleri()`. Müşteri düzeyi tanımlar (kategori, kademe, kapalı bölüm) yalnızca kökte durur. Seviye adları markadan gelir (`lib/seviye.ts`); ekrana sabit "şube" yazma.
 - **Marka (white-label):** müşteriye özel her şey (ad, paket, renk, ikon, Firebase dosyası) `markalar/<kod>/` altındadır; ekranlara sabit marka adı ya da renk kodu yazma — `lib/marka.ts` ve `lib/tema.ts`'ten al. Müşteriye özel özellik `useOzellik` bayrağının (`kurum.ozellikler`, yalnızca süper admin yazar) arkasına yazılır; kod tabanı müşteri için çatallanmaz. Yeni müşteri uygulaması: @docs/yeni-marka.md
 - **Roller:** süper admin, kurum admini, öğretmen, veli. Yeni bir ekran/endpoint eklerken hangi rollerin erişebileceğini açıkça belirt.
 - **Veli-öğrenci ilişkisi çoka çoktur.** Tek taraflı foreign key varsayma.
