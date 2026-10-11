@@ -1,7 +1,7 @@
 // Erişim: yalnızca super_admin
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View } from 'react-native';
 
 import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ekran } from '@/components/Ekran';
@@ -9,20 +9,20 @@ import { Ikon } from '@/components/Ikon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { kurumlariGetir } from '@/lib/kurumlar';
-import { type Tema, useTema } from '@/lib/tema';
+import { seviyeAdi } from '@/lib/seviye';
+import { useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
 
-// Kök kurumlar ada göre, her kökün şubeleri hemen altında.
+// Kök kurumlar ada göre, her düğümün altındakiler hemen altında (ad yoluna göre sıralı).
 function agacSirasinaDiz(kurumlar: Kurum[]): Kurum[] {
-  return kurumlar
-    .filter((k) => !k.ust_kurum_id)
-    .flatMap((kok) => [kok, ...kurumlar.filter((k) => k.ust_kurum_id === kok.id)]);
+  const adlar = new Map(kurumlar.map((k) => [k.id, k.ad]));
+  const anahtar = (k: Kurum) => k.yol.map((id) => adlar.get(id) ?? '').join('\u0000');
+  return [...kurumlar].sort((a, b) => anahtar(a).localeCompare(anahtar(b), 'tr'));
 }
 
 export default function SuperAdminAnaSayfa() {
   const router = useRouter();
   const tema = useTema();
-  const styles = useMemo(() => olustur(tema), [tema]);
   const [kurumlar, setKurumlar] = useState<Kurum[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -56,10 +56,11 @@ export default function SuperAdminAnaSayfa() {
         bosAciklama="Sağ üstteki + ile ilk kurumu ekleyin."
         satir={(k) =>
           k.ust_kurum_id ? (
-            <View style={styles.sube}>
+            <View style={{ marginLeft: tema.bosluk.xl * (k.seviye - 1) }}>
               <ListeSatiri
                 baslik={k.ad}
-                altBaslik="Şube"
+                altBaslik={seviyeAdi(k.seviye)}
+                onPress={() => router.push(`/kurum/${k.id}`)}
                 sol={<Ikon ad="git-branch-outline" renk={tema.renkler.metinIkincil} />}
               />
             </View>
@@ -75,12 +76,4 @@ export default function SuperAdminAnaSayfa() {
       />
     </Ekran>
   );
-}
-
-function olustur(t: Tema) {
-  return StyleSheet.create({
-    sube: {
-      marginLeft: t.bosluk.xl,
-    },
-  });
 }

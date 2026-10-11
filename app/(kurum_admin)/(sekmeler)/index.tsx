@@ -1,5 +1,5 @@
-// Erişim: yalnızca kurum_admin. Açılış ekranı: kurumun özeti (ana kurum yöneticisinde şubeler
-// dahil; RLS belirler). Kurum yeni açıldıysa ilk adımları gösterir.
+// Erişim: yalnızca kurum_admin. Açılış ekranı: kurumun özeti (altındaki tüm birimler dahil; RLS
+// belirler) ve doğrudan altındaki birimlerin kırılımı. Kurum yeni açıldıysa ilk adımları gösterir.
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -16,6 +16,7 @@ import { yuzdeMetni } from '@/lib/katilim';
 import { useOturum } from '@/lib/oturum';
 import { useOzellik } from '@/lib/ozellikler';
 import { type YoneticiOzeti, yoneticiOzetiniGetir } from '@/lib/ozet';
+import { seviyeAdiCogul } from '@/lib/seviye';
 import { type Tema, useTema } from '@/lib/tema';
 
 export default function KurumAdminOzet() {
@@ -28,14 +29,17 @@ export default function KurumAdminOzet() {
   const [hata, setHata] = useState<string | null>(null);
   const [yenileniyor, setYenileniyor] = useState(false);
 
+  const kurumId = kurum?.id;
+
   const yenile = useCallback(async () => {
+    if (!kurumId) return;
     setHata(null);
     try {
-      setOzet(await yoneticiOzetiniGetir(basvuruAcik));
+      setOzet(await yoneticiOzetiniGetir(basvuruAcik, kurumId));
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'Özet alınamadı.');
     }
-  }, [basvuruAcik]);
+  }, [basvuruAcik, kurumId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -134,6 +138,20 @@ export default function KurumAdminOzet() {
                 </>
               )}
             </Kart>
+
+            {kurum && ozet.altBirimler.length > 0 ? (
+              <Kart>
+                <Text style={tema.yazi.bolum}>{seviyeAdiCogul(kurum.seviye + 1)}</Text>
+                {ozet.altBirimler.map((b) => (
+                  <ListeSatiri
+                    key={b.id}
+                    baslik={b.ad}
+                    altBaslik={`${b.ogrenciSayisi} öğrenci · bu hafta ${yuzdeMetni(b.haftalikKatilim)}`}
+                    onPress={() => router.push(`/sube/${b.id}`)}
+                  />
+                ))}
+              </Kart>
+            ) : null}
 
             {basvuruAcik && ozet.bekleyenBasvuruSayisi > 0 ? (
               <Buton

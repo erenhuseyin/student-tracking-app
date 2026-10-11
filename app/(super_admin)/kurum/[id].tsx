@@ -55,7 +55,7 @@ export default function KurumDetay() {
     <Ekran>
       <Stack.Screen options={{ title: kurum?.ad ?? 'Kurum' }} />
 
-      {/* Özellikler müşteri (ana kurum) düzeyindedir; şubede gösterilmez. */}
+      {/* Özellikler müşteri (ana kurum) düzeyindedir; alt birimde gösterilmez. */}
       {kurum && kurum.ust_kurum_id === null ? (
         <Kart>
           <Text style={tema.yazi.bolum}>Özellikler</Text>

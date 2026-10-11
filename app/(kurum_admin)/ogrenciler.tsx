@@ -12,10 +12,12 @@ import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { Secenekler } from '@/components/Secenekler';
+import { kurumAdlariniGetir, kurumYolu } from '@/lib/kurumlar';
 import { OGRENCI_SAYFA_BOYUTU, ogrencileriAra } from '@/lib/ogrenciler';
+import { useOturum } from '@/lib/oturum';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
-import type { Ogrenci } from '@/lib/tipler';
+import type { Kurum, Ogrenci } from '@/lib/tipler';
 
 type Durum = 'aktif' | 'pasif';
 const DURUMLAR: { deger: Durum; etiket: string }[] = [
@@ -27,6 +29,8 @@ const ARAMA_GECIKMESI_MS = 350;
 export default function Ogrenciler() {
   const router = useRouter();
   const tema = useTema();
+  const { kurum } = useOturum();
+  const [kurumlar, setKurumlar] = useState<Pick<Kurum, 'id' | 'ad' | 'yol'>[]>([]);
   const [yazilan, setYazilan] = useState('');
   const [arama, setArama] = useState('');
   const [durum, setDurum] = useState<Durum>('aktif');
@@ -67,6 +71,9 @@ export default function Ogrenciler() {
       siniflariGetir()
         .then((s) => setSinifAdlari(new Map(s.map((x) => [x.id, x.ad]))))
         .catch(() => {});
+      kurumAdlariniGetir()
+        .then(setKurumlar)
+        .catch(() => {});
     }, [getir]),
   );
 
@@ -88,7 +95,7 @@ export default function Ogrenciler() {
         satir={(o) => (
           <ListeSatiri
             baslik={o.ad_soyad}
-            altBaslik={sinifAdlari.get(o.sinif_id) ?? null}
+            altBaslik={[sinifAdlari.get(o.sinif_id), kurumYolu(kurumlar, o.kurum_id, kurum?.id)].filter(Boolean).join(' · ') || null}
             sol={<Avatar ad={o.ad_soyad} />}
             sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/ogrenci-duzenle/${o.id}`)} />}
           />
