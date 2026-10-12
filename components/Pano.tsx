@@ -222,8 +222,7 @@ export function Pano({ sabit = false, alt }: Props) {
   const enler = enleriBul(altBirimler, seviyeAdiKucuk(altSeviye));
   const sonIller = [...(iller ?? [])].sort((a, b) => b.ogrenci - a.ogrenci);
 
-  // Harita birim seçtiği için geniş ekranda süzgeçlerin hemen altında durur; telefonda harita
-  // çizilmez (yalnızca il tablosu), o yüzden sayıların önüne geçmesin diye sonda kalır.
+  // Harita (telefonda il tablosu) birim seçtiği için süzgeçlerin hemen altında durur.
   const haritaKarti =
     sabit || iller === null ? null : (
       <Kart>
@@ -289,7 +288,7 @@ export function Pano({ sabit = false, alt }: Props) {
         </View>
       </View>
 
-      {masaustu ? haritaKarti : null}
+      {haritaKarti}
 
       <View style={styles.yol}>
         {ozet.birim.yol.map((d, i) => {
@@ -452,8 +451,6 @@ export function Pano({ sabit = false, alt }: Props) {
           </View>
         ) : null}
       </View>
-
-      {masaustu ? null : haritaKarti}
 
       {alt}
     </Ekran>

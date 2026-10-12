@@ -295,7 +295,7 @@ _(Claude Code her tamamlanan adımı buraya tarih + kısa açıklama ile ekleyec
   - **Denenmeyenler / sınırlar:** açık temada harita ve grafik renkleri gözle kontrol edilmedi; telefonda (native) hiç açılmadı; eğitim ilerlemesi bölümü boş veriyle görüldü (test verisinde kademe/ezber yok); arayüzden il atama formu çalıştırılmadı (kolon yetkisi testte geçti). Plandaki "dönemde pasife alınan" sayısı yok (pasife alınma tarihi tutulmuyor) — toplam pasif öğrenci gösteriliyor. Haritada ilçe düzeyi, özel tarih aralığı ve dışa aktarma yok. "En"ler yalnızca seçilen birimin doğrudan altındaki birimler arasında hesaplanır.
 - [x] Pano süzgeci: kademeli birim seçimi + haritanın üste alınması — 2026-10-12 (**yalnızca kod; ekranda görülmedi**)
   - Tek "Birim" kutusu yerine seviye başına bir seçim kutusu (adlar markadan: Bölge / İlçe / Semt). Bir kutu, üstündeki kutuda seçilen birimin doğrudan altındakileri listeler; üstü seçilmemişse ya da altında birim yoksa pasiftir. "Tümü" seçilince bir üst seviyedeki birime (yoksa tüm kuruma) dönülür. Seçili zincir seçili birimden yukarı yürünerek türetilir; haritadan, tablodan ya da yol satırından yapılan seçim kutulara da yansır. Ağaçta bulunmayan derinlikteki seviyeler için kutu çizilmez.
-  - "İllere göre" kartı (harita + il tablosu) geniş ekranda süzgeçlerin hemen altına taşındı; telefonda (harita çizilmediği için) sonda kaldı.
+  - "İllere göre" kartı (harita + il tablosu) her ekran genişliğinde süzgeçlerin hemen altına taşındı (telefonda harita çizilmez, yalnızca il tablosu görünür).
   - Yalnızca `components/Pano.tsx`; migration/fonksiyon yok. `typecheck` ve `lint` temiz.
 - [ ] EAS build (preview/production) + Play Console internal testing — **Faz 1'in son maddesi (tasarım gözle onaylandıktan sonra)**
 
