@@ -4,6 +4,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Buton } from '@/components/Buton';
 import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
 import { Kart } from '@/components/Kart';
@@ -15,6 +16,7 @@ import { type Tema, useTema } from '@/lib/tema';
 import { YOKLAMA_DURUMLARI, type YoklamaDurumu } from '@/lib/tipler';
 import {
   gununYoklamasiniGetir,
+  hepsiniGeldiIsaretle,
   type OgrenciYoklamaSatiri,
   YOKLAMA_ETIKETLERI,
   yoklamaKaydet,
@@ -42,6 +44,7 @@ export default function OgretmenYoklama() {
   const [ogrenciler, setOgrenciler] = useState<OgrenciYoklamaSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [kaydedenId, setKaydedenId] = useState<string | null>(null);
+  const [topluKaydediyor, setTopluKaydediyor] = useState(false);
   // Velilerin bu gün için bildirdiği devamsızlıklar (öğrenci id -> neden).
   const [nedenler, setNedenler] = useState<Map<string, string>>(new Map());
 
@@ -81,6 +84,30 @@ export default function OgretmenYoklama() {
     }
   };
 
+  // "Hepsi geldi" yalnızca işaretlenmemişleri doldurur; velisi devamsızlık bildiren öğrenci dışarıda
+  // kalır (öğretmen ona bakarak kendisi işaretler, veliye yanlış "geldi" bildirimi gitmesin).
+  const isaretlenmemisler = (ogrenciler ?? []).filter((o) => o.yoklama_durumu === null);
+  const topluHedef = isaretlenmemisler.filter((o) => !nedenler.has(o.id));
+  const disaridaKalan = isaretlenmemisler.length - topluHedef.length;
+
+  const hepsiGeldi = async () => {
+    if (!kullanici?.kurum_id) {
+      setHata('Kurum bilgisi bulunamadı.');
+      return;
+    }
+    setTopluKaydediyor(true);
+    setHata(null);
+    try {
+      await hepsiniGeldiIsaretle(kullanici.kurum_id, topluHedef.map((o) => o.id), kullanici.id, tarih);
+      // Araya giren başka bir işaretleme varsa o da görünsün diye liste yeniden okunur.
+      await yenile();
+    } catch (e) {
+      setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
+    } finally {
+      setTopluKaydediyor(false);
+    }
+  };
+
   return (
     <Ekran>
       <Stack.Screen options={{ title: 'Yoklama' }} />
@@ -96,6 +123,27 @@ export default function OgretmenYoklama() {
             <Text style={styles.ustBaslik}>{tarihiBicimle(tarih)}</Text>
             <Text style={styles.kucuk}>{ozetMetni(ogrenciler ?? [])}</Text>
             {gecmisGun ? <Text style={styles.kucuk}>Geçmiş gün düzeltmesi veliye bildirilmez.</Text> : null}
+            {topluHedef.length > 0 ? (
+              <View style={styles.toplu}>
+                <Buton
+                  baslik={
+                    topluHedef.length === (ogrenciler ?? []).length
+                      ? 'Hepsi geldi'
+                      : `Kalan ${topluHedef.length} öğrenci geldi`
+                  }
+                  ikon="checkmark-done-outline"
+                  tur="ikincil"
+                  yukleniyor={topluKaydediyor}
+                  pasif={kaydedenId !== null}
+                  onPress={hepsiGeldi}
+                />
+                {disaridaKalan > 0 ? (
+                  <Text style={styles.kucuk}>
+                    Velisi devamsızlık bildiren {disaridaKalan} öğrenci bunun dışında kalır.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         }
         satir={(o) => (
@@ -119,7 +167,7 @@ export default function OgretmenYoklama() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: secili }}
                     accessibilityLabel={`${o.ad_soyad}: ${YOKLAMA_ETIKETLERI[durum]}`}
-                    disabled={kaydedenId === o.id}
+                    disabled={kaydedenId === o.id || topluKaydediyor}
                     onPress={() => isaretle(o.id, durum)}
                     style={[
                       styles.secenek,
@@ -156,6 +204,10 @@ function olustur(t: Tema) {
     ust: {
       gap: t.bosluk.xs,
       marginBottom: t.bosluk.m,
+    },
+    toplu: {
+      gap: t.bosluk.xs,
+      marginTop: t.bosluk.s,
     },
     ustBaslik: {
       ...t.yazi.bolum,

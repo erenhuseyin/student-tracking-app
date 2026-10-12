@@ -105,6 +105,43 @@ export async function yoklamaKaydet(
   return data;
 }
 
+// "Hepsi geldi": verilen öğrencilere tek istekte "geldi" yazar. Kaydı olan öğrencinin durumu
+// değişmez (araya başka bir öğretmenin işaretlemesi girdiyse üzerine yazılmaz); dönen liste yalnızca
+// yeni yazılanlardır. Bildirim kuralı tek tek işaretlemeyle aynıdır (bkz. yoklamaKaydet).
+export async function hepsiniGeldiIsaretle(
+  kurumId: string,
+  ogrenciIdleri: string[],
+  girenKullaniciId: string,
+  tarih: string = bugununTarihi(),
+): Promise<string[]> {
+  if (tarih > bugununTarihi()) throw new Error('İleri tarihli yoklama girilemez.');
+  if (ogrenciIdleri.length === 0) return [];
+  const { data, error } = await supabase
+    .from('yoklama')
+    .upsert(
+      ogrenciIdleri.map((ogrenciId) => ({
+        kurum_id: kurumId,
+        ogrenci_id: ogrenciId,
+        tarih,
+        durum: 'geldi' as const,
+        giren_kullanici_id: girenKullaniciId,
+      })),
+      { onConflict: 'ogrenci_id,tarih', ignoreDuplicates: true },
+    )
+    .select('ogrenci_id');
+  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+
+  const yazilanlar = data.map((y) => y.ogrenci_id);
+  if (tarih === bugununTarihi()) {
+    for (const ogrenciId of yazilanlar) {
+      supabase.functions
+        .invoke('yoklama-bildirim-gonder', { body: { ogrenci_id: ogrenciId, durum: 'geldi' } })
+        .catch(() => {});
+    }
+  }
+  return yazilanlar;
+}
+
 export async function veliYoklamalariGetir(ogrenciId: string): Promise<Yoklama[]> {
   const { data, error } = await supabase
     .from('yoklama')
