@@ -2133,6 +2133,64 @@ set local role anon;
 select tst.esit('anon pano çağıramaz',
   tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-00000000d111', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
 
+-- ===========================================================================
+-- 31. ORTAK EZBER LİSTESİ (kademe_id boş) ve ezber grubu
+--   adminA (02) kök admin | adminA2 (13) şube admini | ogrA1 (05) -> sA1 (oA1) | adminB (03)
+--   26. bölümün sonunda A'nın kademesi silindi: sınıfların kademesi yok, ortak liste yine geçerli.
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin ortak listeye madde ekler',
+  tst.dene($q$insert into public.ezber_maddesi (kurum_id, kademe_id, ad, sira, grup) values ('c0000000-0000-0000-0000-00000000000a', null, 'İhlâs Sûresi', 1, 'Sureler')$q$), 'ok:1');
+select tst.esit('kök admin grubu değiştirir', tst.dene($q$update public.ezber_maddesi set grup = 'Kısa Sureler' where kademe_id is null$q$), 'ok:1');
+select tst.esit('grup boş metin olamaz', tst.dene($q$update public.ezber_maddesi set grup = '  ' where kademe_id is null$q$), 'hata:23514');
+select tst.esit('ortak madde sonradan kademeye bağlanamaz (kolon yetkisi)',
+  tst.dene($q$update public.ezber_maddesi set kademe_id = gen_random_uuid() where kademe_id is null$q$), 'hata:42501');
+select tst.esit('kök admin başka müşterinin ortak listesine ekleyemez',
+  tst.dene($q$insert into public.ezber_maddesi (kurum_id, kademe_id, ad) values ('c0000000-0000-0000-0000-00000000000b', null, 'x')$q$), 'hata:42501');
+
+-- adminA2 (şube admini): okur; ne kök kuruma ne kendi şubesine ortak madde yazabilir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('şube admini ortak listeyi okur', (select count(*) from public.ezber_maddesi where kademe_id is null)::text, '1');
+select tst.esit('şube admini kök kurumun ortak listesine ekleyemez',
+  tst.dene($q$insert into public.ezber_maddesi (kurum_id, kademe_id, ad) values ('c0000000-0000-0000-0000-00000000000a', null, 'x')$q$), 'hata:42501');
+select tst.esit('ortak liste şubede tanımlanamaz (trigger)',
+  tst.dene($q$insert into public.ezber_maddesi (kurum_id, kademe_id, ad) values ('c0000000-0000-0000-0000-0000000000a2', null, 'x')$q$), 'hata:23514');
+select tst.esit('şube admini ortak maddeyi silemez', tst.dene($q$delete from public.ezber_maddesi where kademe_id is null$q$), 'ok:0');
+
+-- ogrA1: ortak listeyi okur, yazamaz; kademesiz sınıftaki öğrencisine ortak maddeden ezber girer
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen ortak listeyi okur', (select count(*) from public.ezber_maddesi where kademe_id is null)::text, '1');
+select tst.esit('öğretmen ortak listeye ekleyemez',
+  tst.dene($q$insert into public.ezber_maddesi (kurum_id, kademe_id, ad) values ('c0000000-0000-0000-0000-00000000000a', null, 'x')$q$), 'hata:42501');
+select tst.esit('öğretmen ortak maddeden ezber girer',
+  tst.dene($q$insert into public.ogrenci_ezber (kurum_id, ogrenci_id, madde_id, durum) select 'c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', id, 'tamam' from public.ezber_maddesi where kademe_id is null$q$), 'ok:1');
+
+-- adminB: A'nın ortak listesi sızmaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin admini ortak listeyi görmez', (select count(*) from public.ezber_maddesi)::text, '0');
+
+-- Ortak madde silinince ezber kayıtları da silinir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök admin ortak maddeyi siler', tst.dene($q$delete from public.ezber_maddesi where kademe_id is null$q$), 'ok:1');
+reset role;
+select tst.esit('ortak maddeyle birlikte ezber kayıtları silinir',
+  (select count(*) from public.ogrenci_ezber where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1')::text, '0');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

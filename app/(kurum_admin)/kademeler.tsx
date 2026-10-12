@@ -1,6 +1,7 @@
 // Erişim: yalnızca kök kurumun (müşterinin) kurum_admin'i; şube admini salt okunur görür (RLS).
 // Kademeler (müfredatlar) müşteri düzeyindedir ve şubeler ortak kullanır. Her sınıf bir kademeyi
-// izler; dersler, konular ve ezber maddeleri kademenin kendi ekranında tanımlanır.
+// izler; dersler ve konular kademenin kendi ekranında tanımlanır. Ezber listesi müşteri
+// düzeyinde ortaktır (/ezber-listesi); kademeye özel ek maddeler kademe ekranından girilir.
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
@@ -68,6 +69,12 @@ export default function Kademeler() {
           <Buton ikon="add" baslik="Ekle" onPress={ekle} yukleniyor={gonderiliyor} />
         </Kart>
       ) : null}
+      <ListeSatiri
+        baslik="Ortak ezber listesi"
+        altBaslik="Tüm kademelerde kullanılan dualar ve sureler"
+        sol={<Ikon ad="list-outline" boyut={24} renk={tema.renkler.anaParlak} />}
+        onPress={() => router.push('/ezber-listesi')}
+      />
       <Liste
         veri={kademeler}
         hata={hata}
@@ -75,7 +82,7 @@ export default function Kademeler() {
         anahtar={(k) => k.id}
         bosIkon="layers-outline"
         bosBaslik="Henüz kademe yok"
-        bosAciklama="Kademe, bir sınıfın izlediği müfredattır: dersleri, konuları ve ezber listesi vardır."
+        bosAciklama="Kademe, bir sınıfın izlediği müfredattır: dersleri ve konuları vardır."
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad}

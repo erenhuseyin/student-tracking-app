@@ -917,21 +917,24 @@ export type Database = {
         Row: {
           ad: string;
           id: string;
-          kademe_id: string;
+          grup: string | null;
+          kademe_id: string | null;
           kurum_id: string;
           sira: number;
         };
         Insert: {
           ad: string;
           id?: string;
-          kademe_id: string;
+          grup?: string | null;
+          kademe_id?: string | null;
           kurum_id: string;
           sira?: number;
         };
         Update: {
           ad?: string;
           id?: string;
-          kademe_id?: string;
+          grup?: string | null;
+          kademe_id?: string | null;
           kurum_id?: string;
           sira?: number;
         };

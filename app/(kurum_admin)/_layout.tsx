@@ -44,6 +44,7 @@ export default function Layout() {
       <Stack.Protected guard={kademelerAcik}>
         <Stack.Screen name="kademeler" />
         <Stack.Screen name="kademe/[id]" />
+        <Stack.Screen name="ezber-listesi" />
       </Stack.Protected>
       <Stack.Protected guard={raporlarAcik}>
         <Stack.Screen name="raporlar" />

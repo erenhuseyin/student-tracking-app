@@ -1,5 +1,5 @@
-// İçerik takibi: kademe (müfredat) -> ders -> konu, ezber maddeleri; sınıfın konu ilerlemesi ve
-// öğrencinin ezber durumu. Tanımlar müşteri (kök kurum) düzeyindedir ve yalnızca kök kurumun
+// İçerik takibi: kademe (müfredat) -> ders -> konu, ezber maddeleri (müşterinin ortak listesi +
+// kademeye özel ekler); sınıfın konu ilerlemesi ve öğrencinin ezber durumu. Tanımlar müşteri (kök kurum) düzeyindedir ve yalnızca kök kurumun
 // admini yönetir; takibi sınıfın öğretmeni ve kurum admini girer, veli okur. Yetkinin tamamı
 // RLS'tedir (20261016120000_icerik_takibi.sql). Özellik müşteri bazında açılır: useOzellik('icerik_takibi').
 import { supabase } from '@/lib/supabase';
@@ -107,12 +107,37 @@ export async function konuSil(id: string): Promise<void> {
   kontrol(error);
 }
 
-export async function ezberleriEkle(kokKurumId: string, kademeId: string, metin: string, mevcutSayi: number): Promise<number> {
+// Bir sınıfın ezber listesi: müşterinin ortak listesi (kademe_id boş; tüm kademeler ve kademesiz
+// sınıflar) + varsa sınıfın kademesine özel ek maddeler. Ortak liste önce gelir.
+export async function ezberListesiniGetir(kademeId: string | null): Promise<EzberMaddesi[]> {
+  const sorgu = supabase.from('ezber_maddesi').select('*');
+  const { data, error } = await (kademeId ? sorgu.or(`kademe_id.is.null,kademe_id.eq.${kademeId}`) : sorgu.is('kademe_id', null))
+    .order('sira')
+    .order('ad');
+  kontrol(error);
+  return [...(data ?? [])].sort((a, b) => Number(a.kademe_id !== null) - Number(b.kademe_id !== null));
+}
+
+// Listeyi grup başlıklarına böler; gruplar ilk göründükleri sırayla, grupsuz maddeler tek başlıkta.
+export function ezberGruplari(maddeler: EzberMaddesi[]): { grup: string | null; maddeler: EzberMaddesi[] }[] {
+  const gruplar = new Map<string | null, EzberMaddesi[]>();
+  for (const m of maddeler) gruplar.set(m.grup, [...(gruplar.get(m.grup) ?? []), m]);
+  return [...gruplar].map(([grup, liste]) => ({ grup, maddeler: liste }));
+}
+
+// kademeId null: ortak listeye eklenir. Her satır bir madde; listenin sonuna eklenir.
+export async function ezberleriEkle(
+  kokKurumId: string,
+  kademeId: string | null,
+  metin: string,
+  mevcutSayi: number,
+  grup: string | null = null,
+): Promise<number> {
   const adlar = satirlaraAyir(metin);
   if (adlar.length === 0) throw new Error('En az bir ezber maddesi yazın (her satıra bir madde).');
   const { error } = await supabase
     .from('ezber_maddesi')
-    .insert(adlar.map((ad, i) => ({ kurum_id: kokKurumId, kademe_id: kademeId, ad, sira: mevcutSayi + i + 1 })));
+    .insert(adlar.map((ad, i) => ({ kurum_id: kokKurumId, kademe_id: kademeId, ad, sira: mevcutSayi + i + 1, grup: grup?.trim() || null })));
   kontrol(error);
   return adlar.length;
 }

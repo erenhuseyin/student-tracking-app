@@ -130,7 +130,7 @@ export default function KademeDetay() {
         {icerik.dersler.map((d) => (
           <Chip key={d.id} etiket={`${d.ad} (${d.konular.length})`} secili={secili === d.id} onPress={() => setSecili(d.id)} />
         ))}
-        <Chip etiket={`Ezber (${icerik.ezberler.length})`} secili={secili === EZBER} onPress={() => setSecili(EZBER)} />
+        <Chip etiket={`Ek ezber (${icerik.ezberler.length})`} secili={secili === EZBER} onPress={() => setSecili(EZBER)} />
       </View>
 
       {duzenlenebilir ? (
@@ -153,7 +153,10 @@ export default function KademeDetay() {
       ) : null}
 
       <Kart>
-        <Text style={tema.yazi.bolum}>{seciliDers ? `${seciliDers.ad} konuları` : 'Ezber maddeleri'}</Text>
+        <Text style={tema.yazi.bolum}>{seciliDers ? `${seciliDers.ad} konuları` : 'Bu kademeye özel ezber maddeleri'}</Text>
+        {seciliDers ? null : (
+          <Text style={tema.yazi.kucuk}>Ortak ezber listesine ek olarak yalnızca bu kademenin sınıflarında görünür.</Text>
+        )}
         {satirlar.length === 0 ? <Text style={tema.yazi.kucuk}>Henüz {tekil} yok.</Text> : null}
         {satirlar.map((s, i) => (
           <View key={s.id} style={styles.satir}>
