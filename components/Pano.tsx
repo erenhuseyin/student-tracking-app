@@ -39,7 +39,7 @@ import {
   type PanoOzeti,
   panoOzetiniGetir,
 } from '@/lib/pano';
-import { seviyeAdi, seviyeAdiCogul, seviyeAdiKucuk } from '@/lib/seviye';
+import { EN_FAZLA_SEVIYE, seviyeAdi, seviyeAdiCogul, seviyeAdiKucuk } from '@/lib/seviye';
 import { haftaAraligiBicimle } from '@/lib/tarih';
 import { type Tema, useKirilma, useTema } from '@/lib/tema';
 
@@ -126,18 +126,30 @@ export function Pano({ sabit = false, alt }: Props) {
     setSecilenIl(null);
   };
 
-  const birimSecenekleri = useMemo(() => {
+  // Kademeli birim süzgeci: her seviye için bir seçim kutusu (adları markadan). Bir kutunun
+  // seçenekleri üstündeki kutuda seçilen birimin doğrudan altındakilerdir; üstü seçilmemişse ya da
+  // altında birim yoksa kutu pasiftir. Seçili zincir `birimId`den yukarı yürünerek türetilir; böylece
+  // haritadan, tablodan ya da yol satırından yapılan seçim de kutulara yansır.
+  const filtreler = useMemo(() => {
     if (!kokId) return [];
     const dugum = new Map(agac.map((b) => [b.id, b]));
-    const yol = (b: PanoBirimi): string => {
-      const ust = b.ust_kurum_id && b.ust_kurum_id !== kokId ? dugum.get(b.ust_kurum_id) : undefined;
-      return ust ? `${yol(ust)} › ${b.ad}` : b.ad;
-    };
-    return [
-      { deger: kokId, etiket: 'Tüm kurum' },
-      ...agac.map((b) => ({ deger: b.id, etiket: yol(b) })).sort((a, b) => a.etiket.localeCompare(b.etiket, 'tr')),
-    ];
-  }, [agac, kokId]);
+    const zincir = new Map<number, string>();
+    for (let b = birimId ? dugum.get(birimId) : undefined; b; b = b.ust_kurum_id ? dugum.get(b.ust_kurum_id) : undefined) {
+      zincir.set(b.seviye, b.id);
+    }
+    const enDerin = Math.min(EN_FAZLA_SEVIYE, Math.max(1, ...agac.map((b) => b.seviye)));
+    return Array.from({ length: enDerin - 1 }, (_, i) => {
+      const seviye = i + 2;
+      const ustId = seviye === 2 ? kokId : (zincir.get(seviye - 1) ?? null);
+      const secenekler = ustId
+        ? agac
+            .filter((b) => b.ust_kurum_id === ustId)
+            .map((b) => ({ deger: b.id, etiket: b.ad }))
+            .sort((x, y) => x.etiket.localeCompare(y.etiket, 'tr'))
+        : [];
+      return { seviye, ustId, secenekler, secili: zincir.get(seviye) ?? null };
+    });
+  }, [agac, kokId, birimId]);
 
   const altBirimler = useMemo(() => {
     if (!ozet) return [];
@@ -210,18 +222,74 @@ export function Pano({ sabit = false, alt }: Props) {
   const enler = enleriBul(altBirimler, seviyeAdiKucuk(altSeviye));
   const sonIller = [...(iller ?? [])].sort((a, b) => b.ogrenci - a.ogrenci);
 
+  // Harita birim seçtiği için geniş ekranda süzgeçlerin hemen altında durur; telefonda harita
+  // çizilmez (yalnızca il tablosu), o yüzden sayıların önüne geçmesin diye sonda kalır.
+  const haritaKarti =
+    sabit || iller === null ? null : (
+      <Kart>
+        <Text style={tema.yazi.bolum}>İllere göre (tüm kurum)</Text>
+        {iller.length === 0 ? (
+          <Text style={tema.yazi.kucuk}>
+            Haritada görünmesi için birimlere il atayın: ilgili birimin düzenleme ekranında &quot;İl&quot; alanı. Bir
+            birime atanan il, altındaki birimler için de geçerlidir.
+          </Text>
+        ) : (
+          <>
+            <View style={styles.olcuAlani}>
+              <Secenekler secenekler={HARITA_OLCULERI} secili={haritaOlcusu} onSec={setHaritaOlcusu} />
+            </View>
+            <View style={styles.izgara}>
+              {masaustu ? (
+                <View style={styles.haritaAlani}>
+                  <TurkiyeHaritasi iller={iller} olcu={haritaOlcusu} seciliIl={secilenIl?.il_kodu ?? null} onIlSec={ilSec} />
+                </View>
+              ) : null}
+              <View style={styles.ilTablosu}>
+                <Tablo veri={sonIller} sutunlar={ilSutunlari} anahtar={(i) => String(i.il_kodu)} onPress={ilSec} />
+              </View>
+            </View>
+            {secilenIl ? (
+              <View style={styles.yol}>
+                <Text style={tema.yazi.kucuk}>
+                  {ilEtiketi(secilenIl)}
+                  {secilenIl.dugumler.length === 0 ? ': bu ile doğrudan atanmış birim yok.' : ' birimleri:'}
+                </Text>
+                {secilenIl.dugumler.map((d) => (
+                  <Pressable key={d.id} accessibilityRole="button" onPress={() => birimSec(d.id)}>
+                    <Text style={styles.yolBaglantisi}>{d.ad}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </>
+        )}
+      </Kart>
+    );
+
   return (
     <Ekran kaydirilabilir genis>
       <View style={styles.ustSatir}>
         {sabit ? null : (
-          <View style={styles.secimAlani}>
-            <Secim etiket="Birim" secenekler={birimSecenekleri} secili={birimId} onSec={(id) => id && birimSec(id)} />
-          </View>
+          filtreler.map((f) => (
+            <View key={f.seviye} style={styles.secimAlani}>
+              <Secim
+                etiket={seviyeAdi(f.seviye)}
+                secenekler={f.secenekler}
+                secili={f.secili}
+                // Seçim kaldırılınca bir üst seviyede seçili birime (yoksa tüm kuruma) dönülür.
+                onSec={(id) => birimSec(id ?? f.ustId ?? kokId ?? '')}
+                bosEtiket="Tümü"
+                pasif={f.secenekler.length === 0}
+              />
+            </View>
+          ))
         )}
         <View style={styles.donemAlani}>
           <Secenekler etiket="Dönem" secenekler={PANO_DONEMLERI} secili={donem} onSec={setDonem} />
         </View>
       </View>
+
+      {masaustu ? haritaKarti : null}
 
       <View style={styles.yol}>
         {ozet.birim.yol.map((d, i) => {
@@ -385,46 +453,7 @@ export function Pano({ sabit = false, alt }: Props) {
         ) : null}
       </View>
 
-      {sabit || iller === null ? null : (
-        <Kart>
-          <Text style={tema.yazi.bolum}>İllere göre (tüm kurum)</Text>
-          {iller.length === 0 ? (
-            <Text style={tema.yazi.kucuk}>
-              Haritada görünmesi için birimlere il atayın: ilgili birimin düzenleme ekranında &quot;İl&quot; alanı. Bir
-              birime atanan il, altındaki birimler için de geçerlidir.
-            </Text>
-          ) : (
-            <>
-              <View style={styles.olcuAlani}>
-                <Secenekler secenekler={HARITA_OLCULERI} secili={haritaOlcusu} onSec={setHaritaOlcusu} />
-              </View>
-              <View style={styles.izgara}>
-                {masaustu ? (
-                  <View style={styles.haritaAlani}>
-                    <TurkiyeHaritasi iller={iller} olcu={haritaOlcusu} seciliIl={secilenIl?.il_kodu ?? null} onIlSec={ilSec} />
-                  </View>
-                ) : null}
-                <View style={styles.ilTablosu}>
-                  <Tablo veri={sonIller} sutunlar={ilSutunlari} anahtar={(i) => String(i.il_kodu)} onPress={ilSec} />
-                </View>
-              </View>
-              {secilenIl ? (
-                <View style={styles.yol}>
-                  <Text style={tema.yazi.kucuk}>
-                    {ilEtiketi(secilenIl)}
-                    {secilenIl.dugumler.length === 0 ? ': bu ile doğrudan atanmış birim yok.' : ' birimleri:'}
-                  </Text>
-                  {secilenIl.dugumler.map((d) => (
-                    <Pressable key={d.id} accessibilityRole="button" onPress={() => birimSec(d.id)}>
-                      <Text style={styles.yolBaglantisi}>{d.ad}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </>
-          )}
-        </Kart>
-      )}
+      {masaustu ? null : haritaKarti}
 
       {alt}
     </Ekran>
@@ -444,8 +473,8 @@ function olustur(t: Tema) {
     },
     secimAlani: {
       flexGrow: 1,
-      flexBasis: 260,
-      maxWidth: 420,
+      flexBasis: 180,
+      maxWidth: 280,
     },
     donemAlani: {
       flexGrow: 1,
