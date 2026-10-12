@@ -66,6 +66,10 @@ Veli PIN'leri sunucudaki `VELI_PIN_ANAHTARI` ile korunur (Supabase > Edge Functi
 
 Süper admin olarak uygulamadan yeni kurum eklerken marka kodunu gir (kök kurum = müşteri). Şubeleri müşterinin kendi yöneticisi açar. Müşteriye özel özellikler kök kurumun `ozellikler` kolonundan açılır (yalnızca süper admin).
 
+## 5b. İller (pano haritası)
+
+Panodaki Türkiye haritası için il düzeyindeki birimlere il atanır: birimin düzenleme ekranında "İl" alanı (ya da yeni birim açarken). Bir birime atanan il altındaki birimler için de geçerlidir; il atanmamış dallar haritada görünmez. Şehir bazlı olmayan müşteride boş bırakılabilir.
+
 ## 6. Derle ve doğrula
 
 ```

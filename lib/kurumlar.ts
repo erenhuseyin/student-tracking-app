@@ -101,23 +101,28 @@ export function kurumYolu(
 
 // Erişim: düğümün üstündeki bir yönetici (RLS + kurum_ad_degisikligi trigger'ı); yönetici kendi
 // kurumunun adını değiştiremez.
-export async function kurumAdiniGuncelle(id: string, ad: string): Promise<void> {
+// `ilKodu` verilirse (null dahil) birimin ili de yazılır; verilmezse dokunulmaz.
+export async function kurumAdiniGuncelle(id: string, ad: string, ilKodu?: number | null): Promise<void> {
   const temizAd = ad.trim();
   if (!temizAd) throw new Error('Ad gerekli.');
-  const { data, error } = await supabase.from('kurum').update({ ad: temizAd }).eq('id', id).select('id');
+  const { data, error } = await supabase
+    .from('kurum')
+    .update(ilKodu === undefined ? { ad: temizAd } : { ad: temizAd, il_kodu: ilKodu })
+    .eq('id', id)
+    .select('id');
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
   if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
 }
 
 // Erişim: `ustKurumId` çağıranın kendi düğümü ya da altındaki bir düğüm olmalı (RLS:
 // kurum_admin_alt_ekle); 4. seviyenin altına açılamaz (trigger).
-export async function altKurumEkle(ustKurumId: string, ad: string): Promise<Kurum> {
+export async function altKurumEkle(ustKurumId: string, ad: string, ilKodu: number | null = null): Promise<Kurum> {
   const temizAd = ad.trim();
   if (!temizAd) throw new Error('Ad gerekli.');
 
   const { data, error } = await supabase
     .from('kurum')
-    .insert({ ad: temizAd, ust_kurum_id: ustKurumId })
+    .insert({ ad: temizAd, ust_kurum_id: ustKurumId, il_kodu: ilKodu })
     .select()
     .single();
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));

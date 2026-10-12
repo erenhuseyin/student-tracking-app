@@ -34,6 +34,7 @@ export const AYARLANABILIR_BOLUMLER: Record<AyarlanabilirRol, Bolum[]> = {
     { anahtar: 'duyurular', etiket: 'Duyurular', aciklama: 'Duyuru ve etkinlikleri görme, kendi sınıfına duyuru yazma' },
     { anahtar: 'program', etiket: 'Ders Programı', aciklama: 'Sınıflarının haftalık ders programını görme ve düzenleme' },
     { anahtar: 'icerik', etiket: 'Ders, Ezber ve Kitap Takibi', aciklama: 'Konu ilerlemesi, ezber ve kitap takibi (kurumda açıksa)' },
+    { anahtar: 'ozet', etiket: 'Kurum Özeti', aciklama: 'Kendi biriminin sayıları ve katılım oranları (pano)' },
   ],
   veli: [
     { anahtar: 'yoklama', etiket: 'Yoklama', aciklama: 'Çocuğun yoklama geçmişi ve katılım oranı' },
@@ -110,6 +111,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
   ],
   ogretmen: [
     { anahtar: 'siniflarim', etiket: 'Sınıflarım', ikon: 'school-outline', yer: 'sekme', sekme: 'index' },
+    { anahtar: 'ogretmen-ozet', etiket: 'Özet', ikon: 'stats-chart-outline', yer: 'sekme', sekme: 'ozet', bolum: 'ozet' },
     { anahtar: 'program', etiket: 'Program', ikon: 'calendar-outline', yer: 'sekme', sekme: 'program', bolum: 'program' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,

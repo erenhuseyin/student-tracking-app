@@ -8,6 +8,8 @@ import { Ekran } from '@/components/Ekran';
 import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
+import { Secim } from '@/components/Secim';
+import { IL_SECENEKLERI } from '@/lib/iller';
 import { altKurumEkle } from '@/lib/kurumlar';
 import { useOturum } from '@/lib/oturum';
 import { seviyeAdi } from '@/lib/seviye';
@@ -22,6 +24,7 @@ export default function YeniBirim() {
   const ustId = ustParam ?? kendiKurumu?.id;
   const { kurum: ust, hata: ustHatasi } = useKurum(ustId);
   const [ad, setAd] = useState('');
+  const [il, setIl] = useState<string | null>(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
   const seviye = seviyeAdi((ust?.seviye ?? 1) + 1);
@@ -34,7 +37,7 @@ export default function YeniBirim() {
     setGonderiliyor(true);
     setHata(null);
     try {
-      await altKurumEkle(ustId, ad);
+      await altKurumEkle(ustId, ad, il ? Number(il) : null);
       toast(`${seviye} eklendi`);
       router.back();
     } catch (e) {
@@ -56,6 +59,14 @@ export default function YeniBirim() {
           editable={!gonderiliyor}
           onSubmitEditing={kaydet}
           autoFocus
+        />
+        <Secim
+          etiket="İl (isteğe bağlı)"
+          secenekler={IL_SECENEKLERI}
+          secili={il}
+          onSec={setIl}
+          bosEtiket="Üst birimin ili"
+          pasif={gonderiliyor}
         />
         <HataMesaji mesaj={hata ?? ustHatasi} />
         <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />

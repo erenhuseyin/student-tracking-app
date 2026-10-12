@@ -9,6 +9,7 @@
 --     Malatya
 --
 -- Tüm hesapların şifresi: Test.1234!   Her sınıfta 6 erkek öğrenci (TCKN'siz; veli hesabı yok).
+-- Pano için: üç bölgeye il atanır, her sınıfa ders günleri ve son 10 haftanın rastgele yoklaması eklenir.
 
 begin;
 
@@ -114,10 +115,48 @@ begin
     pg_temp.kullanici_ekle('yusuf_seven@test.local', 'Yusuf Seven', 'ogretmen', san));
 end $$;
 
+-- Pano haritası için iller (plaka kodu).
+update public.kurum set il_kodu = 34 where ad = 'İstanbul';
+update public.kurum set il_kodu = 23 where ad = 'Elazığ';
+update public.kurum set il_kodu = 44 where ad = 'Malatya';
+
+-- Ders günleri: 10 hafta öncesinden itibaren; sınıfların yarısı cumartesi-pazar, yarısı salı-perşembe-cumartesi.
+insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri)
+select x.kurum_id, x.id, (date_trunc('week', current_date) - interval '70 day')::date,
+  case when x.sira % 2 = 0 then '{6,7}'::smallint[] else '{2,4,6}'::smallint[] end
+from (select s.kurum_id, s.id, row_number() over (order by s.kurum_id, s.ad) as sira from public.sinif s) x;
+
+-- Bugüne kadarki ders günleri için rastgele yoklama. Sınıftan sınıfa katılım farklıdır; ders
+-- günlerinin yaklaşık onda birinde yoklama hiç alınmamıştır (pano "yoklama düzeni" için).
+insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id)
+select y.kurum_id, y.ogrenci_id, y.gun,
+  (case
+    when y.r < y.katilim then 'geldi'
+    when y.r < y.katilim + 0.06 then 'gec'
+    when y.r < y.katilim + 0.10 then 'mazeretli'
+    else 'gelmedi'
+  end)::public.yoklama_durumu,
+  y.giren
+from (
+  select o.kurum_id, o.id as ogrenci_id, g.gun::date as gun, random() as r,
+    0.86 - (('x' || substr(md5(s.id::text), 1, 2))::bit(8)::int / 255.0) * 0.3 as katilim,
+    coalesce(
+      (select os.ogretmen_id from public.ogretmen_sinif os where os.sinif_id = s.id limit 1),
+      (select c.id from public.kullanici c where c.kurum_id = s.kurum_id and c.rol = 'kurum_admin' limit 1)
+    ) as giren
+  from public.sinif s
+  join public.sinif_ders_plani p on p.sinif_id = s.id
+  join public.ogrenci o on o.sinif_id = s.id
+  cross join generate_series(p.baslangic_tarihi::timestamp, current_date::timestamp, interval '1 day') as g (gun)
+  where extract(isodow from g.gun)::smallint = any (p.ders_gunleri)
+    and ('x' || substr(md5(s.id::text || g.gun::text), 1, 2))::bit(8)::int > 25
+) y;
+
 commit;
 
 select
   (select count(*) from public.kurum) as kurum,
   (select count(*) from public.kullanici) as kullanici,
   (select count(*) from public.sinif) as sinif,
-  (select count(*) from public.ogrenci) as ogrenci;
+  (select count(*) from public.ogrenci) as ogrenci,
+  (select count(*) from public.yoklama) as yoklama;

@@ -24,7 +24,7 @@ Bir eğitim kurumu için, öğretmenlerin öğrenci gelişimini kaydedebildiği,
 
 ## 4. Temel Veri Modeli
 
-- **kurum** — id, ad, ayarlar, ust_kurum_id (bir üst birim), kok_kurum_id / seviye (1-4) / yol (otomatik; ağaçtaki yeri), marka_kodu (yalnızca ana kurumda), ozellikler (müşteriye özel özellik bayrakları)
+- **kurum** — id, ad, ayarlar, ust_kurum_id (bir üst birim), kok_kurum_id / seviye (1-4) / yol (otomatik; ağaçtaki yeri), il_kodu (isteğe bağlı plaka; pano haritası), marka_kodu (yalnızca ana kurumda), ozellikler (müşteriye özel özellik bayrakları)
 - **sinif** — id, kurum_id, ad, dönem
 - **kullanici** — id, auth_id (Supabase auth), rol, kurum_id, ad_soyad
 - **ogrenci** — id, kurum_id, kok_kurum_id (otomatik), sinif_id, ad_soyad, doğum_tarihi, tckn (müşteri başına tekil), aktif (pasif = ayrılmış; kayıtları korunur)
@@ -127,6 +127,8 @@ supabase/
 > Güncel durum (2026-10-08): rol grupları `(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`; her birinde ana bölümler `(sekmeler)/` altında sekmedir (`index`, …, `menu`), detay ekranları grubun kökünde durur ve sekmelerin üstünde açılır. Bölümlerin listesi `lib/menu.ts`'tedir.
 
 ## 9. Netleşen Kararlar
+
+- **Pano: toplamlar tüm kuruma açık (2026-10-12).** Yöneticinin açılış ekranı panodur: birim seçimiyle (tüm kurum ya da herhangi bir birim) sayılar, katılım oranı ve önceki döneme göre farkı, 12 haftalık eğilim, alt birim karşılaştırması, "en"ler (en kalabalık, katılımı en yüksek / en düşük, en çok alt birimi olan, yoklamayı en düzenli giren), yoklama düzeni, eğitim ilerlemesi ve il haritası. **Her yönetici (genel merkez, bölge, ilçe, semt) tüm kurumun ve istediği birimin toplamlarını görür** — kendi kapsamı dışındakiler dahil; ama yalnızca toplam ve birim adı olarak (öğrenci, veli, sınıf adı yok, kayıtlara girilemez). Öğretmen yalnızca kendi biriminin panosunu görür; veli pano görmez. Satır düzeyindeki yetki (RLS) değişmedi. Toplamlar sunucuda hesaplanır. Harita yalnızca web'de çizilir (telefonda il tablosu); birimin ili birim formundan seçilir ve altındaki birimler için de geçerlidir. Oran sıralamalarına en az 10 yoklama kaydı olan birimler girer.
 
 - **Görev tanımları ve yönetim tabloları (2026-10-12).** "Rol tanımlama" isteği **görev** olarak karşılandı: müşterinin genel merkez yöneticisi kendi görevlerini tanımlar (İstişare üyesi, Eğitim sorumlusu, Abi…); her görev bir temel role (yönetici ya da öğretmen) bağlıdır, kişiye yöneticisi atar ve kişi o adla görünür. **Menü Yetkileri** ekranında her rol/görev için menüler açılıp kapatılır (görevsiz yöneticinin menüleri ile Özet ve Menü kapatılamaz). **Bu bir görünürlük ayarıdır:** veriye erişimi temel rol ve kişinin bağlı olduğu birim belirler, RLS değişmedi — "gerçek yetki sistemi" (rol başına veri yetkisi) bilinçli olarak seçilmedi. Yönetici ekranları **tablo + filtre + sağ panel** düzenine geçti (Kullanıcılar, Öğrenciler, Roller, Menü Yetkileri): geniş ekranda tablo, telefonda kart listesi ve tam ekran panel; Kullanıcılar tablosunda personel ve veliler birlikte listelenir. Veli için görev tanımlanmaz.
 
