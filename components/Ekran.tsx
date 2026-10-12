@@ -15,18 +15,21 @@ type Props = {
   kaydirilabilir?: boolean;
   baslikCubugusuz?: boolean;
   ortala?: boolean;
+  // Tablo + yan panel gibi yatayda yer isteyen ekranlar (bkz. VeriEkrani).
+  genis?: boolean;
 };
 
 const DAR_GENISLIK = 560;
 const GENIS_GENISLIK = 1200;
+const EN_GENIS_GENISLIK = 1600;
 
-export function Ekran({ children, kaydirilabilir = false, baslikCubugusuz = false, ortala = false }: Props) {
+export function Ekran({ children, kaydirilabilir = false, baslikCubugusuz = false, ortala = false, genis = false }: Props) {
   const tema = useTema();
   const kirilma = useKirilma();
   const kenarlar = useSafeAreaInsets();
   const styles = useMemo(() => olustur(tema), [tema]);
   const yatayGenislik = Platform.OS === 'web' ? tema.kenarBosluklari.web : tema.kenarBosluklari.mobil;
-  const genislikSinirlamasi = ortala ? DAR_GENISLIK : kirilma === 'masaustu' ? GENIS_GENISLIK : undefined;
+  const genislikSinirlamasi = ortala ? DAR_GENISLIK : kirilma === 'masaustu' ? (genis ? EN_GENIS_GENISLIK : GENIS_GENISLIK) : undefined;
 
   const dolgu = {
     paddingTop: tema.bosluk.l + (baslikCubugusuz ? kenarlar.top : 0),
