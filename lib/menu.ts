@@ -135,7 +135,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
 const KAPATILAMAYAN_OGELER = ['ozet', 'menu'];
 export const YONETICI_MENU_OGELERI: Bolum[] = MENULER.kurum_admin
   .filter((o) => !KAPATILAMAYAN_OGELER.includes(o.anahtar))
-  .map((o) => ({ anahtar: o.anahtar, etiket: o.altBirimler ? 'Alt birimler (bölge, ilçe, semt…)' : o.etiket, aciklama: '' }));
+  .map((o) => ({ anahtar: o.anahtar, etiket: o.altBirimler ? 'Alt birimler' : o.etiket, aciklama: '' }));
 
 export type Menu = {
   // Rolün tüm sekmeleri; `gorunur` yanlışsa sekme çubuğunda yer almaz (dosyası yine vardır).
