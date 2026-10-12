@@ -1927,6 +1927,98 @@ set local role authenticated;
 select tst.esit('başka müşteri G ağacını göremez',
   (select count(*) from public.kurum where kok_kurum_id = 'c0000000-0000-0000-0000-0000000000d0')::text, '0');
 
+-- ===========================================================================
+-- 29. GÖREV: kök yönetici tanımlar, her yönetici kapsamındaki kişiye atar
+--   Kurum G ağacı (28. bölüm). f1 İstişare üyesi (kurum_admin), f2 Abi (ogretmen), fa Kurum A'nın görevi
+--   Kimlik: 47 ogrG (semt öğretmeni)
+-- ===========================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000047', 'authenticated', 'authenticated', 'ogrg@test.local');
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad) values
+  ('b0000000-0000-0000-0000-000000000047', 'a0000000-0000-0000-0000-000000000047', 'ogretmen', 'c0000000-0000-0000-0000-00000000d111', 'ogrG');
+
+insert into public.gorev (id, kurum_id, ad, temel_rol) values
+  ('f0000000-0000-0000-0000-0000000000f1', 'c0000000-0000-0000-0000-0000000000d0', 'İstişare üyesi', 'kurum_admin'),
+  ('f0000000-0000-0000-0000-0000000000f2', 'c0000000-0000-0000-0000-0000000000d0', 'Abi', 'ogretmen'),
+  ('f0000000-0000-0000-0000-0000000000fa', 'c0000000-0000-0000-0000-00000000000a', 'A görevi', 'kurum_admin');
+
+select tst.esit('görev alt birimde tanımlanamaz (şema)',
+  tst.dene($q$insert into public.gorev (kurum_id, ad, temel_rol) values ('c0000000-0000-0000-0000-0000000000d1', 'x', 'ogretmen')$q$), 'hata:23514');
+select tst.esit('veli için görev tanımlanamaz (şema)',
+  tst.dene($q$insert into public.gorev (kurum_id, ad, temel_rol) values ('c0000000-0000-0000-0000-0000000000d0', 'x', 'veli')$q$), 'hata:23514');
+
+-- adminG (kök): tanımlar, günceller, siler
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000040","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök yönetici görev tanımlar (returning ile)',
+  tst.dene($q$insert into public.gorev (kurum_id, ad, temel_rol, kapali_ogeler) values ('c0000000-0000-0000-0000-0000000000d0', 'Eğitim sorumlusu', 'kurum_admin', array['raporlar']) returning id$q$), 'ok:1');
+select tst.esit('kök yönetici görevin menü yetkisini günceller',
+  tst.dene($q$update public.gorev set kapali_ogeler = array['raporlar','roller'] where ad = 'Eğitim sorumlusu'$q$), 'ok:1');
+select tst.esit('temel rol sonradan değiştirilemez',
+  tst.dene($q$update public.gorev set temel_rol = 'ogretmen' where ad = 'Eğitim sorumlusu'$q$), 'hata:42501');
+select tst.esit('aynı adla ikinci görev olmaz',
+  tst.dene($q$insert into public.gorev (kurum_id, ad, temel_rol) values ('c0000000-0000-0000-0000-0000000000d0', 'Abi', 'ogretmen')$q$), 'hata:23505');
+select tst.esit('kök yönetici kullanılmayan görevi siler',
+  tst.dene($q$delete from public.gorev where ad = 'Eğitim sorumlusu'$q$), 'ok:1');
+select tst.esit('kök yönetici başka müşterinin görevini göremez',
+  (select count(*) from public.gorev where kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '0');
+select tst.esit('kök yönetici başka müşteriye görev tanımlayamaz',
+  tst.dene($q$insert into public.gorev (kurum_id, ad, temel_rol) values ('c0000000-0000-0000-0000-00000000000a', 'x', 'ogretmen')$q$), 'hata:42501');
+
+-- adminG1 (bölge): tanımlayamaz, okur, kapsamındaki kişiye atar
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000041","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('alt birim yöneticisi görevleri okur', (select count(*) from public.gorev)::text, '2');
+select tst.esit('alt birim yöneticisi görev tanımlayamaz',
+  tst.dene($q$insert into public.gorev (kurum_id, ad, temel_rol) values ('c0000000-0000-0000-0000-0000000000d0', 'x', 'ogretmen')$q$), 'hata:42501');
+select tst.esit('alt birim yöneticisi görevi güncelleyemez',
+  tst.dene($q$update public.gorev set ad = 'x' where id = 'f0000000-0000-0000-0000-0000000000f1'$q$), 'ok:0');
+select tst.esit('alt birim yöneticisi görevi silemez',
+  tst.dene($q$delete from public.gorev where id = 'f0000000-0000-0000-0000-0000000000f2'$q$), 'ok:0');
+select tst.esit('bölge yöneticisi ilçe yöneticisine görev atar',
+  tst.dene($q$update public.kullanici set gorev_id = 'f0000000-0000-0000-0000-0000000000f1' where id = 'b0000000-0000-0000-0000-000000000042'$q$), 'ok:1');
+select tst.esit('bölge yöneticisi semt öğretmenine görev atar',
+  tst.dene($q$update public.kullanici set gorev_id = 'f0000000-0000-0000-0000-0000000000f2' where id = 'b0000000-0000-0000-0000-000000000047'$q$), 'ok:1');
+select tst.esit('öğretmen görevi yöneticiye atanamaz',
+  tst.dene($q$update public.kullanici set gorev_id = 'f0000000-0000-0000-0000-0000000000f2' where id = 'b0000000-0000-0000-0000-000000000043'$q$), 'hata:23514');
+select tst.esit('başka müşterinin görevi atanamaz',
+  tst.dene($q$update public.kullanici set gorev_id = 'f0000000-0000-0000-0000-0000000000fa' where id = 'b0000000-0000-0000-0000-000000000043'$q$), 'hata:23514');
+select tst.esit('yönetici kendi görevini değiştiremez',
+  tst.dene($q$update public.kullanici set gorev_id = 'f0000000-0000-0000-0000-0000000000f1' where id = 'b0000000-0000-0000-0000-000000000041'$q$), 'hata:42501');
+select tst.esit('bölge yöneticisi komşu bölgedeki kişiye görev atayamaz',
+  tst.dene($q$update public.kullanici set gorev_id = 'f0000000-0000-0000-0000-0000000000f1' where id = 'b0000000-0000-0000-0000-000000000044'$q$), 'ok:0');
+
+-- ogrG (görevli öğretmen): kendi görevini okur, değiştiremez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000047","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen kendi görevini okur',
+  (select g.ad from public.kullanici k join public.gorev g on g.id = k.gorev_id where k.id = 'b0000000-0000-0000-0000-000000000047'), 'Abi');
+select tst.esit('öğretmen kendi görevini kaldıramaz',
+  tst.dene($q$update public.kullanici set gorev_id = null where id = 'b0000000-0000-0000-0000-000000000047'$q$), 'hata:42501');
+select tst.esit('öğretmen görev tanımını değiştiremez',
+  tst.dene($q$update public.gorev set kapali_ogeler = '{}' where id = 'f0000000-0000-0000-0000-0000000000f2'$q$), 'ok:0');
+
+-- adminG: kullanılan görev silinemez; rol değişince görev boşalır
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000040","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kullanılan görev silinemez',
+  tst.dene($q$delete from public.gorev where id = 'f0000000-0000-0000-0000-0000000000f1'$q$), 'hata:23503');
+select tst.esit('görevli yöneticinin rolü değişir',
+  tst.dene($q$update public.kullanici set rol = 'ogretmen' where id = 'b0000000-0000-0000-0000-000000000042'$q$), 'ok:1');
+select tst.esit('rol değişince görev boşalır',
+  (select coalesce(gorev_id::text, 'yok') from public.kullanici where id = 'b0000000-0000-0000-0000-000000000042'), 'yok');
+select tst.esit('boşalan görev artık silinebilir',
+  tst.dene($q$delete from public.gorev where id = 'f0000000-0000-0000-0000-0000000000f1'$q$), 'ok:1');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

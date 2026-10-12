@@ -66,6 +66,7 @@ export type Database = {
           expo_push_token: string | null;
           giris_deneme_sayisi: number;
           giris_kilit_bitis: string | null;
+          gorev_id: string | null;
           id: string;
           kod_deneme_sayisi: number;
           kurum_id: string | null;
@@ -83,6 +84,7 @@ export type Database = {
           expo_push_token?: string | null;
           giris_deneme_sayisi?: number;
           giris_kilit_bitis?: string | null;
+          gorev_id?: string | null;
           id?: string;
           kod_deneme_sayisi?: number;
           kurum_id?: string | null;
@@ -100,6 +102,7 @@ export type Database = {
           expo_push_token?: string | null;
           giris_deneme_sayisi?: number;
           giris_kilit_bitis?: string | null;
+          gorev_id?: string | null;
           id?: string;
           kod_deneme_sayisi?: number;
           kurum_id?: string | null;
@@ -720,6 +723,44 @@ export type Database = {
             columns: ['giren_kullanici_id'];
             isOneToOne: false;
             referencedRelation: 'kullanici';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      gorev: {
+        Row: {
+          aciklama: string | null;
+          ad: string;
+          id: string;
+          kapali_ogeler: string[];
+          kurum_id: string;
+          olusturma_tarihi: string;
+          temel_rol: Database['public']['Enums']['rol'];
+        };
+        Insert: {
+          aciklama?: string | null;
+          ad: string;
+          id?: string;
+          kapali_ogeler?: string[];
+          kurum_id: string;
+          olusturma_tarihi?: string;
+          temel_rol: Database['public']['Enums']['rol'];
+        };
+        Update: {
+          aciklama?: string | null;
+          ad?: string;
+          id?: string;
+          kapali_ogeler?: string[];
+          kurum_id?: string;
+          olusturma_tarihi?: string;
+          temel_rol?: Database['public']['Enums']['rol'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'gorev_kurum_id_fkey';
+            columns: ['kurum_id'];
+            isOneToOne: false;
+            referencedRelation: 'kurum';
             referencedColumns: ['id'];
           },
         ];

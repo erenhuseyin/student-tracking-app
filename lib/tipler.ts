@@ -79,3 +79,7 @@ export const KITAP_DURUMLARI = Constants.public.Enums.kitap_durumu;
 export type KitapDurumu = (typeof KITAP_DURUMLARI)[number];
 export type KitapOkuma = Tables<'kitap_okuma'>;
 
+
+// Müşterinin tanımladığı görev: bir temel role bağlıdır, o görevdeki kişilere gizlenen menü
+// öğelerini tutar (görünürlük ayarı; veri yetkisi temel rolden gelir).
+export type Gorev = Tables<'gorev'>;
