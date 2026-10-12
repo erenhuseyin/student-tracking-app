@@ -2019,6 +2019,120 @@ select tst.esit('rol değişince görev boşalır',
 select tst.esit('boşalan görev artık silinebilir',
   tst.dene($q$delete from public.gorev where id = 'f0000000-0000-0000-0000-0000000000f1'$q$), 'ok:1');
 
+-- ===========================================================================
+-- 30. PANO: toplamlar müşterinin tamamı için (yönetici), kendi birimi için (öğretmen)
+--   Kurum G ağacı (28-29. bölüm). oG için 3 yoklama (geldi, gelmedi, mazeretli), sG için ders planı.
+--   Satır düzeyinde RLS değişmez; yalnızca pano_ozeti / pano_iller toplam döndürür.
+-- ===========================================================================
+reset role;
+
+insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values
+  ('c0000000-0000-0000-0000-00000000d111', 'e0000000-0000-0000-0000-00000000d111', '2026-09-07', 'geldi', 'b0000000-0000-0000-0000-000000000043'),
+  ('c0000000-0000-0000-0000-00000000d111', 'e0000000-0000-0000-0000-00000000d111', '2026-09-08', 'gelmedi', 'b0000000-0000-0000-0000-000000000043'),
+  ('c0000000-0000-0000-0000-00000000d111', 'e0000000-0000-0000-0000-00000000d111', '2026-09-09', 'mazeretli', 'b0000000-0000-0000-0000-000000000043');
+-- Pazartesi, salı, perşembe: 7-13 Eylül haftasında 3 planlı ders, 2'sinin yoklaması var.
+insert into public.sinif_ders_plani (kurum_id, sinif_id, baslangic_tarihi, ders_gunleri) values
+  ('c0000000-0000-0000-0000-00000000d111', 'd0000000-0000-0000-0000-00000000d111', '2026-09-07', '{1,2,4}');
+update public.kurum set il_kodu = 34 where id = 'c0000000-0000-0000-0000-0000000000d1';
+
+-- adminG2 (komşu bölge): satırları göremez ama toplamları görür
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000044","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('komşu bölge yöneticisi satırı hâlâ göremez', (select count(*) from public.ogrenci)::text, '0');
+select tst.esit('komşu bölgenin toplam öğrencisi',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13') -> 'sayilar' ->> 'ogrenci'), '1');
+select tst.esit('komşu bölgenin katılımı (geldi)',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13') -> 'katilim' ->> 'geldi'), '1');
+select tst.esit('mazeretli ayrı sayılır',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13') -> 'katilim' ->> 'mazeretli'), '1');
+select tst.esit('tüm kurum: sınıf sayısı',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13') -> 'sayilar' ->> 'sinif'), '3');
+select tst.esit('tüm kurum: alt birim sayısı',
+  jsonb_array_length(public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13') -> 'birimler')::text, '5');
+select tst.esit('birim toplamı alt ağacı kapsar (ilçe, semtin öğrencisini sayar)', (
+  select b ->> 'ogrenci'
+  from jsonb_array_elements(public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13') -> 'birimler') b
+  where b ->> 'id' = 'c0000000-0000-0000-0000-000000000d11'), '1');
+select tst.esit('kardeş ilçenin toplamı sıfır', (
+  select b ->> 'ogrenci'
+  from jsonb_array_elements(public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13') -> 'birimler') b
+  where b ->> 'id' = 'c0000000-0000-0000-0000-000000000d12'), '0');
+select tst.esit('alt birim etkin ili üstünden alır', (
+  select b ->> 'il_kodu'
+  from jsonb_array_elements(public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13') -> 'birimler') b
+  where b ->> 'id' = 'c0000000-0000-0000-0000-00000000d111'), '34');
+select tst.esit('yoklama düzeni: planlı ders',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13') -> 'yoklama_duzeni' ->> 'planli'), '3');
+select tst.esit('yoklama düzeni: yoklaması alınan',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13') -> 'yoklama_duzeni' ->> 'alinan'), '2');
+select tst.esit('dönem dışındaki yoklama sayılmaz',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-14', '2026-09-20') -> 'katilim' ->> 'geldi'), '0');
+select tst.esit('önceki dönem ayrı gelir',
+  (public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-14', '2026-09-20') -> 'onceki_katilim' ->> 'katildi'), '1');
+select tst.esit('pano öğrenci adı döndürmez',
+  position('oG' in public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13')::text)::text, '0');
+select tst.esit('pano sınıf adı döndürmez',
+  position('sG' in public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13')::text)::text, '0');
+select tst.esit('il toplamı',
+  (public.pano_iller('2026-09-07', '2026-09-13') -> 0 ->> 'ogrenci'), '1');
+select tst.esit('il: plaka', (public.pano_iller('2026-09-07', '2026-09-13') -> 0 ->> 'il_kodu'), '34');
+select tst.esit('il: doğrudan alt birim (ilçe) sayısı', (public.pano_iller('2026-09-07', '2026-09-13') -> 0 ->> 'alt_birim'), '2');
+select tst.esit('ili olmayan bölge haritada yok', jsonb_array_length(public.pano_iller('2026-09-07', '2026-09-13'))::text, '1');
+select tst.esit('geçersiz tarih aralığı reddedilir',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-13', '2026-09-07')$q$), 'hata:22023');
+select tst.esit('başka müşterinin birimi istenemez',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-00000000000a', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
+select tst.esit('komşu bölge yöneticisi G1 altındaki ili değiştiremez',
+  tst.dene($q$update public.kurum set il_kodu = 6 where id = 'c0000000-0000-0000-0000-00000000d111'$q$), 'ok:0');
+
+-- adminA (başka müşteri)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşteri G panosunu alamaz',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
+select tst.esit('başka müşterinin il toplamında G yok',
+  (select count(*) from jsonb_array_elements(public.pano_iller('2026-09-07', '2026-09-13')) i where i ->> 'il_kodu' = '34')::text, '0');
+
+-- adminG1 (bölge): altındaki birimin ilini değiştirir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000041","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('bölge yöneticisi alt birimin ilini değiştirir',
+  tst.dene($q$update public.kurum set il_kodu = 34 where id = 'c0000000-0000-0000-0000-000000000d11'$q$), 'ok:1');
+select tst.esit('geçersiz plaka reddedilir',
+  tst.dene($q$update public.kurum set il_kodu = 99 where id = 'c0000000-0000-0000-0000-000000000d11'$q$), 'hata:23514');
+
+-- ogrG (semt öğretmeni): yalnızca kendi birimi
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000047","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('öğretmen kendi biriminin panosunu alır',
+  (public.pano_ozeti('c0000000-0000-0000-0000-00000000d111', '2026-09-07', '2026-09-13') -> 'sayilar' ->> 'ogrenci'), '1');
+select tst.esit('öğretmen üst birimin panosunu alamaz',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-0000000000d1', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
+select tst.esit('öğretmen tüm kurumun panosunu alamaz',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-0000000000d0', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
+select tst.esit('öğretmen il toplamlarını alamaz',
+  tst.dene($q$select public.pano_iller('2026-09-07', '2026-09-13')$q$), 'hata:42501');
+
+-- veliG ve süper admin (kuruma bağlı değil): pano yok
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000045","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli pano alamaz',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-00000000d111', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
+
+reset role;
+set local role anon;
+select tst.esit('anon pano çağıramaz',
+  tst.dene($q$select public.pano_ozeti('c0000000-0000-0000-0000-00000000d111', '2026-09-07', '2026-09-13')$q$), 'hata:42501');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 

@@ -15,6 +15,7 @@ export type Database = {
           ad: string;
           ayarlar: Json;
           id: string;
+          il_kodu: number | null;
           kok_kurum_id: string;
           marka_kodu: string | null;
           olusturma_tarihi: string;
@@ -27,6 +28,7 @@ export type Database = {
           ad: string;
           ayarlar?: Json;
           id?: string;
+          il_kodu?: number | null;
           kok_kurum_id?: string;
           marka_kodu?: string | null;
           olusturma_tarihi?: string;
@@ -39,6 +41,7 @@ export type Database = {
           ad?: string;
           ayarlar?: Json;
           id?: string;
+          il_kodu?: number | null;
           kok_kurum_id?: string;
           marka_kodu?: string | null;
           olusturma_tarihi?: string;
@@ -1077,7 +1080,14 @@ export type Database = {
     };
     // `gizli` şemasındaki yardımcı fonksiyonlar API'ye açık değildir; burada görünmezler.
     Functions: {
-      [_ in never]: never;
+      pano_ozeti: {
+        Args: { p_kurum_id: string; p_baslangic: string; p_bitis: string };
+        Returns: Json;
+      };
+      pano_iller: {
+        Args: { p_baslangic: string; p_bitis: string };
+        Returns: Json;
+      };
     };
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
