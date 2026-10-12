@@ -17,6 +17,7 @@ import { YOKLAMA_DURUMLARI, type YoklamaDurumu } from '@/lib/tipler';
 import {
   gununYoklamasiniGetir,
   hepsiniGeldiIsaretle,
+  yoklamaBildir,
   type OgrenciYoklamaSatiri,
   YOKLAMA_ETIKETLERI,
   yoklamaKaydet,
@@ -74,9 +75,11 @@ export default function OgretmenYoklama() {
     setHata(null);
     try {
       await yoklamaKaydet(kullanici.kurum_id, ogrenciId, kullanici.id, durum, tarih);
-      setOgrenciler((mevcut) =>
-        (mevcut ?? []).map((o) => (o.id === ogrenciId ? { ...o, yoklama_durumu: durum } : o)),
-      );
+      const yeni = (ogrenciler ?? []).map((o) => (o.id === ogrenciId ? { ...o, yoklama_durumu: durum } : o));
+      setOgrenciler(yeni);
+      // Veliler yoklama tamamlanınca bildirilir; tamamlandıktan sonraki düzeltmede yalnızca
+      // düzeltilen öğrencinin velisi (kimin bildirileceğine sunucu karar verir).
+      if (yeni.every((o) => o.yoklama_durumu !== null)) yoklamaBildir(sinifId, tarih);
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     } finally {
@@ -101,6 +104,8 @@ export default function OgretmenYoklama() {
       await hepsiniGeldiIsaretle(kullanici.kurum_id, topluHedef.map((o) => o.id), kullanici.id, tarih);
       // Araya giren başka bir işaretleme varsa o da görünsün diye liste yeniden okunur.
       await yenile();
+      // Yoklama bununla tamamlandıysa veliler bildirilir (tamamlanmadıysa sunucu göndermez).
+      yoklamaBildir(sinifId, tarih);
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     } finally {
@@ -122,7 +127,15 @@ export default function OgretmenYoklama() {
           <View style={styles.ust}>
             <Text style={styles.ustBaslik}>{tarihiBicimle(tarih)}</Text>
             <Text style={styles.kucuk}>{ozetMetni(ogrenciler ?? [])}</Text>
-            {gecmisGun ? <Text style={styles.kucuk}>Geçmiş gün düzeltmesi veliye bildirilmez.</Text> : null}
+            <Text style={styles.kucuk}>
+              {gecmisGun
+                ? 'Geçmiş gün düzeltmesi veliye bildirilmez.'
+                : isaretlenmemisler.length > 0
+                  ? 'Veliler, tüm öğrenciler işaretlenince bildirilir.'
+                  : (ogrenciler ?? []).length > 0
+                    ? 'Yoklama tamamlandı; veliler bildirildi. Düzeltirseniz yalnızca o öğrencinin velisi bildirilir.'
+                    : ''}
+            </Text>
             {topluHedef.length > 0 ? (
               <View style={styles.toplu}>
                 <Buton

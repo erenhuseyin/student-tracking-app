@@ -77,6 +77,7 @@ export async function sinifYoklamalariniGetir(
   return { ogrenciler, yoklamalar };
 }
 
+// Bildirim göndermez; yoklama tamamlanınca ekran yoklamaBildir'i çağırır.
 export async function yoklamaKaydet(
   kurumId: string,
   ogrenciId: string,
@@ -95,19 +96,12 @@ export async function yoklamaKaydet(
     .single();
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
 
-  // Bildirim en iyi çabadır (best-effort): yoklama kaydı zaten başarılı, bildirim
-  // gönderiminde yaşanan bir hata bu işlemi geçersiz kılmamalı — hata sessizce yutulur.
-  // Yalnızca bugünün yoklaması bildirilir; geçmiş gün düzeltmesi veliye "bugün" gibi görünmesin.
-  if (tarih === bugununTarihi()) {
-    supabase.functions.invoke('yoklama-bildirim-gonder', { body: { ogrenci_id: ogrenciId, durum } }).catch(() => {});
-  }
-
   return data;
 }
 
 // "Hepsi geldi": verilen öğrencilere tek istekte "geldi" yazar. Kaydı olan öğrencinin durumu
 // değişmez (araya başka bir öğretmenin işaretlemesi girdiyse üzerine yazılmaz); dönen liste yalnızca
-// yeni yazılanlardır. Bildirim kuralı tek tek işaretlemeyle aynıdır (bkz. yoklamaKaydet).
+// yeni yazılanlardır. Bildirim göndermez (bkz. yoklamaBildir).
 export async function hepsiniGeldiIsaretle(
   kurumId: string,
   ogrenciIdleri: string[],
@@ -131,15 +125,16 @@ export async function hepsiniGeldiIsaretle(
     .select('ogrenci_id');
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
 
-  const yazilanlar = data.map((y) => y.ogrenci_id);
-  if (tarih === bugununTarihi()) {
-    for (const ogrenciId of yazilanlar) {
-      supabase.functions
-        .invoke('yoklama-bildirim-gonder', { body: { ogrenci_id: ogrenciId, durum: 'geldi' } })
-        .catch(() => {});
-    }
-  }
-  return yazilanlar;
+  return data.map((y) => y.ogrenci_id);
+}
+
+// Sınıfın bugünkü yoklaması tamamlandıysa velilere bildirim gönderir. Tamamlanıp tamamlanmadığına
+// ve kimin bildirileceğine (yalnızca durumu son bildirilenden farklı olanlar) sunucu karar verir;
+// bu yüzden her kayıttan sonra çağrılabilir. Geçmiş gün düzeltmesi bildirilmez.
+// En iyi çabadır: yoklama zaten kaydedildi, bildirim hatası öğretmene yansımaz.
+export function yoklamaBildir(sinifId: string, tarih: string): void {
+  if (tarih !== bugununTarihi()) return;
+  supabase.functions.invoke('yoklama-bildirim-gonder', { body: { sinif_id: sinifId, tarih } }).catch(() => {});
 }
 
 export async function veliYoklamalariGetir(ogrenciId: string): Promise<Yoklama[]> {

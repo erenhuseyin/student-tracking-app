@@ -1,14 +1,19 @@
-// Yoklama Bildirim Gönder Edge Function: bir öğrencinin velisine/velilerine, öğretmen
-// yoklama girdiğinde Expo Push API üzerinden push bildirimi gönderir ve bildirim_log'a yazar.
+// Yoklama Bildirim Gönder Edge Function: bir sınıfın BUGÜNKÜ yoklaması tamamlanınca (her aktif
+// öğrenci işaretlenince) velilere Expo Push API üzerinden push gönderir ve bildirim_log'a yazar.
 //
 // Neden sunucuda: Expo Push API'ye gönderilen EXPO_ACCESS_TOKEN gizli tutulmalı (istemci
 // bundle'ına asla konmamalı) ve service_role anahtarı uygulamaya konamaz.
 //
-// Yetki: yalnızca `ogretmen`, `kurum_admin`, `super_admin` çağırabilir (veli çağıramaz —
-// aksi halde kendi çocuğu için sahte `durum` ile kendine/eş-veliye yanıltıcı bildirim
-// tetikleyebilirdi). Öğretmen için ikinci katman: `ogrenci` satırı RLS'e tabi client ile
-// okunur — boş dönerse bu öğrenciye erişimi yoktur (gizli.ogretmen_ogrencisi_mi zaten
-// ogrenci_ogretmen_oku politikasında uygulanıyor).
+// Gövde: { sinif_id, tarih }. Durumlar istemciden alınmaz, veritabanından okunur.
+//   - Sınıfta işaretlenmemiş aktif öğrenci varsa hiçbir şey gönderilmez (tamamlandi: false).
+//   - Tamamlandıktan sonraki her çağrıda yalnızca durumu son bildirilenden FARKLI olan öğrencilerin
+//     velilerine gönderilir (bugünün bildirim_log satırlarına bakılır). Böylece istemci her
+//     kayıttan sonra çağırabilir: ilk tamamlanışta herkes, sonraki düzeltmede yalnızca düzeltilen
+//     öğrenci bildirilir.
+//   - `tarih` bugün (Europe/Istanbul) değilse gönderilmez: geçmiş gün düzeltmesi bildirilmez.
+//
+// Yetki: yalnızca `ogretmen`, `kurum_admin`, `super_admin` çağırabilir. İkinci katman RLS'tir:
+// öğrenciler ve yoklamalar çağıranın JWT'siyle okunur — erişemediği sınıf boş döner.
 //
 // Bu bir "en iyi çaba" bildirimidir: yoklama kaydı zaten tamamlandı, bildirim gönderiminde
 // yaşanan herhangi bir hata öğretmenin ekranına hata olarak yansımamalı — bu yüzden fonksiyon
@@ -35,6 +40,14 @@ function yanit(durum: number, govde: Record<string, unknown>): Response {
 }
 
 const hata = (durum: number, mesaj: string) => yanit(durum, { hata: mesaj });
+
+const BOS_SONUC = { tamamlandi: false, bildirilen_ogrenci_sayisi: 0, push_gonderilen_sayisi: 0 };
+// Expo Push API tek istekte en fazla 100 mesaj kabul eder.
+const EXPO_PARCA = 100;
+
+function bugunIstanbul(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date());
+}
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_BASLIKLARI });
@@ -83,101 +96,144 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   if (typeof govde !== 'object' || govde === null) return hata(400, 'İstek gövdesi geçersiz.');
 
-  const ogrenciId = typeof govde.ogrenci_id === 'string' ? govde.ogrenci_id : '';
-  const durum = govde.durum as YoklamaDurumu;
-  if (!UUID_RE.test(ogrenciId)) return hata(400, 'Geçersiz öğrenci.');
-  if (!YOKLAMA_DURUMLARI.includes(durum)) return hata(400, 'Geçersiz durum.');
+  const sinifId = typeof govde.sinif_id === 'string' ? govde.sinif_id : '';
+  const tarih = typeof govde.tarih === 'string' ? govde.tarih : '';
+  if (!UUID_RE.test(sinifId)) return hata(400, 'Geçersiz sınıf.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih)) return hata(400, 'Geçersiz tarih.');
+  if (tarih !== bugunIstanbul()) return yanit(200, BOS_SONUC);
 
-  // 3. Çağıranın bu öğrenciye erişimi var mı? RLS'in kendisi ikinci yetki katmanı:
+  // 3. Sınıfın aktif öğrencileri ve bugünkü yoklamaları. RLS'in kendisi ikinci yetki katmanı:
   //    kullaniciClient (anon key + çağıranın JWT'si) ile okunan satır, RLS'i geçen satırdır.
-  const { data: ogrenci, error: ogrenciHatasi } = await kullaniciClient
+  const { data: ogrenciler, error: ogrenciHatasi } = await kullaniciClient
     .from('ogrenci')
     .select('id, kurum_id, ad_soyad')
-    .eq('id', ogrenciId)
-    .maybeSingle();
+    .eq('sinif_id', sinifId)
+    .eq('aktif', true);
   if (ogrenciHatasi) {
-    console.error('yoklama-bildirim-gonder: öğrenci okunamadı', ogrenciHatasi);
+    console.error('yoklama-bildirim-gonder: öğrenciler okunamadı', ogrenciHatasi);
     return hata(500, 'İşlem şu an yapılamıyor.');
   }
-  if (!ogrenci) return hata(403, 'Bu işlem için yetkiniz yok.');
+  if (!ogrenciler || ogrenciler.length === 0) return yanit(200, BOS_SONUC);
+  const ogrenciIdleri = ogrenciler.map((o) => o.id);
+
+  const { data: yoklamalar, error: yoklamaHatasi } = await kullaniciClient
+    .from('yoklama')
+    .select('ogrenci_id, durum')
+    .eq('tarih', tarih)
+    .in('ogrenci_id', ogrenciIdleri);
+  if (yoklamaHatasi) {
+    console.error('yoklama-bildirim-gonder: yoklamalar okunamadı', yoklamaHatasi);
+    return hata(500, 'İşlem şu an yapılamıyor.');
+  }
+  const durumlar = new Map((yoklamalar ?? []).map((y) => [y.ogrenci_id as string, y.durum as YoklamaDurumu]));
+  // Yoklama tamamlanmadı: bildirim yok.
+  if (ogrenciIdleri.some((id) => !durumlar.has(id))) return yanit(200, BOS_SONUC);
 
   // Bundan sonrası service_role ile (RLS'i aşar) — yetki kararı yukarıda verildi.
   const servis = createClient(supabaseUrl, servisAnahtar, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const tamam = (ogrenciSayisi: number, pushSayisi: number) =>
+    yanit(200, { tamamlandi: true, bildirilen_ogrenci_sayisi: ogrenciSayisi, push_gonderilen_sayisi: pushSayisi });
 
-  // 4. Velileri bul
+  // 4. Bugün bu öğrenciler için en son ne bildirildi? Aynı metin yeniden gönderilmez.
+  const { data: eskiLoglar, error: eskiLogHatasi } = await servis
+    .from('bildirim_log')
+    .select('ogrenci_id, metin, gonderim_tarihi')
+    .eq('tip', 'yoklama')
+    .in('ogrenci_id', ogrenciIdleri)
+    .gte('gonderim_tarihi', `${tarih}T00:00:00+03:00`)
+    .order('gonderim_tarihi', { ascending: true });
+  if (eskiLogHatasi) {
+    console.error('yoklama-bildirim-gonder: bildirim_log okunamadı', eskiLogHatasi);
+    return tamam(0, 0);
+  }
+  const sonBildirilen = new Map<string, string>();
+  for (const l of eskiLoglar ?? []) sonBildirilen.set(l.ogrenci_id as string, l.metin as string);
+
+  const metinler = new Map<string, string>();
+  for (const o of ogrenciler) {
+    const metin = `${o.ad_soyad} için yoklama: ${DURUM_METNI[durumlar.get(o.id)!]}`;
+    if (sonBildirilen.get(o.id) !== metin) metinler.set(o.id, metin);
+  }
+  if (metinler.size === 0) return tamam(0, 0);
+  const kurumlar = new Map(ogrenciler.map((o) => [o.id as string, o.kurum_id as string]));
+
+  // 5. Velileri bul
   const { data: veliBaglari, error: veliBaglariHatasi } = await servis
     .from('veli_ogrenci')
-    .select('veli_id')
-    .eq('ogrenci_id', ogrenciId);
+    .select('veli_id, ogrenci_id')
+    .in('ogrenci_id', [...metinler.keys()]);
   if (veliBaglariHatasi) {
     console.error('yoklama-bildirim-gonder: veli_ogrenci okunamadı', veliBaglariHatasi);
-    return yanit(200, { bildirilen_veli_sayisi: 0, push_gonderilen_sayisi: 0 });
+    return tamam(0, 0);
   }
-  const veliIdleri = (veliBaglari ?? []).map((v) => v.veli_id);
-  if (veliIdleri.length === 0) {
-    return yanit(200, { bildirilen_veli_sayisi: 0, push_gonderilen_sayisi: 0 });
-  }
+  if (!veliBaglari || veliBaglari.length === 0) return tamam(0, 0);
 
   const { data: veliler, error: velilerHatasi } = await servis
     .from('kullanici')
     .select('id, expo_push_token')
-    .in('id', veliIdleri);
+    .in('id', [...new Set(veliBaglari.map((v) => v.veli_id))]);
   if (velilerHatasi) {
     console.error('yoklama-bildirim-gonder: veliler okunamadı', velilerHatasi);
-    return yanit(200, { bildirilen_veli_sayisi: 0, push_gonderilen_sayisi: 0 });
+    return tamam(0, 0);
   }
+  const tokenlar = new Map((veliler ?? []).map((v) => [v.id as string, v.expo_push_token as string | null]));
+  // Bir (veli, öğrenci) çifti = bir bildirim. Kardeşleri olan veli her çocuğu için ayrı alır.
+  const bildirimler = veliBaglari
+    .filter((b) => tokenlar.has(b.veli_id))
+    .map((b) => ({
+      veliId: b.veli_id as string,
+      ogrenciId: b.ogrenci_id as string,
+      metin: metinler.get(b.ogrenci_id)!,
+      token: tokenlar.get(b.veli_id) ?? null,
+    }));
 
-  // Push ve uygulama içi bildirim listesi aynı metni kullanır.
-  const bildirimMetni = `${ogrenci.ad_soyad} için yoklama: ${DURUM_METNI[durum]}`;
-
-  // 5. Push token'ı olanlara tek batched istekle gönder
-  const tokenliVeliler = (veliler ?? []).filter((v) => v.expo_push_token);
-  if (tokenliVeliler.length > 0 && expoErisimTokeni) {
-    try {
-      const mesajlar = tokenliVeliler.map((v) => ({
-        to: v.expo_push_token,
-        title: 'Yoklama',
-        body: bildirimMetni,
-        data: { ogrenci_id: ogrenciId, tip: 'yoklama' },
-      }));
-      const expoYaniti = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${expoErisimTokeni}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(mesajlar),
-      });
-      if (!expoYaniti.ok) {
-        console.error('yoklama-bildirim-gonder: Expo Push API hatası', expoYaniti.status, await expoYaniti.text());
-      } else {
-        const expoGovdesi = await expoYaniti.json();
-        for (const sonuc of expoGovdesi.data ?? []) {
-          if (sonuc.status === 'error') console.error('yoklama-bildirim-gonder: bildirim gönderilemedi', sonuc.message);
+  // 6. Push token'ı olanlara gönder
+  const mesajlar = bildirimler
+    .filter((b) => b.token)
+    .map((b) => ({ to: b.token, title: 'Yoklama', body: b.metin, data: { ogrenci_id: b.ogrenciId, tip: 'yoklama' } }));
+  if (mesajlar.length > 0 && expoErisimTokeni) {
+    for (let i = 0; i < mesajlar.length; i += EXPO_PARCA) {
+      try {
+        const expoYaniti = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${expoErisimTokeni}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(mesajlar.slice(i, i + EXPO_PARCA)),
+        });
+        if (!expoYaniti.ok) {
+          console.error('yoklama-bildirim-gonder: Expo Push API hatası', expoYaniti.status, await expoYaniti.text());
+        } else {
+          const expoGovdesi = await expoYaniti.json();
+          for (const sonuc of expoGovdesi.data ?? []) {
+            if (sonuc.status === 'error') console.error('yoklama-bildirim-gonder: bildirim gönderilemedi', sonuc.message);
+          }
         }
+      } catch (e) {
+        console.error('yoklama-bildirim-gonder: Expo Push API çağrısı başarısız', e);
       }
-    } catch (e) {
-      console.error('yoklama-bildirim-gonder: Expo Push API çağrısı başarısız', e);
     }
-  } else if (tokenliVeliler.length > 0 && !expoErisimTokeni) {
+  } else if (mesajlar.length > 0 && !expoErisimTokeni) {
     console.error('yoklama-bildirim-gonder: EXPO_ACCESS_TOKEN tanımlı değil, push gönderilemedi');
   }
 
-  // 6. Her bildirilen veli için (token olsun olmasın) bildirim_log'a yaz
+  // 7. Her bildirim için (token olsun olmasın) bildirim_log'a yaz. Sonraki çağrıların "bu durum
+  //    zaten bildirildi" kararı bu satırlara dayanır.
   const { error: logHatasi } = await servis.from('bildirim_log').insert(
-    (veliler ?? []).map((v) => ({
-      kurum_id: ogrenci.kurum_id,
-      alici_kullanici_id: v.id,
+    bildirimler.map((b) => ({
+      kurum_id: kurumlar.get(b.ogrenciId)!,
+      alici_kullanici_id: b.veliId,
       tip: 'yoklama' as const,
       baslik: 'Yoklama',
-      metin: bildirimMetni,
-      ogrenci_id: ogrenciId,
+      metin: b.metin,
+      ogrenci_id: b.ogrenciId,
     })),
   );
   if (logHatasi) console.error('yoklama-bildirim-gonder: bildirim_log yazılamadı', logHatasi);
 
-  return yanit(200, { bildirilen_veli_sayisi: veliler?.length ?? 0, push_gonderilen_sayisi: tokenliVeliler.length });
+  return tamam(new Set(bildirimler.map((b) => b.ogrenciId)).size, mesajlar.length);
 });
