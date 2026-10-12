@@ -23,6 +23,8 @@ export type TabloSutunu<T> = {
   hizalama?: 'sol' | 'sag';
   // Başlığına tıklanınca `onSirala(anahtar)` çağrılır.
   siralanabilir?: boolean;
+  // Yer daralınca (ör. yan panel açıkken) ilk gizlenecek sütun; bkz. VeriEkrani.
+  ikincil?: boolean;
 };
 
 export type TabloSiralamasi = { anahtar: string; yon: 'artan' | 'azalan' };
@@ -82,7 +84,7 @@ export function Tablo<T>({ veri, sutunlar, anahtar, onPress, seciliAnahtar, sira
   };
 
   const tablo = (
-    <View style={[styles.tablo, enAzGenislik ? { minWidth: enAzGenislik } : null]}>
+    <View style={[styles.tablo, enAzGenislik ? { minWidth: enAzGenislik, flexGrow: 1 } : null]}>
       <View style={[styles.satir, styles.baslikSatiri]}>{sutunlar.map(baslik)}</View>
       {veri.map((oge) => (
         <TabloSatiri

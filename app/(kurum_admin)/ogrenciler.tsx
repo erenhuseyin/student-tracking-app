@@ -118,11 +118,12 @@ export default function Ogrenciler() {
       { anahtar: 'ad_soyad', baslik: 'Ad Soyad', icerik: (o) => o.ad_soyad, siralanabilir: true },
       { anahtar: 'birim', baslik: 'Birim', icerik: (o) => birimAdi(o.kurum_id) },
       { anahtar: 'sinif', baslik: 'Sınıf', icerik: (o) => sinifAdi(o.sinif_id) },
-      { anahtar: 'dogum_tarihi', baslik: 'Doğum Tarihi', icerik: (o) => tarih(o.dogum_tarihi), siralanabilir: true, genislik: 140 },
+      { anahtar: 'dogum_tarihi', baslik: 'Doğum Tarihi', icerik: (o) => tarih(o.dogum_tarihi), siralanabilir: true, genislik: 140, ikincil: true },
       {
         anahtar: 'veli',
         baslik: 'Veli Girişi',
         genislik: 120,
+        ikincil: true,
         icerik: (o) =>
           o.tckn ? (
             <Rozet metin="Açık" renk={tema.renkler.basari} zemin={tema.renkler.basariSoluk} ikon="checkmark-circle" />
@@ -212,7 +213,12 @@ export default function Ogrenciler() {
         onPanelKapat={() => setSecili(null)}
         panel={
           secili?.tur === 'yeni' ? (
-            <YeniOgrenciFormu siniflar={birimdekiSiniflar} sinifEtiketi={sinifEtiketi} onEklendi={kapatVeYenile} />
+            <YeniOgrenciFormu
+              siniflar={birimdekiSiniflar}
+              sinifEtiketi={sinifEtiketi}
+              varsayilanSinifId={sinifId}
+              onEklendi={kapatVeYenile}
+            />
           ) : seciliOgrenci ? (
             <OgrenciFormu key={seciliOgrenci.id} id={seciliOgrenci.id} onDegisti={yenile} onSilindi={kapatVeYenile} />
           ) : null

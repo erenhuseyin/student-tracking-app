@@ -23,8 +23,7 @@ import { SkeletonSatir } from '@/components/Skeleton';
 import { Tablo, type TabloSiralamasi, type TabloSutunu } from '@/components/Tablo';
 import { type Tema, useKirilma, useTema } from '@/lib/tema';
 
-const PANEL_GENISLIGI = 440;
-const FILTRE_GENISLIGI = 220;
+const PANEL_GENISLIGI = 420;
 
 type Props<T> = {
   // Serbest metin araması (her genişlikte görünür).
@@ -122,8 +121,7 @@ export function VeriEkrani<T>({
               {c}
             </View>
           ))}
-          <View style={styles.esnek} />
-          {yeniDugmesi}
+          {yeniDugmesi ? <View style={styles.yeniAlani}>{yeniDugmesi}</View> : null}
         </View>
 
         <View style={styles.govde}>
@@ -141,13 +139,14 @@ export function VeriEkrani<T>({
             ) : (
               <Tablo
                 veri={veri}
-                sutunlar={sutunlar}
+                // Panel açıkken tabloya kalan yer daralır: ikincil sütunlar gizlenir, ayrıntı panelde.
+                sutunlar={panel ? sutunlar.filter((s) => !s.ikincil) : sutunlar}
                 anahtar={anahtar}
                 onPress={onSec}
                 seciliAnahtar={seciliAnahtar}
                 siralama={siralama}
                 onSirala={onSirala}
-                enAzGenislik={tabloEnAzGenislik}
+                enAzGenislik={panel ? undefined : tabloEnAzGenislik}
               />
             )}
             {sayfalamaCubugu}
@@ -227,10 +226,17 @@ function olustur(t: Tema) {
       gap: t.bosluk.m,
     },
     aramaAlani: {
-      width: FILTRE_GENISLIGI + 60,
+      flexGrow: 1,
+      flexBasis: 220,
+      maxWidth: 320,
     },
     filtreAlani: {
-      width: FILTRE_GENISLIGI,
+      flexGrow: 1,
+      flexBasis: 160,
+      maxWidth: 230,
+    },
+    yeniAlani: {
+      marginLeft: 'auto',
     },
     govde: {
       flex: 1,

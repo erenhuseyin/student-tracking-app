@@ -20,12 +20,13 @@ type Props = {
   // Sınıf adı birimler arasında tekrar edebildiği için birim yoluyla birlikte gösterilir.
   sinifEtiketi: (sinif: Sinif) => string;
   onEklendi: () => void;
+  varsayilanSinifId?: string | null;
 };
 
-export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi }: Props) {
+export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi, varsayilanSinifId = null }: Props) {
   const tema = useTema();
   const toast = useToast();
-  const [sinifId, setSinifId] = useState<string | null>(null);
+  const [sinifId, setSinifId] = useState<string | null>(varsayilanSinifId);
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);

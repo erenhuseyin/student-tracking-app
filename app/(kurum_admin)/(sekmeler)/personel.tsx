@@ -136,7 +136,7 @@ export default function Kullanicilar() {
       { anahtar: 'ad_soyad', baslik: 'Ad Soyad', icerik: (k) => k.ad_soyad, siralanabilir: true },
       { anahtar: 'rol', baslik: 'Rol / Görev', icerik: gorevi, siralanabilir: true },
       { anahtar: 'birim', baslik: 'Birim', icerik: (k) => birimAdi(k.kurum_id) },
-      { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '—', siralanabilir: true },
+      { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '—', siralanabilir: true, ikincil: true },
       { anahtar: 'durum', baslik: 'Durum', icerik: (k) => <PersonelDurumRozeti personel={k} />, genislik: 170 },
     ],
     [birimAdi, gorevi],
