@@ -23,7 +23,7 @@ const TEMA_SECENEKLERI: { deger: TemaTercihi; etiket: string }[] = [
 export function MenuEkrani() {
   const router = useRouter();
   const tema = useTema();
-  const { kullanici, kurum, cikisYap } = useOturum();
+  const { kullanici, kurum, gorev, cikisYap } = useOturum();
   const { menuSatirlari } = useMenu();
   const { tercih, tercihiAyarla } = useTemaTercihi();
 
@@ -33,7 +33,7 @@ export function MenuEkrani() {
         <ListeSatiri
           buyuk
           baslik={kullanici.ad_soyad}
-          altBaslik={[rolEtiketi(kullanici.rol, kurum), kurum?.ad].filter(Boolean).join(' · ')}
+          altBaslik={[rolEtiketi(kullanici.rol, kurum, gorev?.ad), kurum?.ad].filter(Boolean).join(' · ')}
           sol={<Avatar ad={kullanici.ad_soyad} boyut={48} />}
           onPress={() => router.push('/profil')}
         />

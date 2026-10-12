@@ -110,25 +110,39 @@ export async function ogrenciAktifliginiAyarla(id: string, aktif: boolean): Prom
   if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
 }
 
-export type OgrenciAramasi = { arama: string; sinifId: string | null; durum: 'aktif' | 'pasif' };
+export type OgrenciAramasi = {
+  arama: string;
+  sinifId: string | null;
+  durum: 'aktif' | 'pasif';
+  // Seçilen birim ve altındaki tüm birimler.
+  birimId?: string | null;
+};
+export type OgrenciSiralamasi = { anahtar: 'ad_soyad' | 'dogum_tarihi'; yon: 'artan' | 'azalan' };
 export const OGRENCI_SAYFA_BOYUTU = 30;
 
 // Yöneticinin tüm öğrencileri arayıp süzdüğü liste (RLS: yönettiği kurumlar). Sunucuda süzülür ve
 // sayfalanır: kurum büyüdükçe tüm listeyi indirmemek ve varsayılan 1000 satır sınırına takılmamak için.
+// Birim süzgeci kurumun `yol`'u üzerinden yapılır (tek kimlikle tüm alt ağaç).
 export async function ogrencileriAra(
-  { arama, sinifId, durum }: OgrenciAramasi,
+  { arama, sinifId, durum, birimId }: OgrenciAramasi,
   sayfa: number,
+  siralama: OgrenciSiralamasi = { anahtar: 'ad_soyad', yon: 'artan' },
 ): Promise<{ ogrenciler: Ogrenci[]; toplam: number }> {
-  let sorgu = supabase.from('ogrenci').select('*', { count: 'exact' }).eq('aktif', durum === 'aktif');
+  let sorgu = supabase
+    .from('ogrenci')
+    .select('*, kurum!ogrenci_kurum_id_fkey!inner(yol)', { count: 'exact' })
+    .eq('aktif', durum === 'aktif');
+  if (birimId) sorgu = sorgu.contains('kurum.yol', [birimId]);
   if (sinifId) sorgu = sorgu.eq('sinif_id', sinifId);
   // % ve _ ilike joker karakterleridir; kullanıcının yazdığı metinde kaçırılır.
   const temiz = arama.trim().replace(/[%_\\]/g, (k) => `\\${k}`);
   if (temiz) sorgu = sorgu.ilike('ad_soyad', `%${temiz}%`);
   const { data, error, count } = await sorgu
-    .order('ad_soyad')
+    .order(siralama.anahtar, { ascending: siralama.yon === 'artan' })
+    .order('id')
     .range(sayfa * OGRENCI_SAYFA_BOYUTU, (sayfa + 1) * OGRENCI_SAYFA_BOYUTU - 1);
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
-  return { ogrenciler: data, toplam: count ?? data.length };
+  return { ogrenciler: data as unknown as Ogrenci[], toplam: count ?? data.length };
 }
 
 export async function ogrenciSil(id: string): Promise<void> {

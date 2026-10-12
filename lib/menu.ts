@@ -15,8 +15,10 @@ export const ROL_ETIKETLERI: Record<Rol, string> = {
   veli: 'Veli',
 };
 
-// Yönetici, bağlı olduğu kurumun seviyesiyle gösterilir ("Bölge yöneticisi").
-export function rolEtiketi(rol: Rol, kurum: Pick<Kurum, 'seviye'> | null): string {
+// Görevi olan kişi görevinin adıyla (ör. "İstişare üyesi"), görevsiz yönetici bağlı olduğu kurumun
+// seviyesiyle ("Bölge yöneticisi") gösterilir.
+export function rolEtiketi(rol: Rol, kurum: Pick<Kurum, 'seviye'> | null, gorevAdi?: string | null): string {
+  if (gorevAdi) return gorevAdi;
   return rol === 'kurum_admin' ? yoneticiEtiketi(kurum) : ROL_ETIKETLERI[rol];
 }
 
@@ -85,7 +87,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
   kurum_admin: [
     { anahtar: 'ozet', etiket: 'Özet', ikon: 'home-outline', yer: 'sekme', sekme: 'index' },
     { anahtar: 'siniflar', etiket: 'Sınıflar', ikon: 'school-outline', yer: 'sekme', sekme: 'siniflar' },
-    { anahtar: 'personel', etiket: 'Personel', ikon: 'people-outline', yer: 'sekme', sekme: 'personel' },
+    { anahtar: 'personel', etiket: 'Kullanıcılar', ikon: 'people-outline', yer: 'sekme', sekme: 'personel' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
     { anahtar: 'ogrenciler', etiket: 'Öğrenciler', ikon: 'search-outline', yer: 'menu', rota: '/ogrenciler' },
@@ -95,7 +97,8 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'kademeler', etiket: 'Kademeler', ikon: 'layers-outline', yer: 'menu', rota: '/kademeler', ozellik: 'icerik_takibi' },
     { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'download-outline', yer: 'menu', rota: '/raporlar' },
-    { anahtar: 'roller', etiket: 'Roller ve Yetkiler', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
+    { anahtar: 'roller', etiket: 'Roller', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
+    { anahtar: 'menu-yetkileri', etiket: 'Menü Yetkileri', ikon: 'eye-off-outline', yer: 'menu', rota: '/menu-yetkileri' },
     {
       anahtar: 'gelisim-kategorileri',
       etiket: 'Gelişim Kategorileri',
@@ -125,6 +128,13 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
   ],
 };
 
+// Yönetici temelli bir görevde kapatılabilen menü öğeleri ("Menü Yetkileri" ekranı; gorev.kapali_ogeler).
+// Özet ve Menü kapatılamaz: kişi uygulamada bir yere düşebilmeli ve çıkış yapabilmelidir.
+const KAPATILAMAYAN_OGELER = ['ozet', 'menu'];
+export const YONETICI_MENU_OGELERI: Bolum[] = MENULER.kurum_admin
+  .filter((o) => !KAPATILAMAYAN_OGELER.includes(o.anahtar))
+  .map((o) => ({ anahtar: o.anahtar, etiket: o.altBirimler ? 'Alt birimler (bölge, ilçe, semt…)' : o.etiket, aciklama: '' }));
+
 export type Menu = {
   // Rolün tüm sekmeleri; `gorunur` yanlışsa sekme çubuğunda yer almaz (dosyası yine vardır).
   sekmeler: (SekmeOgesi & { gorunur: boolean })[];
@@ -142,6 +152,7 @@ export function useMenu(): Menu {
     (!o.yalnizKok || kokKurumMu) &&
     (!o.altBirimler || altBirimAcabilir(kurum)) &&
     !(o.bolum && kapaliBolumler.includes(o.bolum)) &&
+    (KAPATILAMAYAN_OGELER.includes(o.anahtar) || !kapaliBolumler.includes(o.anahtar)) &&
     (!o.ozellik || ozellikAcik(o.ozellik));
 
   return {

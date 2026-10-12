@@ -24,7 +24,7 @@ const mesajaCevir = (e: unknown) => (e instanceof Error ? e.message : 'İşlem y
 export function ProfilEkrani() {
   const router = useRouter();
   const tema = useTema();
-  const { kullanici, kurum, kokKurum, session, kullaniciyiYenile } = useOturum();
+  const { kullanici, kurum, kokKurum, gorev, session, kullaniciyiYenile } = useOturum();
 
   const [adSoyad, setAdSoyad] = useState(kullanici?.ad_soyad ?? '');
   const [adKaydediliyor, setAdKaydediliyor] = useState(false);
@@ -89,7 +89,7 @@ export function ProfilEkrani() {
           editable={!veli && !adKaydediliyor}
         />
         {kullanici.eposta ? <Girdi etiket="E-posta (değiştirilemez)" value={kullanici.eposta} editable={false} /> : null}
-        <Girdi etiket="Görev" value={rolEtiketi(kullanici.rol, kurum)} editable={false} />
+        <Girdi etiket="Görev" value={rolEtiketi(kullanici.rol, kurum, gorev?.ad)} editable={false} />
         {kurumAdi ? <Girdi etiket="Kurum" value={kurumAdi} editable={false} /> : null}
         <HataMesaji mesaj={adMesaji?.metin} tur={adMesaji?.tur} />
         {veli ? null : (

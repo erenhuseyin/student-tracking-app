@@ -13,7 +13,9 @@ import { OnayButonu } from '@/components/OnayButonu';
 import { OnayKutusu } from '@/components/OnayKutusu';
 import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
 import { Secenekler } from '@/components/Secenekler';
+import { Secim } from '@/components/Secim';
 import { Yukleniyor } from '@/components/Yukleniyor';
+import { gorevAta, gorevleriGetir } from '@/lib/gorevler';
 import { rolEtiketi } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import {
@@ -32,7 +34,7 @@ import {
 } from '@/lib/personel';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
-import type { Kullanici, Sinif } from '@/lib/tipler';
+import type { Gorev, Kullanici, Sinif } from '@/lib/tipler';
 import { useKurum } from '@/lib/useKurum';
 
 const ROL_SECENEKLERI: { deger: PersonelRolu; etiket: string }[] = [
@@ -48,6 +50,14 @@ type PersonelVerisi = {
   atananlar: string[];
 };
 
+type Props = {
+  id: string;
+  // Tablo + panel ekranlarında (bkz. VeriEkrani): kayıt değişince liste tazelenir; kayıt
+  // silinince (davet iptali) panel kapanır. Verilmezse silmeden sonra önceki ekrana dönülür.
+  onDegisti?: () => void;
+  onSilindi?: () => void;
+};
+
 // Öğretmen için kurumunun sınıfları ve atandıkları da gelir; yöneticide ikisi de boştur.
 async function personelVerisiniGetir(id: string): Promise<PersonelVerisi> {
   const personel = await personelGetir(id);
@@ -59,7 +69,7 @@ async function personelVerisiniGetir(id: string): Promise<PersonelVerisi> {
   return { personel, siniflar, atananlar };
 }
 
-export function PersonelDetay({ id }: { id: string }) {
+export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const router = useRouter();
   const tema = useTema();
   const { kullanici } = useOturum();
@@ -92,6 +102,9 @@ export function PersonelDetay({ id }: { id: string }) {
   } | null>(null);
   const [rolDegisiyor, setRolDegisiyor] = useState(false);
   const [rolHatasi, setRolHatasi] = useState<string | null>(null);
+  const [gorevler, setGorevler] = useState<Gorev[]>([]);
+  const [gorevDegisiyor, setGorevDegisiyor] = useState(false);
+  const [gorevHatasi, setGorevHatasi] = useState<string | null>(null);
 
   const uygula = (veri: PersonelVerisi) => {
     setPersonel(veri.personel);
@@ -110,6 +123,12 @@ export function PersonelDetay({ id }: { id: string }) {
       .catch((e) => {
         if (!iptalEdildi) setYuklemeHatasi(mesajaCevir(e));
       });
+    // Görevler okunamazsa görev seçimi gösterilmez; diğer işlemler etkilenmez.
+    gorevleriGetir()
+      .then((veri) => {
+        if (!iptalEdildi) setGorevler(veri);
+      })
+      .catch(() => {});
     return () => {
       iptalEdildi = true;
     };
@@ -123,6 +142,8 @@ export function PersonelDetay({ id }: { id: string }) {
   const davetBekliyor = personel.aktif && !personel.sifre_belirlendi;
   // Süper admin yalnızca kurum yöneticisi yönetir; görev değişikliği kurum yöneticisinin işidir.
   const rolDegisebilir = kullanici?.rol === 'kurum_admin' && !kendisi && personel.aktif;
+  const uygunGorevler = gorevler.filter((g) => g.temel_rol === personel.rol);
+  const gorevAdi = gorevler.find((g) => g.id === personel.gorev_id)?.ad;
 
   const rolDegistir = async (rol: PersonelRolu) => {
     if (rol === personel.rol) return;
@@ -131,10 +152,26 @@ export function PersonelDetay({ id }: { id: string }) {
     try {
       await personelRolDegistir(personel.id, rol);
       uygula(await personelVerisiniGetir(personel.id));
+      onDegisti?.();
     } catch (e) {
       setRolHatasi(mesajaCevir(e));
     } finally {
       setRolDegisiyor(false);
+    }
+  };
+
+  const gorevDegistir = async (gorevId: string | null) => {
+    if (gorevId === personel.gorev_id) return;
+    setGorevDegisiyor(true);
+    setGorevHatasi(null);
+    try {
+      await gorevAta(personel.id, gorevId);
+      setPersonel({ ...personel, gorev_id: gorevId });
+      onDegisti?.();
+    } catch (e) {
+      setGorevHatasi(mesajaCevir(e));
+    } finally {
+      setGorevDegisiyor(false);
     }
   };
 
@@ -144,6 +181,7 @@ export function PersonelDetay({ id }: { id: string }) {
     try {
       const sonuc = await personelEpostaDegistir(personel.id, eposta);
       uygula(await personelVerisiniGetir(personel.id));
+      onDegisti?.();
       setEpostaMesaji(
         sonuc.eposta_gonderildi
           ? {
@@ -166,7 +204,8 @@ export function PersonelDetay({ id }: { id: string }) {
     setHesapHatasi(null);
     try {
       await personelDavetIptal(personel.id);
-      router.back();
+      if (onSilindi) onSilindi();
+      else router.back();
     } catch (e) {
       setHesapHatasi(mesajaCevir(e));
     }
@@ -178,6 +217,7 @@ export function PersonelDetay({ id }: { id: string }) {
     try {
       await personelAdGuncelle(personel.id, adSoyad);
       setAdMesaji({ tur: 'basari', metin: 'Kaydedildi.' });
+      onDegisti?.();
     } catch (e) {
       setAdMesaji({ tur: 'hata', metin: mesajaCevir(e) });
     } finally {
@@ -222,6 +262,7 @@ export function PersonelDetay({ id }: { id: string }) {
     try {
       await personelAktifligiDegistir(personel.id, aktif);
       uygula(await personelVerisiniGetir(personel.id));
+      onDegisti?.();
     } catch (e) {
       setHesapHatasi(mesajaCevir(e));
     } finally {
@@ -240,7 +281,7 @@ export function PersonelDetay({ id }: { id: string }) {
         {rolDegisebilir ? null : (
           <Girdi
             etiket="Görev"
-            value={rolEtiketi(personel.rol, personelKurumu)}
+            value={rolEtiketi(personel.rol, personelKurumu, gorevAdi)}
             editable={false}
           />
         )}
@@ -277,7 +318,7 @@ export function PersonelDetay({ id }: { id: string }) {
       {rolDegisebilir ? (
         <Kart>
           <Secenekler
-            etiket="Görev"
+            etiket="Rol"
             secenekler={ROL_SECENEKLERI}
             secili={personel.rol as PersonelRolu}
             onSec={rolDegistir}
@@ -285,10 +326,28 @@ export function PersonelDetay({ id }: { id: string }) {
           />
           <Text style={tema.yazi.kucuk}>
             {atananlar.length > 0
-              ? 'Görevi değiştirmek için önce aşağıdaki sınıf atamalarını kaldırın.'
+              ? 'Rolü değiştirmek için önce aşağıdaki sınıf atamalarını kaldırın.'
               : 'Yönetici bu kurumun sınıflarını, öğrencilerini ve personelini yönetir; öğretmen yalnızca atandığı sınıfları görür.'}
           </Text>
           <HataMesaji mesaj={rolHatasi} />
+        </Kart>
+      ) : null}
+
+      {rolDegisebilir && uygunGorevler.length > 0 ? (
+        <Kart>
+          <Secim
+            etiket="Tanımlı görev"
+            secenekler={uygunGorevler.map((g) => ({ deger: g.id, etiket: g.ad }))}
+            secili={personel.gorev_id}
+            onSec={gorevDegistir}
+            bosEtiket={`Yok (${rolEtiketi(personel.rol, personelKurumu)})`}
+            pasif={gorevDegisiyor}
+          />
+          <Text style={tema.yazi.kucuk}>
+            Görev kişinin unvanını ve hangi menüleri gördüğünü belirler; neyi görebildiğini ve değiştirebildiğini
+            yukarıdaki rol ve bağlı olduğu birim belirler.
+          </Text>
+          <HataMesaji mesaj={gorevHatasi} />
         </Kart>
       ) : null}
 

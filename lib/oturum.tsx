@@ -11,7 +11,9 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 
 import { marka } from '@/lib/marka';
 import { supabase } from '@/lib/supabase';
-import type { Kullanici, Kurum } from '@/lib/tipler';
+import type { Gorev, Kullanici, Kurum } from '@/lib/tipler';
+
+export type OturumGorevi = Pick<Gorev, 'id' | 'ad' | 'kapali_ogeler'>;
 
 export type OturumDurumu = 'yukleniyor' | 'oturum_yok' | 'profil_yok' | 'yanlis_uygulama' | 'hazir';
 
@@ -23,7 +25,10 @@ type OturumBaglami = {
   // süper adminde ikisi de null.
   kurum: Kurum | null;
   kokKurum: Kurum | null;
-  // Müşterinin bu kullanıcının rolü için kapattığı bölümler (bkz. lib/menu.ts > useBolumAcik).
+  // Kullanıcının görevi (müşterinin tanımladığı; yoksa null). Bkz. lib/gorevler.ts.
+  gorev: OturumGorevi | null;
+  // Bu kullanıcıya gizlenen menü öğeleri: müşterinin rolü için kapattığı bölümler (kapali_bolum)
+  // ve görevinin kapattığı öğeler (bkz. lib/menu.ts > useBolumAcik).
   kapaliBolumler: string[];
   hataMesaji: string | null;
   cikisYap: () => Promise<void>;
@@ -69,12 +74,21 @@ async function kapaliBolumleriGetir(kokKurumId: string, rol: Kullanici['rol']): 
   return data.map((s) => s.bolum_anahtari);
 }
 
+// Okunamazsa (ör. bağlantı sorunu ya da migration henüz uygulanmadıysa) görev yok sayılır ve
+// hiçbir şey gizlenmez: görev bir görünürlük ayarıdır, veriyi RLS korur.
+async function gorevGetir(gorevId: string | null): Promise<OturumGorevi | null> {
+  if (!gorevId) return null;
+  const { data, error } = await supabase.from('gorev').select('id, ad, kapali_ogeler').eq('id', gorevId).maybeSingle();
+  return error ? null : data;
+}
+
 export function OturumSaglayici({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [kullanici, setKullanici] = useState<Kullanici | null>(null);
   const [kurum, setKurum] = useState<Kurum | null>(null);
   const [kokKurum, setKokKurum] = useState<Kurum | null>(null);
   const [kapaliBolumler, setKapaliBolumler] = useState<string[]>([]);
+  const [gorev, setGorev] = useState<OturumGorevi | null>(null);
   const [durum, setDurum] = useState<OturumDurumu>('yukleniyor');
   const [hataMesaji, setHataMesaji] = useState<string | null>(null);
 
@@ -90,6 +104,7 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
         setKurum(null);
         setKokKurum(null);
         setKapaliBolumler([]);
+        setGorev(null);
         setHataMesaji(null);
         setDurum('oturum_yok');
         return;
@@ -126,9 +141,13 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
         setDurum('profil_yok');
         return;
       }
-      const kapalilar = kurumlar.kokKurum ? await kapaliBolumleriGetir(kurumlar.kokKurum.id, satir.rol) : [];
+      const [kapalilar, kullaniciGorevi] = await Promise.all([
+        kurumlar.kokKurum ? kapaliBolumleriGetir(kurumlar.kokKurum.id, satir.rol) : [],
+        gorevGetir(satir.gorev_id),
+      ]);
       if (iptalEdildi) return;
-      setKapaliBolumler(kapalilar);
+      setKapaliBolumler([...new Set([...kapalilar, ...(kullaniciGorevi?.kapali_ogeler ?? [])])]);
+      setGorev(kullaniciGorevi);
       setKullanici(satir);
       setDurum(kurumlar.kokKurum?.marka_kodu === marka.kod ? 'hazir' : 'yanlis_uygulama');
     }
@@ -154,6 +173,7 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
       kullanici,
       kurum,
       kokKurum,
+      gorev,
       kapaliBolumler,
       hataMesaji,
       cikisYap: async () => {
@@ -165,7 +185,7 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
         if (satir) setKullanici(satir);
       },
     }),
-    [durum, session, kullanici, kurum, kokKurum, kapaliBolumler, hataMesaji],
+    [durum, session, kullanici, kurum, kokKurum, gorev, kapaliBolumler, hataMesaji],
   );
 
   return <Baglam value={deger}>{children}</Baglam>;

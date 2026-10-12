@@ -72,10 +72,12 @@ export async function altKurumlariGetir(ustKurumId: string): Promise<Kurum[]> {
   return data;
 }
 
+export type KurumOzeti = Pick<Kurum, 'id' | 'ad' | 'yol' | 'seviye'>;
+
 // Çağıranın okuyabildiği tüm kurumların adları (yönetici: kendi düğümü, üstleri ve altındaki
 // tüm düğümler). Listelerde birim yolunu göstermek için.
-export async function kurumAdlariniGetir(): Promise<Pick<Kurum, 'id' | 'ad' | 'yol'>[]> {
-  const { data, error } = await supabase.from('kurum').select('id, ad, yol');
+export async function kurumAdlariniGetir(): Promise<KurumOzeti[]> {
+  const { data, error } = await supabase.from('kurum').select('id, ad, yol, seviye').order('ad');
   if (error) throw new Error(hataMesajinaCevir(error.message));
   return data;
 }
@@ -126,4 +128,13 @@ export async function altKurumSil(id: string): Promise<void> {
   const { data, error } = await supabase.from('kurum').delete().eq('id', id).select('id');
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
   if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
+}
+
+// Filtre ve form seçim kutuları için: `kokId` düğümü ve altındaki birimler, yol adıyla ve ağaç
+// sırasında ("İstanbul", "İstanbul › Küçükçekmece", …). Kök düğümün kendisi yalnızca adıyla gelir.
+export function birimSecenekleri(kurumlar: KurumOzeti[], kokId: string): { deger: string; etiket: string }[] {
+  return kurumlar
+    .filter((k) => k.yol.includes(kokId))
+    .map((k) => ({ deger: k.id, etiket: k.id === kokId ? k.ad : kurumYolu(kurumlar, k.id, kokId) }))
+    .sort((a, b) => (a.deger === kokId ? -1 : b.deger === kokId ? 1 : a.etiket.localeCompare(b.etiket, 'tr')));
 }

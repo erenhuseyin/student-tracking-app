@@ -13,6 +13,7 @@ import { ListeSatiri } from '@/components/ListeSatiri';
 import { MetrikKarti } from '@/components/MetrikKarti';
 import { Yukleniyor } from '@/components/Yukleniyor';
 import { yuzdeMetni } from '@/lib/katilim';
+import { useBolumAcik } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { useOzellik } from '@/lib/ozellikler';
 import { type YoneticiOzeti, yoneticiOzetiniGetir } from '@/lib/ozet';
@@ -25,6 +26,7 @@ export default function KurumAdminOzet() {
   const styles = useMemo(() => olustur(tema), [tema]);
   const { kurum } = useOturum();
   const basvuruAcik = useOzellik('basvuru');
+  const altBirimlerAcik = useBolumAcik('subeler');
   const [ozet, setOzet] = useState<YoneticiOzeti | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [yenileniyor, setYenileniyor] = useState(false);
@@ -139,7 +141,7 @@ export default function KurumAdminOzet() {
               )}
             </Kart>
 
-            {kurum && ozet.altBirimler.length > 0 ? (
+            {kurum && altBirimlerAcik && ozet.altBirimler.length > 0 ? (
               <Kart>
                 <Text style={tema.yazi.bolum}>{seviyeAdiCogul(kurum.seviye + 1)}</Text>
                 {ozet.altBirimler.map((b) => (

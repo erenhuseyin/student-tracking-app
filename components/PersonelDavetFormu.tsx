@@ -11,19 +11,33 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { OnayKutusu } from '@/components/OnayKutusu';
 import { Secenekler } from '@/components/Secenekler';
+import { Secim } from '@/components/Secim';
+import { gorevAta } from '@/lib/gorevler';
 import { PERSONEL_ROL_ETIKETLERI, personelDavetEt, type PersonelRolu } from '@/lib/personel';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
-import type { Sinif } from '@/lib/tipler';
+import type { Gorev, Sinif } from '@/lib/tipler';
 import { useToast } from '@/lib/toast';
 
-export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; roller: PersonelRolu[] }) {
+type Props = {
+  kurumId: string;
+  roller: PersonelRolu[];
+  // Verilirse seçilen role uygun görevler arasından tanımlı görev de seçilebilir.
+  gorevler?: Gorev[];
+  // Tablo + panel ekranlarında (bkz. VeriEkrani) davet bitince çağrılır; verilmezse önceki ekrana dönülür.
+  onTamam?: () => void;
+};
+
+export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: Props) {
   const router = useRouter();
   const toast = useToast();
   const tema = useTema();
   const [adSoyad, setAdSoyad] = useState('');
   const [eposta, setEposta] = useState('');
   const [rol, setRol] = useState<PersonelRolu>(roller[0]);
+  const [gorevId, setGorevId] = useState<string | null>(null);
+  const uygunGorevler = gorevler.filter((g) => g.temel_rol === rol);
+  const bitir = () => (onTamam ? onTamam() : router.back());
   const [siniflar, setSiniflar] = useState<Sinif[]>([]);
   const [seciliSiniflar, setSeciliSiniflar] = useState<string[]>([]);
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -53,9 +67,11 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
     setHata(null);
     try {
       const sonuc = await personelDavetEt({ kurumId, adSoyad, eposta, rol, sinifIdleri: seciliSiniflar });
+      // Hesap açıldı; görev atanamazsa davet geri alınmaz, görev kişinin ekranından sonradan atanır.
+      if (gorevId) await gorevAta(sonuc.kullanici_id, gorevId).catch(() => {});
       if (sonuc.eposta_gonderildi) {
         toast('Personel eklendi, davet e-postası gönderildi');
-        router.back();
+        bitir();
       }
       else setEpostaGitmedi(true);
     } catch (e) {
@@ -72,7 +88,7 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
         <Text style={tema.yazi.kucuk}>
           Personel listesinden bu kişiyi açıp &quot;Giriş kodu gönder&quot;e dokunarak tekrar deneyebilirsiniz.
         </Text>
-        <Buton baslik="Tamam" onPress={() => router.back()} />
+        <Buton baslik="Tamam" onPress={bitir} />
       </Kart>
     );
   }
@@ -81,10 +97,23 @@ export function PersonelDavetFormu({ kurumId, roller }: { kurumId: string; rolle
     <Kart>
       {roller.length > 1 ? (
         <Secenekler
-          etiket="Görev"
+          etiket="Rol"
           secenekler={roller.map((r) => ({ deger: r, etiket: PERSONEL_ROL_ETIKETLERI[r] }))}
           secili={rol}
-          onSec={setRol}
+          onSec={(r) => {
+            setRol(r);
+            setGorevId(null);
+          }}
+          pasif={gonderiliyor}
+        />
+      ) : null}
+      {uygunGorevler.length > 0 ? (
+        <Secim
+          etiket="Tanımlı görev (isteğe bağlı)"
+          secenekler={uygunGorevler.map((g) => ({ deger: g.id, etiket: g.ad }))}
+          secili={gorevId}
+          onSec={setGorevId}
+          bosEtiket="Yok"
           pasif={gonderiliyor}
         />
       ) : null}
