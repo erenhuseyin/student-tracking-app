@@ -1,6 +1,7 @@
 // "Menü" sekmesinin gövdesi (tüm roller): profile giden kullanıcı satırı, sekme çubuğuna sığmayan bölümler
-// (lib/menu.ts), tema seçimi ve çıkış.
-import { useRouter } from 'expo-router';
+// (lib/menu.ts), tema seçimi ve çıkış. Yalnızca 'mobil' düzende: 'web' düzeninde bunların hepsi kenar
+// çubuğundadır (components/Sidebar), bu adres açılırsa ana ekrana dönülür.
+import { Redirect, useRouter } from 'expo-router';
 
 import { Avatar } from '@/components/Avatar';
 import { Ekran } from '@/components/Ekran';
@@ -11,7 +12,7 @@ import { OnayButonu } from '@/components/OnayButonu';
 import { Secenekler } from '@/components/Secenekler';
 import { rolEtiketi, useMenu } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
-import { useTema } from '@/lib/tema';
+import { useDuzen, useTema } from '@/lib/tema';
 import { type TemaTercihi, useTemaTercihi } from '@/lib/temaTercihi';
 
 const TEMA_SECENEKLERI: { deger: TemaTercihi; etiket: string }[] = [
@@ -26,6 +27,9 @@ export function MenuEkrani() {
   const { kullanici, kurum, gorev, cikisYap } = useOturum();
   const { menuSatirlari } = useMenu();
   const { tercih, tercihiAyarla } = useTemaTercihi();
+  const duzen = useDuzen();
+
+  if (duzen === 'web') return <Redirect href="/" />;
 
   return (
     <Ekran kaydirilabilir>

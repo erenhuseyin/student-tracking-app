@@ -7,7 +7,7 @@
 // StyleSheet.create({...}), [t]);` deseniyle render sırasında kurar — React Native'de
 // `StyleSheet.create` genelde modül kapsamında (import anında, hook kullanılamayan bir yerde)
 // çağrıldığı için gerçek karanlık mod bunu render-içi bir çağrıya taşımayı gerektirir.
-import { useColorScheme, useWindowDimensions } from 'react-native';
+import { Platform, useColorScheme, useWindowDimensions } from 'react-native';
 import type { Stack } from 'expo-router';
 import type { ComponentProps } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
@@ -242,4 +242,18 @@ export function useKirilma(): Kirilma {
   if (width >= 1024) return 'masaustu';
   if (width >= 768) return 'tablet';
   return 'mobil';
+}
+
+// Uygulamanın iki düzeni vardır ve hangisinin çizileceğine yalnızca burada karar verilir:
+//   'web'   : tarayıcıda, pencere en az 768 px — kalıcı kenar çubuğu, sayfa başlığı, tablo, dar form
+//             sütunu, yan panel (bkz. components/WebKabuk).
+//   'mobil' : native uygulamada HER ZAMAN (tablet ve yatay telefon dahil) ve dar tarayıcı
+//             penceresinde — alt sekme çubuğu, Menü ekranı, kart listesi, tam ekran panel.
+// Gezinme, tablo/kart ve panel kararları buna bağlanır; `useKirilma` yalnızca 'web' düzeninin
+// içindeki ince ayarlar (sütun sayısı, daraltılmış kenar çubuğu) içindir.
+export type Duzen = 'web' | 'mobil';
+
+export function useDuzen(): Duzen {
+  const { width } = useWindowDimensions();
+  return Platform.OS === 'web' && width >= 768 ? 'web' : 'mobil';
 }

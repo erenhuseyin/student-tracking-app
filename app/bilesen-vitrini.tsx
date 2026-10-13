@@ -16,7 +16,6 @@ import { Kart } from '@/components/Kart';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { MetrikKarti } from '@/components/MetrikKarti';
 import { Rozet } from '@/components/Rozet';
-import { Sidebar } from '@/components/Sidebar';
 import { Skeleton, SkeletonKart, SkeletonSatir } from '@/components/Skeleton';
 import { Tablo } from '@/components/Tablo';
 import { type Tema, useTema } from '@/lib/tema';
@@ -126,17 +125,6 @@ function VitrinIcerik() {
         <SkeletonSatir />
         <SkeletonKart />
         <Skeleton genislik={120} yukseklik={14} />
-      </Bolum>
-
-      <Bolum tema={tema} baslik="Sidebar (tablet: yalnızca ikon, masaüstü: ikon + etiket)">
-        <View style={{ flexDirection: 'row', height: 220 }}>
-          <Sidebar
-            ogeler={[
-              { href: '/bilesen-vitrini', etiket: 'Sınıflar', ikon: 'school-outline' },
-              { href: '/bilesen-vitrini', etiket: 'Personel', ikon: 'people-outline' },
-            ]}
-          />
-        </View>
       </Bolum>
 
       <Bolum tema={tema} baslik="Alt eylem çubuğu (<768 — gerçek sekme çubuğu değil, bkz. not)">

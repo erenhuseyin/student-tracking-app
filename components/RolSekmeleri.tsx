@@ -1,24 +1,26 @@
 // Bir rol grubunun ana bölümleri arasındaki sekmeli gezinme. Sekmeler lib/menu.ts'ten gelir.
-// Telefonda altta; tablet ve masaüstünde (>=768) solda durur. Rol grubunun
+// 'mobil' düzende altta durur; 'web' düzeninde çubuk gizlenir (gezinme kenar çubuğundadır:
+// components/Sidebar) ve başlık sayfa başlığına döner. Rol grubunun
 // `(sekmeler)/_layout.tsx` dosyası yalnızca bunu döndürür.
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BildirimZili } from '@/components/BildirimZili';
 import { Ikon } from '@/components/Ikon';
+import { useWebBasligi } from '@/components/WebKabuk';
 import { useMenu } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
-import { useKirilma, useTema, yaziTipi } from '@/lib/tema';
+import { useDuzen, useTema, yaziTipi } from '@/lib/tema';
 
 export function RolSekmeleri() {
   const tema = useTema();
-  const kirilma = useKirilma();
+  const web = useDuzen() === 'web';
+  const webBasligi = useWebBasligi();
   const { sekmeler } = useMenu();
   const kenarlar = useSafeAreaInsets();
   const { kullanici } = useOturum();
   // Süper admine bildirim gönderilmez; zil yalnızca diğer rollerde gösterilir.
   const zilVar = kullanici !== null && kullanici.rol !== 'super_admin';
-  const yanda = kirilma !== 'mobil';
   const r = tema.renkler;
 
   return (
@@ -31,17 +33,15 @@ export function RolSekmeleri() {
         headerShadowVisible: false,
         headerLeft: zilVar ? () => <BildirimZili /> : undefined,
         sceneStyle: { backgroundColor: r.zemin },
-        tabBarPosition: yanda ? 'left' : 'bottom',
-        // Yandaki çubukta `uikit` varyantı ikon altı etiketi desteklemez.
-        tabBarVariant: yanda ? 'material' : 'uikit',
-        tabBarLabelPosition: kirilma === 'masaustu' ? 'beside-icon' : 'below-icon',
+        // 'web' düzeninde sayfa başlığı (zil onun içindedir).
+        ...(web ? { header: webBasligi } : null),
         tabBarActiveTintColor: r.ana,
         tabBarInactiveTintColor: r.metinIkincil,
         // Alttaki çubuğun varsayılan yüksekliğinde (49) etikete 9 px kalıyor ve yazı alttan kesiliyor
         // (web'de ölçüldü: ikon 28 + sekmenin kendi iç boşluğu 10). Yükseklik açıkça verilir, cihazın
         // alt güvenli alanı eklenir.
-        tabBarStyle: yanda
-          ? { backgroundColor: r.yuzey, borderColor: r.ayirici }
+        tabBarStyle: web
+          ? { display: 'none' }
           : {
               backgroundColor: r.yuzey,
               borderColor: r.ayirici,
