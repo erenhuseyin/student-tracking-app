@@ -1,8 +1,12 @@
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Ikon, type IkonAdi } from '@/components/Ikon';
 import { type Tema, useTema } from '@/lib/tema';
+
+// 'web' düzeninde düğme içeriği kadar geniştir; ortalanmış tek kartlı ekranlarda (giriş ekranları)
+// Ekran bunu `true` yapar ve düğmeler kartı doldurur.
+export const TamGenislikliButon = createContext(false);
 
 type Tur = 'birincil' | 'ikincil' | 'tehlike' | 'metin';
 
@@ -20,6 +24,7 @@ type Props = {
 export function Buton({ baslik, onPress, tur = 'birincil', ikon, yukleniyor = false, pasif = false, buyuk = false }: Props) {
   const tema = useTema();
   const { styles, onPlan } = useMemo(() => olustur(tema), [tema]);
+  const tamGenislik = useContext(TamGenislikliButon);
   const engelli = pasif || yukleniyor;
   const renk = onPlan[tur];
 
@@ -32,7 +37,7 @@ export function Buton({ baslik, onPress, tur = 'birincil', ikon, yukleniyor = fa
       style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.temel,
         // 'web' düzeninde düğme içeriği kadar geniştir; telefonda satırı doldurur.
-        tema.duzen === 'web' && styles.web,
+        tema.duzen === 'web' && !tamGenislik && styles.web,
         hovered && !engelli && styles.uzerinde,
         styles[tur],
         buyuk && styles.buyuk,

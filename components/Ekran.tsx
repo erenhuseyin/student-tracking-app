@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TamGenislikliButon } from '@/components/Buton';
 import { type Tema, useKirilma, useTema } from '@/lib/tema';
 
 type Props = {
@@ -54,7 +55,7 @@ export function Ekran({ children, kaydirilabilir = false, baslikCubugusuz = fals
   if (!kaydirilabilir) {
     return (
       <View style={[styles.kok, styles.icerik, styles.doldur, genislikStili, ortala && styles.ortala, dolgu]}>
-        {children}
+        <TamGenislikliButon.Provider value={ortala}>{children}</TamGenislikliButon.Provider>
       </View>
     );
   }
@@ -65,7 +66,7 @@ export function Ekran({ children, kaydirilabilir = false, baslikCubugusuz = fals
         contentContainerStyle={[styles.icerik, styles.kaydirmaIcerigi, genislikStili, ortala && styles.ortala, dolgu]}
         keyboardShouldPersistTaps="handled"
       >
-        {children}
+        <TamGenislikliButon.Provider value={ortala}>{children}</TamGenislikliButon.Provider>
       </ScrollView>
     </KeyboardAvoidingView>
   );
