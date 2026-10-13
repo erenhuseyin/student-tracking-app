@@ -19,7 +19,7 @@ import { SkeletonSatir } from '@/components/Skeleton';
 import { gununDevamsizlikNedenleri } from '@/lib/devamsizlik';
 import { useOturum } from '@/lib/oturum';
 import { bugununTarihi, tarihGecerliMi, tarihiBicimle } from '@/lib/tarih';
-import { type Tema, useKirilma, useTema } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 import { YOKLAMA_DURUMLARI, type YoklamaDurumu } from '@/lib/tipler';
 import {
   gununYoklamasiniGetir,
@@ -58,7 +58,7 @@ const SUZGECLER: { deger: Suzgec; etiket: string }[] = [
 export default function OgretmenYoklama() {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
-  const dar = useKirilma() === 'mobil';
+  const dar = tema.duzen === 'mobil';
   const { sinifId, tarih: tarihParametresi } = useLocalSearchParams<{ sinifId: string; tarih?: string }>();
   const bugun = bugununTarihi();
   const tarih =

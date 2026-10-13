@@ -12,7 +12,11 @@ export function Toast({ metin }: { metin: string }) {
   const kenarlar = useSafeAreaInsets();
   const styles = useMemo(() => olustur(tema), [tema]);
   return (
-    <View pointerEvents="none" style={[styles.kapsayici, { bottom: kenarlar.bottom + 84 }]}>
+    <View
+      pointerEvents="none"
+      // 'web' düzeninde sağ altta; telefonda sekme çubuğunun üstünde ortada.
+      style={[styles.kapsayici, tema.duzen === 'web' ? styles.web : { bottom: kenarlar.bottom + 84 }]}
+    >
       <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.kutu}>
         <Ikon ad="checkmark-circle" boyut={20} renk={tema.renkler.basari} />
         <Text style={styles.metin}>{metin}</Text>
@@ -30,6 +34,11 @@ function olustur(t: Tema) {
       alignItems: 'center',
       paddingHorizontal: t.bosluk.l,
     },
+    web: {
+      bottom: t.bosluk.xl,
+      alignItems: 'flex-end',
+      paddingHorizontal: t.bosluk.xl,
+    },
     kutu: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -37,7 +46,7 @@ function olustur(t: Tema) {
       maxWidth: 480,
       paddingVertical: t.bosluk.m,
       paddingHorizontal: t.bosluk.l,
-      borderRadius: t.yaricap.tam,
+      borderRadius: t.duzen === 'web' ? t.yaricap.m : t.yaricap.tam,
       borderWidth: 1,
       borderColor: t.renkler.ayirici,
       backgroundColor: t.renkler.yuzey,

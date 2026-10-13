@@ -1,6 +1,7 @@
 // Kart görünümlü liste satırı: sol (avatar/ikon) + başlık/alt başlık + sağ (rozet/eylemler).
-// `onPress` verilip `sag` verilmezse sağda ilerleme oku gösterilir.
-import { useMemo } from 'react';
+// `onPress` verilip `sag` verilmezse sağda ilerleme oku gösterilir (yalnızca 'mobil' düzende; 'web'
+// düzeninde satır fare üzerine gelince vurgulanır).
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -20,6 +21,7 @@ type Props = {
 export function ListeSatiri({ baslik, altBaslik, sol, sag, onPress, buyuk = false }: Props) {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
+  const [uzerinde, setUzerinde] = useState(false);
 
   const icerik = (
     <>
@@ -34,15 +36,17 @@ export function ListeSatiri({ baslik, altBaslik, sol, sag, onPress, buyuk = fals
   );
 
   return (
-    <View style={[styles.satir, buyuk && styles.buyuk]}>
+    <View style={[styles.satir, buyuk && styles.buyuk, uzerinde && styles.uzerinde]}>
       {onPress ? (
         <Pressable
           accessibilityRole="button"
           onPress={onPress}
+          onHoverIn={() => setUzerinde(true)}
+          onHoverOut={() => setUzerinde(false)}
           style={({ pressed }) => [styles.anaAlan, pressed && styles.basili]}
         >
           {icerik}
-          {sag ? null : <Ikon ad="chevron-forward" boyut={20} renk={tema.renkler.kenarlik} />}
+          {sag || tema.duzen === 'web' ? null : <Ikon ad="chevron-forward" boyut={20} renk={tema.renkler.kenarlik} />}
         </Pressable>
       ) : (
         <View style={styles.anaAlan}>{icerik}</View>
@@ -67,7 +71,11 @@ function olustur(t: Tema) {
       borderColor: t.renkler.ayirici,
     },
     buyuk: {
-      minHeight: 72,
+      minHeight: t.duzen === 'web' ? 60 : 72,
+    },
+    uzerinde: {
+      borderColor: t.renkler.kenarlik,
+      backgroundColor: t.renkler.anaSoluk,
     },
     anaAlan: {
       flex: 1,

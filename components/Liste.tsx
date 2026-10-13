@@ -1,7 +1,7 @@
 // Veri listelerinin ortak iskeleti: hata kutusu, yükleniyor, boş durum ve aralıklı FlatList.
-// `veri` null ise henüz yüklenmemiştir. `sutunlar` verilen bir ekran, masaüstü genişlikte
-// (>=1024) otomatik olarak Tablo görünümüne döner; vermeyen ekranlar her genişlikte kart
-// listesi olarak kalır (kademeli geçiş — bkz. lib/tema.ts dosya başı notu).
+// `veri` null ise henüz yüklenmemiştir. `sutunlar` verilen bir ekran 'web' düzeninde (bkz.
+// lib/tema.ts > useDuzen) Tablo görünümüne döner; 'mobil' düzende ve `sutunlar` vermeyen ekranlarda
+// kart listesi çizilir.
 import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
@@ -11,7 +11,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import type { IkonAdi } from '@/components/Ikon';
 import { SkeletonSatir } from '@/components/Skeleton';
 import { Tablo, type TabloSutunu } from '@/components/Tablo';
-import { type Tema, useKirilma, useTema } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 type Props<T> = {
   veri: T[] | null;
@@ -24,7 +24,7 @@ type Props<T> = {
   ust?: ReactElement;
   // Listenin altında, satırlarla birlikte kayan içerik (liste boşken gösterilmez).
   alt?: ReactElement;
-  // Verilirse masaüstü genişlikte bu sütunlarla bir Tablo gösterilir.
+  // Verilirse 'web' düzeninde bu sütunlarla bir Tablo gösterilir.
   sutunlar?: TabloSutunu<T>[];
   onSatirPress?: (oge: T) => void;
   // Verilirse liste aşağı çekilerek yenilenebilir (telefon). Web'de etkisizdir.
@@ -47,8 +47,7 @@ export function Liste<T>({
 }: Props<T>) {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
-  const kirilma = useKirilma();
-  const masaustuTablo = sutunlar && kirilma === 'masaustu';
+  const masaustuTablo = sutunlar && tema.duzen === 'web';
   const satirlar = veri ?? [];
   const [yenileniyor, setYenileniyor] = useState(false);
   const yenile = async () => {
@@ -113,7 +112,7 @@ function olustur(t: Tema) {
       flex: 1,
     },
     icerik: {
-      gap: t.bosluk.m,
+      gap: t.duzen === 'web' ? t.bosluk.s : t.bosluk.m,
       paddingBottom: t.bosluk.l,
     },
     iskeletListesi: {

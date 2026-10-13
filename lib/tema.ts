@@ -47,9 +47,13 @@ export const bosluk = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 } as const;
 export const kenarBosluklari = { mobil: 20, web: 32 } as const;
 
 export const yaricap = { s: 8, m: 12, l: 16, tam: 999 } as const;
+// 'web' düzeninde köşeler daha az yuvarlak (masaüstü uygulaması görünümü).
+const webYaricap = { s: 6, m: 8, l: 10, tam: 999 } as const;
 
 // Asgari dokunma yüksekliği; veli ekranlarında `buyuk` kullanılır.
 export const dokunmaAlani = { normal: 48, buyuk: 56 } as const;
+// 'web' düzeninde hedef parmak değil faredir: denetimler daha alçaktır.
+const webDokunmaAlani = { normal: 40, buyuk: 48 } as const;
 
 // Markadan bağımsız, sabit durum renkleri (2026-10-06 "Defter" paleti).
 const DURUM_RENKLERI = {
@@ -146,20 +150,21 @@ type Renkler = {
   bilgiSoluk: string;
 };
 
-function yaziOlcegi(r: Renkler): Record<string, TextStyle> {
+function yaziOlcegi(r: Renkler, web: boolean): Record<string, TextStyle> {
   // bolum/altBaslik aynı stile işaret eder (iki isim de bir geçiş dönemi boyunca birlikte yaşar,
   // bkz. dosya başı notu). `etiket` ve `kucuk` AYNI DEĞİLDİR: `etiket` yalnızca form alanı
   // etiketleri için (vurgu tonunda, brief'in "vurguKoyu: vurgu tonunda metin gerektiğinde"
   // kuralı) — genel ikincil/açıklama metninde kullanılmaz, onun için `kucuk` vardır (nötr).
-  const bolum: TextStyle = { fontFamily: yaziTipi.yariKalin, fontSize: 18, color: r.metin };
+  // 'web' düzeninde yazı bir boy küçüktür (ekran uzaktan değil yakından, fareyle kullanılır).
+  const bolum: TextStyle = { fontFamily: yaziTipi.yariKalin, fontSize: web ? 16 : 18, color: r.metin };
   return {
-    baslik: { fontFamily: yaziTipi.yariKalin, fontSize: 24, color: r.metin },
+    baslik: { fontFamily: yaziTipi.yariKalin, fontSize: web ? 22 : 24, color: r.metin },
     bolum,
     altBaslik: bolum,
-    govde: { fontFamily: yaziTipi.duzenli, fontSize: 15, lineHeight: 22.5, color: r.metin },
+    govde: { fontFamily: yaziTipi.duzenli, fontSize: web ? 14 : 15, lineHeight: web ? 21 : 22.5, color: r.metin },
     etiket: { fontFamily: yaziTipi.orta, fontSize: 12, color: r.vurguKoyu },
     kucuk: { fontFamily: yaziTipi.duzenli, fontSize: 13, color: r.metinIkincil },
-    metrik: { fontFamily: yaziTipi.kalin, fontSize: 32, color: r.metin, fontVariant: ['tabular-nums'] as TextStyle['fontVariant'] },
+    metrik: { fontFamily: yaziTipi.kalin, fontSize: web ? 28 : 32, color: r.metin, fontVariant: ['tabular-nums'] as TextStyle['fontVariant'] },
   };
 }
 
@@ -171,18 +176,20 @@ type StackSecenekleri = Exclude<ComponentProps<typeof Stack>['screenOptions'], u
 export type Tema = {
   mod: 'acik' | 'karanlik';
   renkler: Renkler;
+  duzen: Duzen;
   yazi: ReturnType<typeof yaziOlcegi>;
   bosluk: typeof bosluk;
   kenarBosluklari: typeof kenarBosluklari;
-  yaricap: typeof yaricap;
-  dokunmaAlani: typeof dokunmaAlani;
+  yaricap: { s: number; m: number; l: number; tam: number };
+  dokunmaAlani: { normal: number; buyuk: number };
   yaziTipi: typeof yaziTipi;
   yoklamaRenkleri: Record<YoklamaDurumu, { renk: string; soluk: string }>;
   katilimRengi: (oran: number | null) => { renk: string; soluk: string };
   baslikCubuguSecenekleri: StackSecenekleri;
 };
 
-function temaKur(mod: 'acik' | 'karanlik'): Tema {
+function temaKur(mod: 'acik' | 'karanlik', duzen: Duzen): Tema {
+  const web = duzen === 'web';
   const r = mod === 'acik' ? ACIK : KARANLIK;
   const yoklama: Record<YoklamaDurumu, { renk: string; soluk: string }> = {
     geldi: { renk: r.basari, soluk: r.basariSoluk },
@@ -193,11 +200,12 @@ function temaKur(mod: 'acik' | 'karanlik'): Tema {
   return {
     mod,
     renkler: r,
-    yazi: yaziOlcegi(r),
+    duzen,
+    yazi: yaziOlcegi(r, web),
     bosluk,
     kenarBosluklari,
-    yaricap,
-    dokunmaAlani,
+    yaricap: web ? webYaricap : yaricap,
+    dokunmaAlani: web ? webDokunmaAlani : dokunmaAlani,
     yaziTipi,
     yoklamaRenkleri: yoklama,
     katilimRengi: (oran) => {
@@ -218,9 +226,12 @@ function temaKur(mod: 'acik' | 'karanlik'): Tema {
   };
 }
 
-// İki modun belirteç setleri sabit girdilerle kurulur; her çağrı aynı referansı döner
+// Belirteç setleri (mod × düzen) sabit girdilerle kurulur; her çağrı aynı referansı döner
 // (modüle özel önbellek) — `useTema()` böylece her render'da yeni nesne üretmez.
-const TEMALAR: Record<'acik' | 'karanlik', Tema> = { acik: temaKur('acik'), karanlik: temaKur('karanlik') };
+const TEMALAR: Record<Duzen, Record<'acik' | 'karanlik', Tema>> = {
+  mobil: { acik: temaKur('acik', 'mobil'), karanlik: temaKur('karanlik', 'mobil') },
+  web: { acik: temaKur('acik', 'web'), karanlik: temaKur('karanlik', 'web') },
+};
 
 // Geçişi yapılmış bileşenler bunu çağırır: `const t = useTema();` ardından kendi stilini
 // `useMemo(() => StyleSheet.create({...}), [t])` ile render içinde kurar. OS teması `light`/
@@ -228,8 +239,9 @@ const TEMALAR: Record<'acik' | 'karanlik', Tema> = { acik: temaKur('acik'), kara
 export function useTema(): Tema {
   const sema = useColorScheme();
   const { tercih } = useTemaTercihi();
+  const duzen = useDuzen();
   const mod = tercih === 'sistem' ? sema : tercih === 'karanlik' ? 'dark' : 'light';
-  return TEMALAR[mod === 'dark' ? 'karanlik' : 'acik'];
+  return TEMALAR[duzen][mod === 'dark' ? 'karanlik' : 'acik'];
 }
 
 export type Kirilma = 'mobil' | 'tablet' | 'masaustu';

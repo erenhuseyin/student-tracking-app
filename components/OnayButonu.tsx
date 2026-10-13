@@ -1,8 +1,9 @@
 // İki adımlı onay: `Alert.alert` kullanılmaz (web'de tarayıcı confirm()'e sarılabilir, bu proje
-// için istenmiyor). Tetikleyiciye basılınca aynı yerde soru + onay/vazgeç çıkar.
+// için istenmiyor). Tetikleyiciye basılınca 'mobil' düzende aynı yerde soru + onay/vazgeç çıkar,
+// 'web' düzeninde küçük bir diyalog açılır.
 // Tetikleyici `ikon` verilirse ikon buton, verilmezse tehlike butonudur.
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Buton } from '@/components/Buton';
 import type { IkonAdi } from '@/components/Ikon';
@@ -37,6 +38,37 @@ export function OnayButonu({
     );
   }
 
+  const onayla = async () => {
+    setCalisiyor(true);
+    await onOnay();
+    setCalisiyor(false);
+    setOnayBekleniyor(false);
+  };
+
+  // 'web' düzeninde soru küçük bir diyalogda sorulur; tetikleyici yerinde kalır.
+  if (tema.duzen === 'web') {
+    return (
+      <>
+        {ikon ? (
+          <IkonButon ikon={ikon} etiket={etiket} renk={tema.renkler.hata} onPress={() => {}} />
+        ) : (
+          <Buton tur="tehlike" baslik={etiket} onPress={() => {}} />
+        )}
+        <Modal visible transparent animationType="fade" onRequestClose={() => setOnayBekleniyor(false)}>
+          <Pressable accessibilityLabel="Vazgeç" style={styles.perde} onPress={() => setOnayBekleniyor(false)}>
+            <Pressable accessibilityRole="alert" style={styles.diyalog} onPress={() => {}}>
+              <Text style={tema.yazi.bolum}>{soru}</Text>
+              <View style={styles.diyalogEylemleri}>
+                <Buton tur="ikincil" baslik="Vazgeç" pasif={calisiyor} onPress={() => setOnayBekleniyor(false)} />
+                <Buton tur="tehlike" baslik={onayEtiketi} yukleniyor={calisiyor} onPress={onayla} />
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </>
+    );
+  }
+
   return (
     <View style={styles.onaySatiri}>
       <Text style={styles.soru}>{soru}</Text>
@@ -47,12 +79,7 @@ export function OnayButonu({
           <Pressable
             accessibilityRole="button"
             style={styles.secenek}
-            onPress={async () => {
-              setCalisiyor(true);
-              await onOnay();
-              setCalisiyor(false);
-              setOnayBekleniyor(false);
-            }}
+            onPress={onayla}
           >
             <Text style={styles.evetMetni}>{onayEtiketi}</Text>
           </Pressable>
@@ -67,6 +94,28 @@ export function OnayButonu({
 
 function olustur(t: Tema) {
   return StyleSheet.create({
+    perde: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: t.bosluk.xl,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+    },
+    diyalog: {
+      width: '100%',
+      maxWidth: 400,
+      gap: t.bosluk.xl,
+      padding: t.bosluk.xl,
+      borderRadius: t.yaricap.l,
+      borderWidth: 1,
+      borderColor: t.renkler.ayirici,
+      backgroundColor: t.renkler.yuzey,
+    },
+    diyalogEylemleri: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: t.bosluk.s,
+    },
     onaySatiri: {
       flexDirection: 'row',
       flexWrap: 'wrap',

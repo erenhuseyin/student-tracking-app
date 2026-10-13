@@ -61,7 +61,8 @@ type Props = {
 export function Pano({ sabit = false, alt }: Props) {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
-  const masaustu = useKirilma() === 'masaustu';
+  const genisPencere = useKirilma() === 'masaustu';
+  const masaustu = tema.duzen === 'web' && genisPencere;
   const { kurum, kokKurum } = useOturum();
   const icerikAcik = useOzellik('icerik_takibi');
 

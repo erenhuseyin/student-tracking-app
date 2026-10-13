@@ -1,7 +1,8 @@
 // Açılır tek seçimli kutu (filtreler ve çok seçenekli form alanları). Seçenekler bir pencerede
-// listelenir; web ve telefonda aynı çalışır. Az seçenekte (2-3) `Secenekler` daha uygundur.
+// listelenir: 'mobil' düzende ekranın ortasında, 'web' düzeninde kutunun hemen altında (açılır liste).
+// Az seçenekte (2-3) `Secenekler` daha uygundur.
 // `bosEtiket` verilirse listenin başına "seçim yok" satırı eklenir (ör. filtrede "Tümü").
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ikon } from '@/components/Ikon';
@@ -20,6 +21,21 @@ export function Secim<T extends string>({ etiket, secenekler, secili, onSec, bos
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
   const [acik, setAcik] = useState(false);
+  const web = tema.duzen === 'web';
+  const kutu = useRef<View>(null);
+  // 'web' düzeninde listenin açılacağı yer: kutunun pencere içindeki konumu.
+  const [yer, setYer] = useState<{ x: number; y: number; genislik: number } | null>(null);
+
+  const ac = () => {
+    if (!web || !kutu.current) {
+      setAcik(true);
+      return;
+    }
+    kutu.current.measureInWindow((x, y, genislik, yukseklik) => {
+      setYer({ x, y: y + yukseklik + 4, genislik });
+      setAcik(true);
+    });
+  };
   const seciliEtiket = secenekler.find((s) => s.deger === secili)?.etiket ?? bosEtiket ?? 'Seçin';
   const satirlar: { deger: T | null; etiket: string }[] = [
     ...(bosEtiket ? [{ deger: null, etiket: bosEtiket }] : []),
@@ -38,8 +54,9 @@ export function Secim<T extends string>({ etiket, secenekler, secili, onSec, bos
         accessibilityRole="button"
         accessibilityLabel={`${etiket}: ${seciliEtiket}`}
         accessibilityState={{ disabled: pasif, expanded: acik }}
+        ref={kutu}
         disabled={pasif}
-        onPress={() => setAcik(true)}
+        onPress={ac}
         style={[styles.kutu, pasif && styles.pasif]}
       >
         <Text style={[styles.deger, secili === null && styles.bosDeger]} numberOfLines={1}>
@@ -48,11 +65,18 @@ export function Secim<T extends string>({ etiket, secenekler, secili, onSec, bos
         <Ikon ad="chevron-down" boyut={18} renk={tema.renkler.metinIkincil} />
       </Pressable>
 
-      <Modal visible={acik} transparent animationType="fade" onRequestClose={() => setAcik(false)}>
-        <Pressable accessibilityLabel="Kapat" style={styles.perde} onPress={() => setAcik(false)}>
+      <Modal visible={acik} transparent animationType={web ? 'none' : 'fade'} onRequestClose={() => setAcik(false)}>
+        <Pressable
+          accessibilityLabel="Kapat"
+          style={web && yer ? styles.webPerde : styles.perde}
+          onPress={() => setAcik(false)}
+        >
           {/* İçteki Pressable, listeye dokunmanın perdeye (kapatmaya) geçmesini engeller. */}
-          <Pressable style={styles.pencere} onPress={() => {}}>
-            <Text style={styles.pencereBasligi}>{etiket}</Text>
+          <Pressable
+            style={web && yer ? [styles.acilirListe, { left: yer.x, top: yer.y, minWidth: yer.genislik }] : styles.pencere}
+            onPress={() => {}}
+          >
+            {web && yer ? null : <Text style={styles.pencereBasligi}>{etiket}</Text>}
             <ScrollView style={styles.liste}>
               {satirlar.map((s) => {
                 const seciliMi = s.deger === secili;
@@ -62,7 +86,12 @@ export function Secim<T extends string>({ etiket, secenekler, secili, onSec, bos
                     accessibilityRole="button"
                     accessibilityState={{ selected: seciliMi }}
                     onPress={() => sec(s.deger)}
-                    style={({ pressed }) => [styles.secenek, seciliMi && styles.seciliSecenek, pressed && styles.basili]}
+                    style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+                      styles.secenek,
+                      hovered && styles.uzerinde,
+                      seciliMi && styles.seciliSecenek,
+                      pressed && styles.basili,
+                    ]}
                   >
                     <Text style={styles.secenekMetni}>{s.etiket}</Text>
                     {seciliMi ? <Ikon ad="checkmark" boyut={20} renk={tema.renkler.ana} /> : null}
@@ -123,6 +152,23 @@ function olustur(t: Tema) {
       borderColor: t.renkler.ayirici,
       padding: t.bosluk.l,
       gap: t.bosluk.m,
+    },
+    webPerde: {
+      flex: 1,
+    },
+    acilirListe: {
+      position: 'absolute',
+      maxWidth: 420,
+      maxHeight: 320,
+      backgroundColor: t.renkler.yuzey,
+      borderRadius: t.yaricap.m,
+      borderWidth: 1,
+      borderColor: t.renkler.kenarlik,
+      padding: t.bosluk.xs,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+    },
+    uzerinde: {
+      backgroundColor: t.renkler.ayirici,
     },
     pencereBasligi: {
       ...t.yazi.bolum,

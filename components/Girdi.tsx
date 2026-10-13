@@ -62,7 +62,9 @@ function olustur(t: Tema) {
       borderColor: t.renkler.kenarlik,
       borderRadius: t.yaricap.m,
       paddingHorizontal: t.bosluk.l,
-      paddingVertical: t.bosluk.m,
+      paddingVertical: t.duzen === 'web' ? t.bosluk.s : t.bosluk.m,
+      // Web'de tarayıcının odak çerçevesi yerine kenarlık rengi değişir (bkz. `odakta`).
+      outlineWidth: 0,
     },
     buyuk: {
       minHeight: t.dokunmaAlani.buyuk,

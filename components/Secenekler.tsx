@@ -47,6 +47,7 @@ function olustur(t: Tema) {
     },
     satir: {
       flexDirection: 'row',
+      flexWrap: t.duzen === 'web' ? 'wrap' : 'nowrap',
       gap: t.bosluk.s,
     },
   });

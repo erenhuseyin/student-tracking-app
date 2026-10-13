@@ -29,8 +29,11 @@ export function Buton({ baslik, onPress, tur = 'birincil', ikon, yukleniyor = fa
       accessibilityState={{ disabled: engelli, busy: yukleniyor }}
       onPress={onPress}
       disabled={engelli}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.temel,
+        // 'web' düzeninde düğme içeriği kadar geniştir; telefonda satırı doldurur.
+        tema.duzen === 'web' && styles.web,
+        hovered && !engelli && styles.uzerinde,
         styles[tur],
         buyuk && styles.buyuk,
         pressed && styles.basili,
@@ -70,6 +73,12 @@ function olustur(t: Tema) {
     },
     buyuk: {
       minHeight: t.dokunmaAlani.buyuk,
+    },
+    web: {
+      alignSelf: 'flex-start',
+    },
+    uzerinde: {
+      opacity: 0.9,
     },
     basili: {
       opacity: 0.8,

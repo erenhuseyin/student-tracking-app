@@ -40,7 +40,13 @@ export function Chip({
       }
       disabled={pasif}
       onPress={onPress}
-      style={[styles.cip, esitGenislik && styles.esitGenislik, secili && styles.secili]}
+      style={({ hovered }: { hovered?: boolean }) => [
+        styles.cip,
+        // 'web' düzeninde segment satırı doldurmaz, çipler içeriği kadar geniştir.
+        esitGenislik && tema.duzen !== 'web' && styles.esitGenislik,
+        hovered && !secili && !pasif && styles.uzerinde,
+        secili && styles.secili,
+      ]}
     >
       <Text style={[styles.metin, secili && styles.seciliMetin]} numberOfLines={1}>
         {etiket}
@@ -58,7 +64,7 @@ function olustur(t: Tema) {
       paddingHorizontal: t.bosluk.l,
       borderWidth: 1,
       borderColor: t.renkler.kenarlik,
-      borderRadius: t.yaricap.tam,
+      borderRadius: t.duzen === 'web' ? t.yaricap.m : t.yaricap.tam,
       backgroundColor: t.renkler.yuzey,
     },
     // Eşit genişlikte yan boşluk küçük tutulur: yedi günlük seçicide (Pzt … Paz) telefon
@@ -66,6 +72,9 @@ function olustur(t: Tema) {
     esitGenislik: {
       flex: 1,
       paddingHorizontal: 0,
+    },
+    uzerinde: {
+      backgroundColor: t.renkler.ayirici,
     },
     secili: {
       backgroundColor: t.renkler.ana,

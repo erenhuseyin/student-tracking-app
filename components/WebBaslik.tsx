@@ -1,12 +1,14 @@
 // 'web' düzeninde ekranların üstündeki sayfa başlığı: telefon başlık çubuğunun (ortalanmış başlık +
 // geri oku) yerini alır. Başlık solda, alt ekranlarda geri bağlantısı, sağda ekranın eylemleri
 // (`headerRight`) ve bildirim zili. Ekranlar başlığı ve eylemi yine `Stack.Screen options` ile verir.
+import { usePathname } from 'expo-router';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BildirimZili } from '@/components/BildirimZili';
 import { Ikon } from '@/components/Ikon';
+import { useMenu } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { type Tema, useTema } from '@/lib/tema';
 
@@ -23,10 +25,15 @@ export function WebBaslik({ baslik, onGeri, sag }: Props) {
   const { kullanici } = useOturum();
   // Süper admine bildirim gönderilmez.
   const zilVar = kullanici !== null && kullanici.rol !== 'super_admin';
+  // Kenar çubuğundan açılan bölümlerin kendisi (Kademeler, Raporlar…) üst düzey sayfadır: geri
+  // bağlantısı yalnızca onların altındaki ekranlarda çizilir.
+  const yol = usePathname();
+  const { menuSatirlari } = useMenu();
+  const ustDuzey = yol === '/profil' || menuSatirlari.some((m) => m.rota === yol);
 
   return (
     <View style={styles.cubuk}>
-      {onGeri ? (
+      {onGeri && !ustDuzey ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Geri"

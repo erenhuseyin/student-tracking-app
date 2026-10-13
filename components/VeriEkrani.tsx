@@ -21,7 +21,7 @@ import { Liste } from '@/components/Liste';
 import { Sayfalama } from '@/components/Sayfalama';
 import { SkeletonSatir } from '@/components/Skeleton';
 import { Tablo, type TabloSiralamasi, type TabloSutunu } from '@/components/Tablo';
-import { type Tema, useKirilma, useTema } from '@/lib/tema';
+import { type Tema, useTema } from '@/lib/tema';
 
 const PANEL_GENISLIGI = 420;
 
@@ -92,7 +92,7 @@ export function VeriEkrani<T>({
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
   const kenarlar = useSafeAreaInsets();
-  const masaustu = useKirilma() === 'masaustu';
+  const masaustu = tema.duzen === 'web';
   const [filtrelerAcik, setFiltrelerAcik] = useState(false);
 
   const yeniDugmesi =

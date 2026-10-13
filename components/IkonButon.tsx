@@ -20,7 +20,7 @@ export function IkonButon({ ikon, etiket, onPress, renk }: Props) {
       accessibilityRole="button"
       accessibilityLabel={etiket}
       onPress={onPress}
-      style={({ pressed }) => [styles.buton, pressed && styles.basili]}
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [styles.buton, (pressed || hovered) && styles.basili]}
     >
       <Ikon ad={ikon} renk={renk ?? tema.renkler.ana} />
     </Pressable>

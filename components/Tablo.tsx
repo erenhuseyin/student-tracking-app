@@ -1,4 +1,4 @@
-// Tablo görünümü. Başlık satırı vurguSoluk zeminli, satır yüksekliği 48.
+// Tablo görünümü. Başlık satırı vurguSoluk zeminli; satır yüksekliği temadan ('web' düzeninde 44).
 // `Liste` bileşeni masaüstü genişlikte (>=1024), `sutunlar` verilmişse otomatik buna döner (bkz.
 // Liste.tsx); yönetim ekranları `VeriEkrani` üzerinden kullanır; doğrudan da kullanılabilir.
 // Web'de fare üzerine gelince satır hafifçe vurgulanır (hover); native tarafta
@@ -170,7 +170,7 @@ function olustur(t: Tema) {
     satir: {
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: 48,
+      minHeight: t.dokunmaAlani.normal + 4,
       paddingHorizontal: t.bosluk.l,
       gap: t.bosluk.m,
     },
@@ -185,7 +185,7 @@ function olustur(t: Tema) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: t.bosluk.xs,
-      minHeight: 48,
+      minHeight: t.dokunmaAlani.normal + 4,
     },
     hucreMetni: {
       ...t.yazi.govde,
