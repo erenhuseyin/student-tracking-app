@@ -83,6 +83,8 @@ export default function Kademeler() {
         bosIkon="layers-outline"
         bosBaslik="Henüz kademe yok"
         bosAciklama="Kademe, bir sınıfın izlediği müfredattır: dersleri ve konuları vardır."
+        sutunlar={[{ anahtar: 'ad', baslik: 'Kademe', icerik: (k) => k.ad }]}
+        onSatirPress={(k) => router.push(`/kademe/${k.id}`)}
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad}

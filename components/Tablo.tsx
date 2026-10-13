@@ -143,8 +143,9 @@ function TabloSatiri({
   if (!onPress) return icerik;
 
   return (
+    // Rol verilmez: web'de `button` rolü <button> çizer ve hücredeki eylem düğmeleri (ör. Düzenle)
+    // iç içe <button> olur (geçersiz HTML). Satır yine odaklanabilir ve tıklanabilir.
     <Pressable
-      accessibilityRole="button"
       accessibilityState={{ selected: secili }}
       onPress={onPress}
       onHoverIn={() => setVurgulu(true)}

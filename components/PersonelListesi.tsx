@@ -54,6 +54,13 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
         bosIkon="people-outline"
         bosBaslik="Henüz personel yok"
         bosAciklama="Sağ üstteki + ile öğretmen ya da yönetici ekleyin."
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Ad Soyad', icerik: (k) => k.ad_soyad },
+          { anahtar: 'rol', baslik: 'Rol', icerik: (k) => rolEtiketi(k.rol, kurum) },
+          { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '' },
+          { anahtar: 'durum', baslik: 'Durum', genislik: 160, icerik: (k) => <PersonelDurumRozeti personel={k} /> },
+        ]}
+        onSatirPress={(k) => router.push(`/personel/${k.id}`)}
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad_soyad}

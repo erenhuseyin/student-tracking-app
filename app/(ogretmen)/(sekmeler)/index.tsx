@@ -34,6 +34,11 @@ export default function OgretmenAnaSayfa() {
         anahtar={(s) => s.id}
         bosIkon="school-outline"
         bosBaslik="Henüz size atanmış sınıf yok"
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Sınıf', icerik: (s) => s.ad },
+          { anahtar: 'donem', baslik: 'Dönem', icerik: (s) => s.donem },
+        ]}
+        onSatirPress={(s) => router.push(`/sinifim/${s.id}`)}
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}

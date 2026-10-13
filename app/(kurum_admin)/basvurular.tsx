@@ -54,6 +54,13 @@ export default function Basvurular() {
         bosIkon="mail-open-outline"
         bosBaslik="Henüz başvuru yok"
         bosAciklama="Veliler ve öğretmen adayları giriş ekranındaki başvuru bağlantısından başvurabilir."
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Ad Soyad', icerik: (b) => b.ad_soyad },
+          { anahtar: 'tur', baslik: 'Tür', icerik: (b) => BASVURU_TURU_ETIKETLERI[b.tur] },
+          { anahtar: 'tarih', baslik: 'Tarih', icerik: (b) => tarihiBicimle(etkinlikZamaniniParcala(b.olusturma_tarihi).tarih) },
+          { anahtar: 'durum', baslik: 'Durum', genislik: 160, icerik: (b) => rozet(b) },
+        ]}
+        onSatirPress={(b) => router.push(`/basvuru/${b.id}`)}
         satir={(b) => (
           <ListeSatiri
             baslik={b.ad_soyad}

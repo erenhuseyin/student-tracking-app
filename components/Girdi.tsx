@@ -64,7 +64,7 @@ function olustur(t: Tema) {
       paddingHorizontal: t.bosluk.l,
       paddingVertical: t.duzen === 'web' ? t.bosluk.s : t.bosluk.m,
       // Web'de tarayıcının odak çerçevesi yerine kenarlık rengi değişir (bkz. `odakta`).
-      outlineWidth: 0,
+      outlineStyle: 'none' as never,
     },
     buyuk: {
       minHeight: t.dokunmaAlani.buyuk,

@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { Buton } from '@/components/Buton';
 import { Ekran } from '@/components/Ekran';
+import { EylemCubugu } from '@/components/EylemCubugu';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { ICERIK_OZELLIGI } from '@/lib/icerik';
@@ -14,6 +15,7 @@ import { useBolumAcik } from '@/lib/menu';
 import { ogrencileriGetir } from '@/lib/ogrenciler';
 import { useOzellik } from '@/lib/ozellikler';
 import { sinifGetir } from '@/lib/siniflar';
+import { tarihiBicimle } from '@/lib/tarih';
 import { type Tema, useTema } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 
@@ -49,44 +51,46 @@ export default function OgretmenSinifi() {
     <Ekran>
       <Stack.Screen options={{ title: sinif ? `${sinif.ad} · ${sinif.donem}` : 'Sınıf' }} />
 
-      {yoklamaAcik ? (
-      <View style={styles.butonlar}>
-        <View style={styles.buton}>
-          <Buton ikon="checkbox-outline" baslik="Yoklama Al" onPress={() => router.push(`/yoklama/${sinifId}`)} />
-        </View>
-        <View style={styles.buton}>
-          <Buton
-            tur="ikincil"
-            ikon="grid-outline"
-            baslik="Haftalık"
-            onPress={() => router.push(`/haftalik-yoklama/${sinifId}`)}
-          />
-        </View>
-      </View>
-      ) : null}
-
-      {programAcik ? (
-        <Buton
-          tur="ikincil"
-          ikon="calendar-outline"
-          baslik="Ders Programı"
-          onPress={() => router.push(`/ders-programi/${sinifId}`)}
-        />
-      ) : null}
-
-      {icerikAcik ? (
+      <EylemCubugu>
+        {yoklamaAcik ? (
         <View style={styles.butonlar}>
           <View style={styles.buton}>
-            <Buton tur="ikincil" baslik="Dersler" onPress={() => router.push(`/ders-takibi/${sinifId}`)} />
+            <Buton ikon="checkbox-outline" baslik="Yoklama Al" onPress={() => router.push(`/yoklama/${sinifId}`)} />
           </View>
           <View style={styles.buton}>
-            <Buton tur="ikincil" baslik="Ezber" onPress={() => router.push(`/ezber/${sinifId}`)} />
-          </View>
-          <View style={styles.buton}>
-            <Buton tur="ikincil" baslik="Kitap" onPress={() => router.push(`/kitap/${sinifId}`)} />
+            <Buton
+              tur="ikincil"
+              ikon="grid-outline"
+              baslik="Haftalık"
+              onPress={() => router.push(`/haftalik-yoklama/${sinifId}`)}
+            />
           </View>
         </View>
-      ) : null}
+        ) : null}
+
+        {programAcik ? (
+          <Buton
+            tur="ikincil"
+            ikon="calendar-outline"
+            baslik="Ders Programı"
+            onPress={() => router.push(`/ders-programi/${sinifId}`)}
+          />
+        ) : null}
+
+        {icerikAcik ? (
+          <View style={styles.butonlar}>
+            <View style={styles.buton}>
+              <Buton tur="ikincil" baslik="Dersler" onPress={() => router.push(`/ders-takibi/${sinifId}`)} />
+            </View>
+            <View style={styles.buton}>
+              <Buton tur="ikincil" baslik="Ezber" onPress={() => router.push(`/ezber/${sinifId}`)} />
+            </View>
+            <View style={styles.buton}>
+              <Buton tur="ikincil" baslik="Kitap" onPress={() => router.push(`/kitap/${sinifId}`)} />
+            </View>
+          </View>
+        ) : null}
+      </EylemCubugu>
 
       <Liste
         veri={ogrenciler}
@@ -94,6 +98,11 @@ export default function OgretmenSinifi() {
         anahtar={(o) => o.id}
         bosIkon="people-outline"
         bosBaslik="Bu sınıfta öğrenci yok"
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Öğrenci', icerik: (o) => o.ad_soyad },
+          { anahtar: 'dogum', baslik: 'Doğum tarihi', icerik: (o) => tarihiBicimle(o.dogum_tarihi) },
+        ]}
+        onSatirPress={gelisimAcik ? (o) => router.push(`/ogrenci-gelisim/${o.id}`) : undefined}
         satir={(o) => (
           <ListeSatiri
             baslik={o.ad_soyad}
@@ -109,12 +118,11 @@ export default function OgretmenSinifi() {
 
 function olustur(t: Tema) {
   return StyleSheet.create({
+    // 'web' düzeninde düğmeler içeriği kadar geniştir (araç çubuğu); telefonda satırı paylaşır.
     butonlar: {
       flexDirection: 'row',
-      gap: t.bosluk.m,
+      gap: t.duzen === 'web' ? t.bosluk.s : t.bosluk.m,
     },
-    buton: {
-      flex: 1,
-    },
+    buton: t.duzen === 'web' ? {} : { flex: 1 },
   });
 }

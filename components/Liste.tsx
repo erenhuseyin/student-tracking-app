@@ -4,7 +4,7 @@
 // kart listesi çizilir.
 import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BosDurum } from '@/components/BosDurum';
 import { HataMesaji } from '@/components/HataMesaji';
@@ -71,7 +71,7 @@ export function Liste<T>({
           </View>
         )
       ) : masaustuTablo ? (
-        <>
+        <ScrollView style={styles.liste} contentContainerStyle={styles.icerik}>
           {ust}
           {satirlar.length === 0 ? (
             hata ? null : (
@@ -80,7 +80,8 @@ export function Liste<T>({
           ) : (
             <Tablo veri={satirlar} sutunlar={sutunlar} anahtar={anahtar} onPress={onSatirPress} />
           )}
-        </>
+          {satirlar.length > 0 ? alt : null}
+        </ScrollView>
       ) : (
         <FlatList
           style={styles.liste}

@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { Buton } from '@/components/Buton';
 import { Ekran } from '@/components/Ekran';
+import { EylemCubugu } from '@/components/EylemCubugu';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
@@ -43,9 +44,54 @@ export default function SinifDetay() {
     }, [yenile]),
   );
 
+  const web = tema.duzen === 'web';
+  // 'web' düzeninde eylemler listenin üstünde araç çubuğu, telefonda listenin altında alt alta.
+  const eylemler = (
+    <EylemCubugu>
+        {icerikAcik ? (
+          <View style={{ flexDirection: 'row', gap: web ? tema.bosluk.s : tema.bosluk.m }}>
+            <View style={web ? undefined : { flex: 1 }}>
+              <Buton tur="ikincil" baslik="Dersler" onPress={() => router.push(`/ders-takibi/${id}`)} />
+            </View>
+            <View style={web ? undefined : { flex: 1 }}>
+              <Buton tur="ikincil" baslik="Ezber" onPress={() => router.push(`/ezber/${id}`)} />
+            </View>
+            <View style={web ? undefined : { flex: 1 }}>
+              <Buton tur="ikincil" baslik="Kitap" onPress={() => router.push(`/kitap/${id}`)} />
+            </View>
+          </View>
+        ) : null}
+        <Buton tur="ikincil" ikon="calendar-outline" baslik="Ders Programı" onPress={() => router.push(`/ders-programi/${id}`)} />
+        <Buton tur="ikincil" ikon="grid-outline" baslik="Haftalık Yoklama ve Katılım" onPress={() => router.push(`/sinif-katilim/${id}`)} />
+        <Buton
+          tur="ikincil"
+          ikon="list-outline"
+          baslik="Listeden Toplu Ekle"
+          onPress={() =>
+            router.push({
+              pathname: '/toplu-ogrenci',
+              params: sinif ? { sinifId: id, kurumId: sinif.kurum_id } : { sinifId: id },
+            })
+          }
+        />
+        <Buton
+          ikon="add"
+          baslik="Yeni Öğrenci Ekle"
+          onPress={() =>
+            router.push({
+              pathname: '/yeni-ogrenci',
+              params: sinif ? { sinifId: id, kurumId: sinif.kurum_id } : { sinifId: id },
+            })
+          }
+        />
+    </EylemCubugu>
+  );
+
   return (
     <Ekran>
       <Stack.Screen options={{ title: sinif ? `${sinif.ad} · ${sinif.donem}` : 'Sınıf' }} />
+
+      {web ? eylemler : null}
 
       <Liste
         veri={ogrenciler}
@@ -54,6 +100,18 @@ export default function SinifDetay() {
         anahtar={(o) => o.id}
         bosIkon="people-outline"
         bosBaslik="Bu sınıfta henüz öğrenci yok"
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Ad Soyad', icerik: (o) => o.ad_soyad },
+          { anahtar: 'dogum', baslik: 'Doğum tarihi', icerik: (o) => tarihiBicimle(o.dogum_tarihi) },
+          {
+            anahtar: 'duzenle',
+            baslik: '',
+            genislik: 56,
+            hizalama: 'sag',
+            icerik: (o) => <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/ogrenci-duzenle/${o.id}`)} />,
+          },
+        ]}
+        onSatirPress={(o) => router.push(`/ogrenci-duzenle/${o.id}`)}
         satir={(o) => (
           <ListeSatiri
             baslik={o.ad_soyad}
@@ -64,42 +122,7 @@ export default function SinifDetay() {
         )}
       />
 
-      {icerikAcik ? (
-        <View style={{ flexDirection: 'row', gap: tema.bosluk.m }}>
-          <View style={{ flex: 1 }}>
-            <Buton tur="ikincil" baslik="Dersler" onPress={() => router.push(`/ders-takibi/${id}`)} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Buton tur="ikincil" baslik="Ezber" onPress={() => router.push(`/ezber/${id}`)} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Buton tur="ikincil" baslik="Kitap" onPress={() => router.push(`/kitap/${id}`)} />
-          </View>
-        </View>
-      ) : null}
-      <Buton tur="ikincil" ikon="calendar-outline" baslik="Ders Programı" onPress={() => router.push(`/ders-programi/${id}`)} />
-      <Buton tur="ikincil" ikon="grid-outline" baslik="Haftalık Yoklama ve Katılım" onPress={() => router.push(`/sinif-katilim/${id}`)} />
-      <Buton
-        tur="ikincil"
-        ikon="list-outline"
-        baslik="Listeden Toplu Ekle"
-        onPress={() =>
-          router.push({
-            pathname: '/toplu-ogrenci',
-            params: sinif ? { sinifId: id, kurumId: sinif.kurum_id } : { sinifId: id },
-          })
-        }
-      />
-      <Buton
-        ikon="add"
-        baslik="Yeni Öğrenci Ekle"
-        onPress={() =>
-          router.push({
-            pathname: '/yeni-ogrenci',
-            params: sinif ? { sinifId: id, kurumId: sinif.kurum_id } : { sinifId: id },
-          })
-        }
-      />
+      {web ? null : eylemler}
     </Ekran>
   );
 }

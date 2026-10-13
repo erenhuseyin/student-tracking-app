@@ -48,7 +48,19 @@ export function SinifListesi({ kurumId }: { kurumId: string }) {
         anahtar={(s) => s.id}
         bosIkon="school-outline"
         bosBaslik="Henüz sınıf yok"
-        bosAciklama="Sağ üstteki + ile ilk sınıfı ekleyin."
+        bosAciklama={tema.duzen === 'web' ? 'Sağ üstteki düğmeyle ilk sınıfı ekleyin.' : 'Sağ üstteki + ile ilk sınıfı ekleyin.'}
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Sınıf', icerik: (s) => s.ad },
+          { anahtar: 'donem', baslik: 'Dönem', icerik: (s) => s.donem },
+          {
+            anahtar: 'duzenle',
+            baslik: '',
+            genislik: 56,
+            hizalama: 'sag',
+            icerik: (s) => <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sinif-duzenle/${s.id}`)} />,
+          },
+        ]}
+        onSatirPress={(s) => router.push(`/sinif/${s.id}`)}
         satir={(s) => (
           <ListeSatiri
             baslik={s.ad}

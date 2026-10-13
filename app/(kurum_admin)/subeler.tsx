@@ -61,6 +61,17 @@ export default function AltBirimler() {
         bosIkon="business-outline"
         bosBaslik={`Henüz ${ad} yok`}
         bosAciklama={`Sağ üstteki + ile ilk ${ad} kaydını ekleyin.`}
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Ad', icerik: (b) => b.ad },
+          {
+            anahtar: 'duzenle',
+            baslik: '',
+            genislik: 56,
+            hizalama: 'sag',
+            icerik: (b) => <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/sube-duzenle/${b.id}`)} />,
+          },
+        ]}
+        onSatirPress={(b) => router.push(`/sube/${b.id}`)}
         satir={(b) => (
           <ListeSatiri
             baslik={b.ad}

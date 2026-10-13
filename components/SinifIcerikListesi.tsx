@@ -61,6 +61,11 @@ export function SinifIcerikListesi({ sinifId }: { sinifId: string }) {
         anahtar={(s) => s.ogrenci.id}
         bosIkon="people-outline"
         bosBaslik="Bu sınıfta öğrenci yok"
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Öğrenci', icerik: (s) => s.ogrenci.ad_soyad },
+          { anahtar: 'ozet', baslik: 'Kitaplar', icerik: (s) => s.ozet },
+        ]}
+        onSatirPress={(s) => router.push(`/ogrenci-kitap/${s.ogrenci.id}`)}
         satir={(s) => (
           <ListeSatiri
             baslik={s.ogrenci.ad_soyad}
