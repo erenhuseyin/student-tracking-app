@@ -165,3 +165,15 @@ export function useMenu(): Menu {
       .map((o) => (o.altBirimler && kurum ? { ...o, etiket: seviyeAdiCogul(kurum.seviye + 1) } : o)),
   };
 }
+
+// Aynı adres birden çok rol grubunda bulunabilir (`/duyurular`, `/profil`, `/bildirimler` …). Adres
+// tek başına verilince Expo Router dosya ağacındaki ilk eşleşen gruba çözer; o grup başka bir role
+// aitse ekran açılmaz ve ana ekrana dönülür (web'de sayfa yenilenince olan buydu). Bu fonksiyon
+// adresi kullanıcının rol grubuna sabitler: `/duyurular` -> `/(ogretmen)/(sekmeler)/duyurular`.
+// Tarayıcının adres çubuğunda grup adları görünmez. Rol grubu klasörlerinin adı rol değeriyle aynıdır.
+export function rolYolu(rol: Rol, yol: string): Href {
+  if (!yol.startsWith('/') || yol.startsWith('/(')) return yol as Href;
+  const ilkParca = yol.split(/[?#]/)[0].split('/')[1] ?? '';
+  const sekme = MENULER[rol].some((o) => o.yer === 'sekme' && (ilkParca === '' ? o.sekme === 'index' : o.sekme === ilkParca));
+  return `/(${rol})${sekme ? '/(sekmeler)' : ''}${yol}` as Href;
+}

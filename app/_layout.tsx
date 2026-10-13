@@ -6,11 +6,13 @@ import {
   useFonts,
 } from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 
 import { useBildirimYonlendirme, usePushBildirimKaydi } from '@/lib/bildirimler';
+import { rolYolu } from '@/lib/menu';
 import { OturumSaglayici, useOturum } from '@/lib/oturum';
 import { TemaTercihiSaglayici } from '@/lib/temaTercihi';
 import { ToastSaglayici } from '@/lib/toast';
@@ -35,6 +37,24 @@ function Yonlendirici() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [durum, fontlarHazir]);
+
+  // Web'de sayfa doğrudan bir adresle açılınca (ya da yenilenince) o adres, rol belli olduktan sonra
+  // kullanıcının kendi rol grubunda yeniden açılır: aynı adres birden çok rol grubunda bulunduğu için
+  // Router ilk yüklemede başka rolün ekranına çözüp ana ekrana dönebiliyor (bkz. lib/menu.ts > rolYolu).
+  const router = useRouter();
+  const ilkYol = useRef(
+    Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.pathname + window.location.search : null,
+  );
+  useEffect(() => {
+    if (durum === 'yukleniyor' || !fontlarHazir) return;
+    const yol = ilkYol.current;
+    ilkYol.current = null;
+    // Oturum yokken açılan adres (giriş ekranı vb.) girişten sonra yeniden açılmaz.
+    if (!rol || !yol || yol === '/') return;
+    // Router'ın kendi ilk yönlendirmesi bittikten sonra.
+    const zamanlayici = setTimeout(() => router.replace(rolYolu(rol, yol)), 0);
+    return () => clearTimeout(zamanlayici);
+  }, [durum, rol, fontlarHazir, router]);
 
   if (!fontlarHazir) return null;
 
