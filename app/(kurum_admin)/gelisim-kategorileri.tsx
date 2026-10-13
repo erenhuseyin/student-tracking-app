@@ -73,6 +73,25 @@ export default function GelisimKategorileri() {
     setGonderiliyor(false);
   };
 
+  const satirEylemleri = (k: GelisimKategorisi) => (
+      <>
+        <IkonButon
+          ikon="create-outline"
+          etiket="Yeniden adlandır"
+          onPress={() => {
+            setDuzenlenen(k);
+            setAd(k.ad);
+          }}
+        />
+        <IkonButon
+          ikon={k.aktif ? 'eye-outline' : 'eye-off-outline'}
+          etiket={k.aktif ? 'Pasif yap' : 'Aktif yap'}
+          renk={k.aktif ? tema.renkler.ana : tema.renkler.metinIkincil}
+          onPress={() => calistir(() => kategoriGuncelle(k.id, { aktif: !k.aktif }))}
+        />
+      </>
+  );
+
   return (
     <Ekran>
       <Stack.Screen options={{ title: 'Gelişim Kategorileri' }} />
@@ -121,29 +140,27 @@ export default function GelisimKategorileri() {
         bosIkon="pricetags-outline"
         bosBaslik="Henüz kategori yok"
         bosAciklama="Öğretmenlerin gelişim kaydı girebilmesi için en az bir kategori gerekir."
+        sutunlar={[
+          { anahtar: 'ad', baslik: 'Kategori', icerik: (k) => k.ad },
+          { anahtar: 'durum', baslik: 'Durum', genislik: 260, icerik: (k) => (k.aktif ? 'Aktif' : 'Pasif · yeni kayıtlarda görünmez') },
+          ...(kokKurumMu
+            ? [
+                {
+                  anahtar: 'eylemler',
+                  baslik: '',
+                  genislik: 104,
+                  hizalama: 'sag' as const,
+                  icerik: (k: GelisimKategorisi) => <View style={styles.satirEylemleri}>{satirEylemleri(k)}</View>,
+                },
+              ]
+            : []),
+        ]}
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad}
             altBaslik={k.aktif ? null : 'Pasif · yeni kayıtlarda görünmez'}
             sag={
-              kokKurumMu ? (
-                <>
-                  <IkonButon
-                    ikon="create-outline"
-                    etiket="Yeniden adlandır"
-                    onPress={() => {
-                      setDuzenlenen(k);
-                      setAd(k.ad);
-                    }}
-                  />
-                  <IkonButon
-                    ikon={k.aktif ? 'eye-outline' : 'eye-off-outline'}
-                    etiket={k.aktif ? 'Pasif yap' : 'Aktif yap'}
-                    renk={k.aktif ? tema.renkler.ana : tema.renkler.metinIkincil}
-                    onPress={() => calistir(() => kategoriGuncelle(k.id, { aktif: !k.aktif }))}
-                  />
-                </>
-              ) : undefined
+              kokKurumMu ? satirEylemleri(k) : undefined
             }
           />
         )}
@@ -154,6 +171,10 @@ export default function GelisimKategorileri() {
 
 function olustur(t: Tema) {
   return StyleSheet.create({
+    satirEylemleri: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
     formButonlari: {
       flexDirection: 'row',
       gap: t.bosluk.m,

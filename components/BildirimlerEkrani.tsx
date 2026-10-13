@@ -2,6 +2,7 @@
 // Ekran açılınca hepsi okundu sayılır; satıra dokununca ilgili ekrana gidilir.
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { Text } from 'react-native';
 
 import { Ekran } from '@/components/Ekran';
 import { Ikon, type IkonAdi } from '@/components/Ikon';
@@ -57,6 +58,29 @@ export function BildirimlerEkrani() {
         bosIkon="notifications-off-outline"
         bosBaslik="Henüz bildirim yok"
         bosAciklama="Size gönderilen bildirimler burada listelenir."
+        sutunlar={[
+          {
+            anahtar: 'okunmadi',
+            baslik: '',
+            genislik: 28,
+            icerik: (b) => (b.okundu_mu ? null : <Ikon ad="ellipse" boyut={10} renk={tema.renkler.ana} />),
+          },
+          { anahtar: 'tur', baslik: 'Tür', genislik: 180, icerik: (b) => bildirimBasligi(b) },
+          {
+            anahtar: 'metin',
+            baslik: 'Bildirim',
+            icerik: (b) => (
+              <Text style={[tema.yazi.govde, b.okundu_mu ? null : { fontFamily: tema.yaziTipi.yariKalin }]} numberOfLines={1}>
+                {b.metin ?? bildirimBasligi(b)}
+              </Text>
+            ),
+          },
+          { anahtar: 'zaman', baslik: 'Zaman', genislik: 200, icerik: (b) => etkinlikZamaniniBicimle(b.gonderim_tarihi) },
+        ]}
+        onSatirPress={(b) => {
+          const hedef = kullanici ? bildirimHedefi(kullanici.rol, b) : null;
+          if (hedef) router.push(hedef);
+        }}
         satir={(b) => {
           const hedef = kullanici ? bildirimHedefi(kullanici.rol, b) : null;
           return (

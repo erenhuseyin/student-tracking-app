@@ -1,7 +1,7 @@
 // Erişim: yalnızca super_admin
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ekran } from '@/components/Ekran';
@@ -54,6 +54,28 @@ export default function SuperAdminAnaSayfa() {
         bosIkon="business-outline"
         bosBaslik="Henüz kurum yok"
         bosAciklama="Sağ üstteki + ile ilk kurumu ekleyin."
+        // 'web' düzeninde tablo; ağaçtaki yer ad sütunundaki girintiyle gösterilir.
+        sutunlar={[
+          {
+            anahtar: 'ad',
+            baslik: 'Kurum',
+            icerik: (k) => (
+              <Text
+                style={[
+                  tema.yazi.govde,
+                  { paddingLeft: tema.bosluk.xl * (k.seviye - 1) },
+                  k.ust_kurum_id ? null : { fontFamily: tema.yaziTipi.yariKalin },
+                ]}
+                numberOfLines={1}
+              >
+                {k.ad}
+              </Text>
+            ),
+          },
+          { anahtar: 'seviye', baslik: 'Seviye', genislik: 180, icerik: (k) => seviyeAdi(k.seviye) },
+          { anahtar: 'marka', baslik: 'Marka kodu', genislik: 180, icerik: (k) => (k.ust_kurum_id ? '' : (k.marka_kodu ?? '—')) },
+        ]}
+        onSatirPress={(k) => router.push(`/kurum/${k.id}`)}
         satir={(k) =>
           k.ust_kurum_id ? (
             <View style={{ marginLeft: tema.bosluk.xl * (k.seviye - 1) }}>

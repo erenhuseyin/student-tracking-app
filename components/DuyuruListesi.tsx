@@ -3,18 +3,28 @@
 // düzenleme kalemi gösterilir (silme düzenleme ekranındadır; veritabanı yine de son sözü söyler).
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { DuyuruKarti } from '@/components/DuyuruKarti';
 import { Ekran } from '@/components/Ekran';
 import { IkonButon } from '@/components/IkonButon';
 import { Liste } from '@/components/Liste';
-import { type DuyuruSatiri, duyurulariGetir } from '@/lib/duyurular';
+import {
+  DUYURU_TURU_ETIKETLERI,
+  type DuyuruSatiri,
+  duyurulariGetir,
+  etkinlikZamaniniBicimle,
+  etkinlikZamaniniParcala,
+} from '@/lib/duyurular';
 import { useOturum } from '@/lib/oturum';
+import { tarihiBicimle } from '@/lib/tarih';
+import { useTema } from '@/lib/tema';
 
 export function DuyuruListesi({ yazabilir = false }: { yazabilir?: boolean }) {
   const router = useRouter();
   const { kullanici, kurum } = useOturum();
+  const tema = useTema();
   const [duyurular, setDuyurular] = useState<DuyuruSatiri[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -52,6 +62,54 @@ export function DuyuruListesi({ yazabilir = false }: { yazabilir?: boolean }) {
         bosIkon="megaphone-outline"
         bosBaslik="Henüz duyuru yok"
         bosAciklama={yazabilir ? 'Sağ üstteki + ile ilk duyuruyu yazın.' : 'Kurumunuzun duyuruları ve etkinlikleri burada görünür.'}
+        // 'web' düzeninde tablo: duyurunun okunacağı ayrı bir ekran olmadığı için başlık ve içerik aynı
+        // hücrede, kısaltılmadan yazılır.
+        sutunlar={[
+          { anahtar: 'tur', baslik: 'Tür', genislik: 90, icerik: (d) => DUYURU_TURU_ETIKETLERI[d.tur] },
+          {
+            anahtar: 'duyuru',
+            baslik: 'Duyuru',
+            icerik: (d) => (
+              <View style={{ gap: 2, paddingVertical: tema.bosluk.s }}>
+                <Text style={[tema.yazi.govde, { fontFamily: tema.yaziTipi.yariKalin }]}>{d.baslik}</Text>
+                {d.icerik ? <Text style={tema.yazi.kucuk}>{d.icerik}</Text> : null}
+              </View>
+            ),
+          },
+          {
+            anahtar: 'etkinlik',
+            baslik: 'Etkinlik',
+            genislik: 220,
+            // Zaman ve yer kısaltılmadan, gerekirse iki satırda.
+            icerik: (d) =>
+              d.etkinlik_zamani ? (
+                <Text style={tema.yazi.govde}>
+                  {[etkinlikZamaniniBicimle(d.etkinlik_zamani), d.yer].filter(Boolean).join(' · ')}
+                </Text>
+              ) : null,
+          },
+          { anahtar: 'kapsam', baslik: 'Kapsam', genislik: 160, icerik: (d) => d.sinif_adi ?? d.kurum_adi ?? 'Tüm kurum' },
+          {
+            anahtar: 'tarih',
+            baslik: 'Tarih',
+            genislik: 170,
+            icerik: (d) => tarihiBicimle(etkinlikZamaniniParcala(d.olusturma_tarihi).tarih),
+          },
+          ...(yazabilir
+            ? [
+                {
+                  anahtar: 'duzenle',
+                  baslik: '',
+                  genislik: 56,
+                  hizalama: 'sag' as const,
+                  icerik: (d: DuyuruSatiri) =>
+                    degistirebilir(d) ? (
+                      <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/duyuru-duzenle/${d.id}`)} />
+                    ) : null,
+                },
+              ]
+            : []),
+        ]}
         satir={(d) => (
           <DuyuruKarti
             duyuru={d}

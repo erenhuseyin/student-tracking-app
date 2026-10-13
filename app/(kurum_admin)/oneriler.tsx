@@ -48,6 +48,23 @@ export default function Oneriler() {
         bosIkon="chatbox-ellipses-outline"
         bosBaslik="Henüz öneri yok"
         bosAciklama="Veliler Menü > Öneri Gönder ile yönetime görüş iletebilir. Uygulamadan yanıt yazılmaz."
+        // 'web' düzeninde tablo; öneri metni kısaltılmadan yazılır (okunacak başka ekran yok).
+        sutunlar={[
+          { anahtar: 'gonderen', baslik: 'Gönderen', genislik: 220, icerik: (o) => o.gonderen },
+          { anahtar: 'tarih', baslik: 'Tarih', genislik: 190, icerik: (o) => etkinlikZamaniniBicimle(o.olusturma_tarihi) },
+          {
+            anahtar: 'metin',
+            baslik: 'Öneri',
+            icerik: (o) => <Text style={[tema.yazi.govde, { paddingVertical: tema.bosluk.s }]}>{o.metin}</Text>,
+          },
+          {
+            anahtar: 'durum',
+            baslik: '',
+            genislik: 90,
+            icerik: (o) =>
+              o.okundu ? null : <Rozet metin="Yeni" ikon="ellipse" renk={tema.renkler.ana} zemin={tema.renkler.anaSoluk} />,
+          },
+        ]}
         satir={(o) => (
           <Kart>
             <View style={styles.ust}>
