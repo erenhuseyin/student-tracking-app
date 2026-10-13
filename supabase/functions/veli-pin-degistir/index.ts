@@ -100,11 +100,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       email: eposta,
       password: await pinSifresi(pinAnahtari, eposta, mevcutPin),
     });
-    if (yeniBicimHatasi) {
-      // Geçiş: henüz yeni biçime çevrilmemiş hesap (bkz. veli-giris).
-      const { error: eskiBicimHatasi } = await dogrulayici.auth.signInWithPassword({ email: eposta, password: mevcutPin + mevcutPin });
-      if (eskiBicimHatasi) return hata(400, 'Mevcut PIN hatalı.');
-    }
+    if (yeniBicimHatasi) return hata(400, 'Mevcut PIN hatalı.');
   }
 
   const servis = createClient(supabaseUrl, servisAnahtar, istemciSecenekleri);

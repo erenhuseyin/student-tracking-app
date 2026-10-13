@@ -1,6 +1,6 @@
 // Personel Yönet Edge Function: öğretmen ve kurum yöneticisi hesaplarını açar, giriş kodu
 // gönderir, kodla şifre belirletir, pasifleştirir/aktifleştirir. Veli hesapları kapsam dışıdır
-// (onlar `tckn-hesap-olustur` ile açılır).
+// (onlar `veli-hesap-olustur` ile açılır).
 //
 // Neden sunucuda: `kullanici` tablosuna istemciden insert yetkisi yoktur, auth kullanıcısı
 // oluşturmak/şifre yazmak service_role ister ve e-posta servisinin anahtarı uygulamaya konamaz.

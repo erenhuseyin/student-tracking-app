@@ -1,4 +1,4 @@
-// Veli Giriş Edge Function: TCKN + 4 haneli PIN ile giriş yapar ve oturum (access/refresh
+// Veli Giriş Edge Function: kullanıcı adı + 4 haneli PIN ile giriş yapar ve oturum (access/refresh
 // token) döndürür. Oturumsuz çağrılır.
 //
 // Neden sunucuda: 4 haneli PIN'in yalnızca 10.000 olasılığı vardır. İstemci Auth'a doğrudan
@@ -7,14 +7,13 @@
 // (`pinSifresi`): istemci bu değeri üretemez, her deneme buradan geçer ve sayılır.
 //
 // Deneme sınırı: art arda EN_FAZLA_DENEME yanlış PIN'de hesap KILIT_DAKIKA dakika kilitlenir.
-// Kurum yöneticisi PIN'i sıfırlarsa (veli-pin-sifirla) kilit de kalkar.
-// Bilinen bedel: TCKN'yi bilen biri yanlış PIN girerek veliyi geçici olarak kilitleyebilir.
+// Kurum yöneticisi PIN'i sıfırlarsa (veli-hesap-olustur > pin_sifirla) kilit de kalkar.
+// Bilinen bedel: kullanıcı adını bilen (ya da çocuğun adından tahmin eden) biri yanlış PIN girerek
+// veliyi geçici olarak kilitleyebilir. Kullanıcı adı öğrencinin adından üretilir (ahmet.yilmaz) ve
+// gizli değildir; hesabı koruyan PIN'dir. Başlangıç PIN'i herkes için aynıdır: veli ilk girişte
+// değiştirene kadar hesap, çocuğun adını bilen herkese açıktır (kabul edilen risk, 2026-10-13).
 //
-// Geçiş: bu fonksiyondan önce açılmış hesapların şifresi eski biçimdedir (`pin + pin`). Yeni
-// biçim tutmazsa eski biçim denenir; tutarsa şifre yeni biçime çevrilir. Tüm hesaplar bir kez
-// giriş yaptıktan (ya da PIN'leri sıfırlandıktan) sonra eski biçim dalı kaldırılabilir.
-//
-// TCKN'nin kayıtlı olup olmadığı sızmaz: hesap yok, pasif ve yanlış PIN aynı cevabı alır.
+// Kullanıcı adının kayıtlı olup olmadığı sızmaz: hesap yok, pasif ve yanlış PIN aynı cevabı alır.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
@@ -24,7 +23,21 @@ const CORS_BASLIKLARI = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const TCKN_RE = /^[1-9][0-9]{10}$/;
+const KULLANICI_ADI_RE = /^[a-z0-9]+(\.[a-z0-9]+)*$/;
+const HARF_CEVIRISI: Record<string, string> = {
+  Ş: 's', ş: 's', Ç: 'c', ç: 'c', Ğ: 'g', ğ: 'g', İ: 'i', I: 'i', ı: 'i', Ö: 'o', ö: 'o', Ü: 'u', ü: 'u',
+  Â: 'a', â: 'a', Î: 'i', î: 'i', Û: 'u', û: 'u',
+};
+// Yazılanı kullanıcı adı biçimine getirir ("Ali.Yılmaz " -> ali.yilmaz). Üretim kuralının
+// (migration 20261021120000 > gizli.kullanici_adi_tabani) ve lib/kullaniciAdi.ts'in kopyasıdır.
+function kullaniciAdiniDuzelt(ham: string): string {
+  return [...ham]
+    .map((h) => HARF_CEVIRISI[h] ?? h)
+    .join('')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.+|\.+$/g, '');
+}
 const PIN_RE = /^[0-9]{4}$/;
 const MARKA_KODU_RE = /^[a-z][a-z0-9-]{1,30}$/;
 const VELI_EPOSTA_SONEKI = 'veli.internal';
@@ -42,7 +55,7 @@ function yanit(durum: number, govde: Record<string, unknown>): Response {
 const hata = (durum: number, mesaj: string) => yanit(durum, { hata: mesaj });
 
 // Auth şifresi = HMAC-SHA256(anahtar, "e-posta:PIN") (hex, 64 karakter). E-posta hesaba özgü
-// tuz görevi görür. Kopyaları: tckn-hesap-olustur, veli-pin-sifirla, veli-pin-degistir — Deno
+// tuz görevi görür. Kopyaları: veli-hesap-olustur, veli-kardes-ekle, veli-pin-degistir — Deno
 // fonksiyonları tek dosya olarak deploy edildiği için paylaşılan modül yok; dördü aynı kalmalı.
 async function pinSifresi(anahtar: string, eposta: string, pin: string): Promise<string> {
   const kodlayici = new TextEncoder();
@@ -81,19 +94,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   if (typeof govde !== 'object' || govde === null) return hata(400, 'İstek gövdesi geçersiz.');
 
-  const tckn = typeof govde.tckn === 'string' ? govde.tckn.trim() : '';
+  const kullaniciAdi = typeof govde.kullanici_adi === 'string' ? kullaniciAdiniDuzelt(govde.kullanici_adi.slice(0, 120)) : '';
   const pin = typeof govde.pin === 'string' ? govde.pin : '';
   const markaKodu = typeof govde.marka_kodu === 'string' ? govde.marka_kodu : '';
-  if (!TCKN_RE.test(tckn) || !PIN_RE.test(pin)) return hata(400, 'TCKN 11, PIN 4 haneli olmalı.');
+  if (!KULLANICI_ADI_RE.test(kullaniciAdi) || kullaniciAdi.length > 60 || !PIN_RE.test(pin)) {
+    return hata(400, 'Kullanıcı adınızı ve 4 haneli PIN\'inizi girin.');
+  }
   if (!MARKA_KODU_RE.test(markaKodu)) return hata(400, 'Geçersiz istek.');
 
-  const girisHatasi = () => hata(401, 'TCKN veya PIN hatalı.');
+  const girisHatasi = () => hata(401, 'Kullanıcı adı veya PIN hatalı.');
   const servis = createClient(supabaseUrl, servisAnahtar, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  // 1. Hesabı bul: uygulamanın müşterisi (marka kodu) -> TCKN'li öğrenci -> velileri -> e-postası eşleşen hesap.
+  // 1. Hesabı bul: uygulamanın müşterisi (marka kodu) -> o kullanıcı adlı öğrenci -> velileri -> e-postası eşleşen hesap.
   const { data: kokKurum } = await servis.from('kurum').select('id').eq('marka_kodu', markaKodu).is('ust_kurum_id', null).maybeSingle();
   if (!kokKurum) return girisHatasi();
-  const { data: ogrenci } = await servis.from('ogrenci').select('id').eq('kok_kurum_id', kokKurum.id).eq('tckn', tckn).maybeSingle();
+  const { data: ogrenci } = await servis.from('ogrenci').select('id').eq('kok_kurum_id', kokKurum.id).eq('kullanici_adi', kullaniciAdi).maybeSingle();
   if (!ogrenci) return girisHatasi();
   const { data: baglar } = await servis.from('veli_ogrenci').select('veli_id').eq('ogrenci_id', ogrenci.id);
   const veliIdleri = (baglar ?? []).map((b) => b.veli_id);
@@ -104,7 +119,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .in('id', veliIdleri)
     .eq('rol', 'veli');
 
-  const eposta = `${tckn}@${markaKodu}.${VELI_EPOSTA_SONEKI}`;
+  const eposta = `${kullaniciAdi}@${markaKodu}.${VELI_EPOSTA_SONEKI}`;
   let hesap: NonNullable<typeof veliler>[number] | null = null;
   for (const v of veliler ?? []) {
     const { data } = await servis.auth.admin.getUserById(v.auth_id);
@@ -121,18 +136,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return hata(429, `Çok fazla hatalı deneme yapıldı. ${kalanDakika} dakika sonra tekrar deneyin ya da kurumunuzdan PIN'inizi sıfırlamasını isteyin.`);
   }
 
-  // 3. PIN'i dene (önce yeni biçim, sonra geçiş için eski biçim)
-  const yeniSifre = await pinSifresi(pinAnahtari, eposta, pin);
-  let oturum = await girisDene(supabaseUrl, anonAnahtar, eposta, yeniSifre);
-  if (!oturum) {
-    const eskiOturum = await girisDene(supabaseUrl, anonAnahtar, eposta, pin + pin);
-    if (eskiOturum) {
-      const { error } = await servis.auth.admin.updateUserById(hesap.auth_id, { password: yeniSifre });
-      if (error) console.error('veli-giris: şifre yeni biçime çevrilemedi', error);
-      // Şifre değişikliği önceki oturumu geçersiz kılabileceği için yeni biçimle taze oturum alınır.
-      oturum = (error ? null : await girisDene(supabaseUrl, anonAnahtar, eposta, yeniSifre)) ?? eskiOturum;
-    }
-  }
+  // 3. PIN'i dene
+  const oturum = await girisDene(supabaseUrl, anonAnahtar, eposta, await pinSifresi(pinAnahtari, eposta, pin));
 
   if (!oturum) {
     const deneme = hesap.giris_deneme_sayisi + 1;
@@ -152,7 +157,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return girisHatasi();
   }
 
-  // 4. Başarılı: sayaç sıfırlanır. Varsayılan PIN'le girildiyse (eski hesaplar dahil) değiştirmesi istenir.
+  // 4. Başarılı: sayaç sıfırlanır. Başlangıç PIN'iyle girildiyse değiştirmesi istenir.
   const pinDegistirilmeli = hesap.pin_degistirilmeli || pin === VARSAYILAN_PIN;
   const { error: sifirlamaHatasi } = await servis
     .from('kullanici')

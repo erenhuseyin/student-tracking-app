@@ -1,13 +1,13 @@
 // Veli Kardeş Ekle Edge Function: giriş yapmış veli, başka bir çocuğunu (kardeşi) kendi hesabına
 // bağlar; böylece iki çocuğu tek girişle görür.
 //
-// Kanıt: kardeşin TCKN'si ve o çocuğun veli hesabının PIN'i. Yani veli, zaten girebildiği ikinci
+// Kanıt: kardeşin kullanıcı adı ve o çocuğun veli hesabının PIN'i. Yani veli, zaten girebildiği ikinci
 // hesabı birincisine bağlar — yeni bir erişim hakkı doğmaz. PIN `veli-giris` ile aynı biçimde
 // doğrulanır ve yanlış denemeler aynı sayaca yazılır (bu uç, PIN denemek için arka kapı olmasın).
 //
 // Bağ `veli_ogrenci` satırıdır (ilişki zaten çoka çoktur). Şema veli ile öğrencinin aynı kurumda
 // (aynı şubede) olmasını ister; kardeş başka şubedeyse bağlanamaz.
-// Kardeşin kendi hesabı silinmez; o TCKN + PIN ile girişe devam edilebilir.
+// Kardeşin kendi hesabı silinmez; o kullanıcı adı + PIN ile girişe devam edilebilir.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
@@ -17,7 +17,21 @@ const CORS_BASLIKLARI = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const TCKN_RE = /^[1-9][0-9]{10}$/;
+const KULLANICI_ADI_RE = /^[a-z0-9]+(\.[a-z0-9]+)*$/;
+const HARF_CEVIRISI: Record<string, string> = {
+  Ş: 's', ş: 's', Ç: 'c', ç: 'c', Ğ: 'g', ğ: 'g', İ: 'i', I: 'i', ı: 'i', Ö: 'o', ö: 'o', Ü: 'u', ü: 'u',
+  Â: 'a', â: 'a', Î: 'i', î: 'i', Û: 'u', û: 'u',
+};
+// Yazılanı kullanıcı adı biçimine getirir ("Ali.Yılmaz " -> ali.yilmaz). Üretim kuralının
+// (migration 20261021120000 > gizli.kullanici_adi_tabani) ve lib/kullaniciAdi.ts'in kopyasıdır.
+function kullaniciAdiniDuzelt(ham: string): string {
+  return [...ham]
+    .map((h) => HARF_CEVIRISI[h] ?? h)
+    .join('')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.+|\.+$/g, '');
+}
 const PIN_RE = /^[0-9]{4}$/;
 const VELI_EPOSTA_SONEKI = 'veli.internal';
 // `veli-giris` ile aynı olmalı.
@@ -89,11 +103,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return hata(400, 'İstek gövdesi geçerli JSON olmalı.');
   }
   if (typeof govde !== 'object' || govde === null) return hata(400, 'İstek gövdesi geçersiz.');
-  const tckn = typeof govde.tckn === 'string' ? govde.tckn.trim() : '';
+  const kullaniciAdi = typeof govde.kullanici_adi === 'string' ? kullaniciAdiniDuzelt(govde.kullanici_adi.slice(0, 120)) : '';
   const pin = typeof govde.pin === 'string' ? govde.pin : '';
-  if (!TCKN_RE.test(tckn) || !PIN_RE.test(pin)) return hata(400, 'TCKN 11, PIN 4 haneli olmalı.');
+  if (!KULLANICI_ADI_RE.test(kullaniciAdi) || kullaniciAdi.length > 60 || !PIN_RE.test(pin)) {
+    return hata(400, 'Çocuğun kullanıcı adını ve 4 haneli PIN\'ini girin.');
+  }
 
-  const eslesmeHatasi = () => hata(400, 'TCKN veya PIN hatalı.');
+  const eslesmeHatasi = () => hata(400, 'Kullanıcı adı veya PIN hatalı.');
   const servis = createClient(supabaseUrl, servisAnahtar, istemciSecenekleri);
 
   // 1. Velinin müşterisi (kök kurum) ve marka kodu
@@ -108,7 +124,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .from('ogrenci')
     .select('id, kurum_id, ad_soyad')
     .eq('kok_kurum_id', kokKurumId)
-    .eq('tckn', tckn)
+    .eq('kullanici_adi', kullaniciAdi)
     .maybeSingle();
   if (!ogrenci) return eslesmeHatasi();
   const { data: baglar } = await servis.from('veli_ogrenci').select('veli_id').eq('ogrenci_id', ogrenci.id);
@@ -121,7 +137,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .in('id', veliIdleri)
     .eq('rol', 'veli');
 
-  const eposta = `${tckn}@${kokKurum.marka_kodu}.${VELI_EPOSTA_SONEKI}`;
+  const eposta = `${kullaniciAdi}@${kokKurum.marka_kodu}.${VELI_EPOSTA_SONEKI}`;
   let hesap: NonNullable<typeof veliler>[number] | null = null;
   for (const v of veliler ?? []) {
     const { data } = await servis.auth.admin.getUserById(v.auth_id);
@@ -132,13 +148,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   if (!hesap || !hesap.aktif) return eslesmeHatasi();
 
-  // 3. Kilit ve PIN (yeni biçim, sonra geçiş için eski biçim)
+  // 3. Kilit ve PIN
   const kilitMesaji = `Bu çocuğun hesabı çok fazla hatalı deneme nedeniyle kilitli. ${KILIT_DAKIKA} dakika sonra tekrar deneyin ya da kurumunuzdan PIN'i sıfırlamasını isteyin.`;
   if (hesap.giris_kilit_bitis && new Date(hesap.giris_kilit_bitis).getTime() > Date.now()) return hata(429, kilitMesaji);
 
-  const tutuyor =
-    (await sifreTutuyorMu(supabaseUrl, anonAnahtar, eposta, await pinSifresi(pinAnahtari, eposta, pin))) ||
-    (await sifreTutuyorMu(supabaseUrl, anonAnahtar, eposta, pin + pin));
+  const tutuyor = await sifreTutuyorMu(supabaseUrl, anonAnahtar, eposta, await pinSifresi(pinAnahtari, eposta, pin));
   if (!tutuyor) {
     const deneme = hesap.giris_deneme_sayisi + 1;
     const kilitlendi = deneme >= EN_FAZLA_DENEME;

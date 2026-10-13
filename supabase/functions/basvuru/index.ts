@@ -12,13 +12,13 @@
 // Açık/kapalı: müşterinin (kök kurumun) `ozellikler.basvuru === true` olması gerekir; bu alanı
 // yalnızca süper admin yazar. Kapalıysa `gonder` reddedilir.
 //
-// Gizlilik: `gonder` TCKN'nin ya da e-postanın sistemde kayıtlı olup olmadığını söylemez; aynı
-// kişinin bekleyen başvurusu varsa yenisi sessizce yok sayılır ve yine "alındı" cevabı döner.
-// Çakışma (TCKN zaten kayıtlı vb.) yalnızca onay sırasında, yöneticiye gösterilir.
+// Gizlilik: `gonder` kişinin sistemde kayıtlı olup olmadığını söylemez; aynı kişinin (öğrencide ad +
+// doğum tarihi, personelde e-posta) bekleyen başvurusu varsa yenisi sessizce yok sayılır ve yine
+// "alındı" cevabı döner. TC kimlik numarası istenmez ve tutulmaz.
 //
 // Onay, mevcut akışları çağıranın yetkisiyle çağırır (kod tekrarı ve ikinci bir yetki yolu
 // olmasın diye):
-//   öğrenci  -> `ogrenci` satırı eklenir, sonra `tckn-hesap-olustur` (veli hesabı, PIN 1234)
+//   öğrenci  -> `ogrenci` satırı eklenir, sonra `veli-hesap-olustur` (kullanıcı adı + veli hesabı, PIN 1234)
 //   personel -> `personel-yonet` > `davet_et` (öğretmen; giriş kodu e-postayla gider)
 // Bu yüzden kararı yalnızca kurum admini verir (süper admin öğretmen davet edemez).
 
@@ -32,7 +32,6 @@ const CORS_BASLIKLARI = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MARKA_KODU_RE = /^[a-z][a-z0-9-]{1,30}$/;
-const TCKN_RE = /^[1-9][0-9]{10}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TARIH_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TELEFON_RE = /^[0-9+ ]{10,20}$/;
@@ -51,15 +50,6 @@ function yanit(durum: number, govde: Record<string, unknown>): Response {
 const hata = (durum: number, mesaj: string) => yanit(durum, { hata: mesaj });
 
 const metin = (deger: unknown, azami: number): string => (typeof deger === 'string' ? deger.trim().slice(0, azami) : '');
-
-function tcknGecerliMi(tckn: string): boolean {
-  if (!TCKN_RE.test(tckn)) return false;
-  const d = tckn.split('').map(Number);
-  const tek = d[0] + d[2] + d[4] + d[6] + d[8];
-  const cift = d[1] + d[3] + d[5] + d[7];
-  if ((tek * 7 - cift) % 10 !== d[9]) return false;
-  return d.slice(0, 10).reduce((a, b) => a + b, 0) % 10 === d[10];
-}
 
 function tarihGecerliMi(tarih: string): boolean {
   if (!TARIH_RE.test(tarih)) return false;
@@ -214,23 +204,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (notMetni.length > 1000) return hata(400, 'Not en fazla 1000 karakter olabilir.');
 
     let satir: Record<string, unknown>;
-    let ayniKisi: { kolon: 'tckn' | 'eposta'; deger: string };
+    // Aynı kişinin bekleyen başvurusunu bulan süzgeç (kolon -> değer).
+    let ayniKisi: Record<string, string>;
     if (tur === 'ogrenci') {
       const dogumTarihi = metin(govde.dogum_tarihi, 10);
-      const tckn = metin(govde.tckn, 11);
       const veliAdSoyad = metin(govde.veli_ad_soyad, 200);
       const veliTelefon = metin(govde.veli_telefon, 30);
       if (!tarihGecerliMi(dogumTarihi)) return hata(400, 'Doğum tarihini gün, ay ve yıl olarak girin.');
-      if (!tcknGecerliMi(tckn)) return hata(400, 'Geçerli bir TC kimlik numarası girin.');
       if (veliAdSoyad.length < 1 || veliAdSoyad.length > 120) return hata(400, 'Veli adı soyadı gerekli.');
       if (!TELEFON_RE.test(veliTelefon)) return hata(400, 'Geçerli bir telefon numarası girin.');
-      satir = { dogum_tarihi: dogumTarihi, tckn, veli_ad_soyad: veliAdSoyad, veli_telefon: veliTelefon };
-      ayniKisi = { kolon: 'tckn', deger: tckn };
+      satir = { dogum_tarihi: dogumTarihi, veli_ad_soyad: veliAdSoyad, veli_telefon: veliTelefon };
+      ayniKisi = { tur: 'ogrenci', ad_soyad: adSoyad, dogum_tarihi: dogumTarihi };
     } else if (tur === 'personel') {
       const eposta = metin(govde.eposta, 254).toLowerCase();
       if (!EMAIL_RE.test(eposta)) return hata(400, 'Geçerli bir e-posta adresi girin.');
       satir = { eposta };
-      ayniKisi = { kolon: 'eposta', deger: eposta };
+      ayniKisi = { eposta };
     } else {
       return hata(400, 'Geçersiz başvuru türü.');
     }
@@ -251,7 +240,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .select('id')
       .eq('kok_kurum_id', musteri.kokKurumId)
       .eq('durum', 'bekliyor')
-      .eq(ayniKisi.kolon, ayniKisi.deger)
+      .match(ayniKisi)
       .limit(1);
     if (mevcut && mevcut.length > 0) return yanit(200, { tamam: true });
 
@@ -356,16 +345,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return hata(500, 'Öğrenci kaydı oluşturulamadı.');
   }
 
-  const hesap = await fonksiyonCagir(supabaseUrl, anonAnahtar, yetkiBasligi, 'tckn-hesap-olustur', {
-    ogrenci_id: ogrenci.id,
-    tckn: basvuru.tckn,
+  const hesap = await fonksiyonCagir(supabaseUrl, anonAnahtar, yetkiBasligi, 'veli-hesap-olustur', {
+    islem: 'ac',
+    ogrenci_idleri: [ogrenci.id],
   });
-  if (!hesap.tamam) {
-    // Veli hesabı açılamadı (ör. bu TCKN zaten kayıtlı): öğrenci kaydı geri alınır.
+  const sonuc = hesap.tamam && Array.isArray(hesap.veri.sonuclar) ? (hesap.veri.sonuclar[0] as Record<string, unknown> | undefined) : undefined;
+  if (!hesap.tamam || !sonuc || sonuc.durum === 'hata') {
+    // Veli hesabı açılamadı: öğrenci kaydı geri alınır, başvuru bekliyor kalır.
     const { error: geriAlmaHatasi } = await servis.from('ogrenci').delete().eq('id', ogrenci.id);
     if (geriAlmaHatasi) console.error('basvuru: öğrenci geri alınamadı, elle silinmeli:', ogrenci.id, geriAlmaHatasi);
-    return hata(409, hesap.mesaj);
+    return hata(409, hesap.tamam ? (typeof sonuc?.mesaj === 'string' ? sonuc.mesaj : 'Veli hesabı açılamadı.') : hesap.mesaj);
   }
   if (!(await sonuclandir('onaylandi'))) return hata(500, 'Öğrenci kaydedildi ama başvuru durumu yazılamadı; başvuruyu elle reddedip silin.');
-  return yanit(200, { tamam: true, ogrenci_id: ogrenci.id });
+  return yanit(200, { tamam: true, ogrenci_id: ogrenci.id, kullanici_adi: sonuc.kullanici_adi });
 });
