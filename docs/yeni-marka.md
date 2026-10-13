@@ -2,7 +2,7 @@
 
 Her müşteri Google Play'de kendi adı, ikonu ve rengiyle ayrı bir uygulamaya sahiptir; hepsi aynı kod tabanından ve aynı Supabase projesinden çıkar. Bir marka, `markalar/<kod>/` klasörü + veritabanında aynı `marka_kodu`'na sahip bir kök kurumdur.
 
-`<kod>`: küçük harf, rakam ve tire (`^[a-z][a-z0-9-]{1,30}$`), örn. `ugur`. **Atandıktan sonra değiştirilemez** — veli giriş e-postaları (`{tckn}@{kod}.veli.internal`) buna bağlıdır.
+`<kod>`: küçük harf, rakam ve tire (`^[a-z][a-z0-9-]{1,30}$`), örn. `ugur`. **Atandıktan sonra değiştirilemez** — veli giriş e-postaları (`{kullanici_adi}@{kod}.veli.internal`) buna bağlıdır.
 
 ## 1. Marka klasörü
 
@@ -84,4 +84,4 @@ npx eas-cli build --platform android --profile <kod>-production
 
 Marka değiştirirken `--clear` şart: web'de yapılandırma paketin içine gömülür ve Metro önbelleği eski markayı (ya da "Marka yapılandırması bulunamadı" hatasını) döndürür.
 
-Kontrol: giriş ekranında marka adı görünüyor, başka müşterinin hesabı "Bu hesap bu uygulamaya ait değil" ekranına düşüyor, veli TCKN + PIN ile girebiliyor, yoklama bildirimi cihaza ulaşıyor.
+Kontrol: giriş ekranında marka adı görünüyor, başka müşterinin hesabı "Bu hesap bu uygulamaya ait değil" ekranına düşüyor, veli kullanıcı adı + PIN ile girebiliyor, yoklama bildirimi cihaza ulaşıyor.

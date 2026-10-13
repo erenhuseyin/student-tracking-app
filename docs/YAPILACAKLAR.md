@@ -4,20 +4,20 @@
 
 ## A. Bekleyen (kullanıcıda)
 
-1. **Telefonda doğrulama + yeni development build.** Son haftalarda yazılanların hiçbiri gerçek cihazda görülmedi: Manrope yazı tipi, karanlık tema, alt sekmeler, yeni yoklama ekranı, yoklama tamamlanınca giden bildirim (3 adımlı kontrol: bir öğrenci işaretsizken bildirim gitmemeli → son öğrenciyle herkese gitmeli → düzeltmede yalnızca o veliye), yeni logo/ikon/açılış ekranı. *Kullanıcı: "akşam hallederiz" (2026-10-13).*
+1. **Telefonda doğrulama + yeni development build.** Son haftalarda yazılanların hiçbiri gerçek cihazda görülmedi: veli girişi artık kullanıcı adıyla (harf klavyesi, PIN ekranı), Manrope yazı tipi, karanlık tema, alt sekmeler, yeni yoklama ekranı, yoklama tamamlanınca giden bildirim (3 adımlı kontrol: bir öğrenci işaretsizken bildirim gitmemeli → son öğrenciyle herkese gitmeli → düzeltmede yalnızca o veliye), yeni logo/ikon/açılış ekranı. *Kullanıcı: "akşam hallederiz" (2026-10-13).*
 2. **`redesign/defter` dalını `main`'e birleştirmek** (telefon kontrolünden sonra).
+0. **Canlıya alma — kullanıcı adı (2026-10-13):** migration `20261021120000_kullanici_adi.sql` (TCKN kolonlarını siler, geri dönüşü yok) → `rls.test.sql` → fonksiyonlar: yeni `veli-hesap-olustur`; güncellenen `veli-giris`, `veli-kardes-ekle`, `veli-pin-degistir`, `basvuru`; Dashboard'dan silinecek `tckn-hesap-olustur` ve `veli-pin-sifirla` → eski veli hesapları için öğrenci ekranından "PIN'i sıfırla" → `npx expo start --clear`. Migration ile fonksiyonlar arasında veli girişi çalışmaz.
 3. **Web'de gözle tur**: yeni web düzeni, logo ve palet; beğenilmeyen ekranlar buraya eklenir.
 
 ## B. Kararı verilmiş, sırası gelen işler (kullanıcı kararları, 2026-10-13)
 
 Her biri çok dosyalı; başlamadan önce plan mode.
 
-1. **TCKN'nin kaldırılması; ad.soyad kullanıcı adı.** Bilgi güvenliği gereği öğrencinin TC kimlik numarası tutulmayacak. Veli girişi için kullanıcı adı öğrencinin adından otomatik üretilir: `ad.soyad`; aynısı varsa `ad.soyad1`, `ad.soyad2`… **Şifre kuralları aynı kalır** (4 haneli PIN, başlangıç PIN'i, ilk girişte zorunlu değişim, 5 yanlışta kilit, yönetici sıfırlar). Etkilenenler: `ogrenci.tckn` kolonu ve müşteri başına tekillik, veli e-postası (`{tckn}@{marka}.veli.internal`), `veli-giris` / `tckn-hesap-olustur` / `veli-pin-sifirla` / `veli-kardes-ekle` / `basvuru` fonksiyonları, toplu öğrenci ekleme, başvuru formu, öğrenci formu, raporlar, RLS testleri. Açık noktalar (planda sorulacak): Türkçe harflerin çevrimi (`ş→s`), kullanıcı adının müşteri başına mı tekil olacağı, mevcut TCKN'li hesapların taşınması, kullanıcı adının veliye nasıl iletileceği, ad değişince kullanıcı adının değişip değişmeyeceği.
-2. **Hocaya da `ad.soyad` kullanıcı adı.** Hoca hesabı e-posta davetiyle açılmaya devam eder; ayrıca kullanıcı adı atanır (girişte e-posta yerine kullanılabilir). 1. maddeyle aynı üretim kuralı ve aynı planda.
-3. **Hoca kendi halkasını (sınıfını) ve öğrencisini açabilsin.** Bugün yalnızca yönetici açıyor. Öğretmene kendi biriminde sınıf açma (kendisi atanmış olarak) ve kendi sınıfına öğrenci ekleme yetkisi: RLS politikaları + testler, öğretmen ekranlarında "Yeni sınıf" / "Yeni öğrenci". Başvuruyla öğrenci kaydı da açık kalır. Açık noktalar: hoca sınıfı/öğrenciyi silebilir ya da pasife alabilir mi, müşteri bazında kapatılabilir mi.
-4. **Terimler markaya göre değişsin** (Hoca / Halka / Kademe …). Seviye adları zaten markadan geliyor; rol ve sınıf adları da `marka.json`'dan gelecek. **Sonraki adım (ileride):** ekran bazlı metin katmanı — hem çoklu dil hem de müşterinin ekran başlıklarını ve yazılarını kendisinin değiştirebilmesi için. Bu yüzden 4. madde, sabit metinleri tek bir sözlüğe toplayacak şekilde yapılmalı.
-5. **`genchareket` markasının ayrı uygulama olarak açılması.** Logo ve palet şimdilik `varsayilan` markasına uygulandı. Ayrı marka için: `markalar/genchareket/` (paket `com.ergenecode.genchareket`), EAS projesi, Firebase Android uygulaması + `google-services.json`, veritabanında kök kurumun marka kodu, ezber tohumunun o kurum için çalıştırılması. Mağaza ikonu için **yüksek çözünürlüklü ya da vektör logo** gerekiyor (eldeki 400×149 px).
-6. **KVKK ve mağaza hazırlığı**, ardından EAS build + Play Console iç test: aydınlatma metni, açık rıza (başvuru formu dahil), gizlilik politikası, veri silme yolu, demo hesap.
+1. **Hocaya da `ad.soyad` kullanıcı adı.** Hoca hesabı e-posta davetiyle açılmaya devam eder; ayrıca kullanıcı adı atanır (girişte e-posta yerine kullanılabilir). Öğrencideki üretim kuralı (`gizli.kullanici_adi_tabani`) yeniden kullanılır; personel girişinin de veli girişi gibi sunucudan geçmesi gerekir (deneme sınırı). Öğrenci ve personel adları aynı havuzdan mı verilecek, planda sorulacak.
+2. **Hoca kendi halkasını (sınıfını) ve öğrencisini açabilsin.** Bugün yalnızca yönetici açıyor. Öğretmene kendi biriminde sınıf açma (kendisi atanmış olarak) ve kendi sınıfına öğrenci ekleme yetkisi: RLS politikaları + testler, öğretmen ekranlarında "Yeni sınıf" / "Yeni öğrenci". Başvuruyla öğrenci kaydı da açık kalır. Hocanın eklediği öğrenciye de veli girişi açılmalı (`veli-hesap-olustur` bugün yalnızca yöneticiye açık). Açık noktalar: hoca sınıfı/öğrenciyi silebilir ya da pasife alabilir mi, müşteri bazında kapatılabilir mi.
+3. **Terimler markaya göre değişsin** (Hoca / Halka / Kademe …). Seviye adları zaten markadan geliyor; rol ve sınıf adları da `marka.json`'dan gelecek. **Sonraki adım (ileride):** ekran bazlı metin katmanı — hem çoklu dil hem de müşterinin ekran başlıklarını ve yazılarını kendisinin değiştirebilmesi için. Bu yüzden 3. madde, sabit metinleri tek bir sözlüğe toplayacak şekilde yapılmalı.
+4. **`genchareket` markasının ayrı uygulama olarak açılması.** Logo ve palet şimdilik `varsayilan` markasına uygulandı. Ayrı marka için: `markalar/genchareket/` (paket `com.ergenecode.genchareket`), EAS projesi, Firebase Android uygulaması + `google-services.json`, veritabanında kök kurumun marka kodu, ezber tohumunun o kurum için çalıştırılması. Mağaza ikonu için **yüksek çözünürlüklü ya da vektör logo** gerekiyor (eldeki 400×149 px).
+5. **KVKK ve mağaza hazırlığı**, ardından EAS build + Play Console iç test: aydınlatma metni, açık rıza (başvuru formu dahil), gizlilik politikası, veri silme yolu, demo hesap.
 
 ## C. Geliştirme önerileri (Claude'un önerileri; kullanıcı "çoğu güzel" dedi, tek tek onaylanmadı)
 
@@ -36,6 +36,8 @@ Her biri çok dosyalı; başlamadan önce plan mode.
 10. Web'de form sonunda sağa hizalı eylem satırı, detay ekranlarında iki sütun (2026-10-13 planından kalanlar).
 
 **Veli**
+11a. Veli girişi açılmamış mevcut öğrenciler için toplu "veli girişlerini aç" (bugün öğrenci ekranından tek tek); kullanıcı adlarını velilere dağıtmak için yazdırılabilir liste.
+11b. Rastgele başlangıç PIN'i (bugün herkes 1234 ile başlıyor; kullanıcı adı tahmin edilebildiği için ilk girişe kadar hesap açık).
 11. Dönem gelişim raporu (PDF) ve gelişim kaydına fotoğraf (ikisi de yeni build ister; aynı build'e alınabilir).
 12. Duyuruda okundu ve katılım yanıtı.
 13. Kardeşi hesaptan çıkarma.
