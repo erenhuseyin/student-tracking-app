@@ -482,19 +482,21 @@ select tst.esit('adminA B kurumunun yoklamasına yazamaz',
   tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000b','e0000000-0000-0000-0000-0000000000b1','2026-09-28','geldi','b0000000-0000-0000-0000-000000000002')$q$), 'hata:42501');
 
 -- ===========================================================================
--- 12. TCKN: kolon yetkisi yalnızca service-role Edge Function'lara ait
+-- 12. KULLANICI ADI: kolonu yalnızca service-role Edge Function'lar yazar
 -- ===========================================================================
--- adminA (kurum_admin) bile tckn'e yazamaz (kolon yetkisi yok, bkz. migration 20260928120200)
+-- adminA (kurum_admin) bile kullanici_adi'na yazamaz (kolon yetkisi yok; bkz. 20261021120000)
 reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 set local role authenticated;
 
-select tst.esit('adminA tckn güncelleyemez (kolon yetkisi yok)',
-  tst.dene($q$update public.ogrenci set tckn = '12345678901' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
-select tst.esit('adminA tckn ile öğrenci insert edemez (kolon yetkisi yok)',
-  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi, tckn) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01','12345678901')$q$), 'hata:42501');
--- pozitif kontrol: tckn hariç kolonlarla insert hâlâ çalışıyor
-select tst.esit('adminA tcknsiz öğrenci ekleyebilir (pozitif)',
+select tst.esit('adminA kullanici_adi güncelleyemez (kolon yetkisi yok)',
+  tst.dene($q$update public.ogrenci set kullanici_adi = 'x.y' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'hata:42501');
+select tst.esit('adminA kullanici_adi ile öğrenci insert edemez (kolon yetkisi yok)',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi, kullanici_adi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01','x.y')$q$), 'hata:42501');
+select tst.esit('adminA kullanıcı adı atama fonksiyonunu çağıramaz',
+  tst.dene($q$select public.ogrenci_kullanici_adi_ata('e0000000-0000-0000-0000-0000000000a1')$q$), 'hata:42501');
+-- pozitif kontrol: kullanici_adi hariç kolonlarla insert hâlâ çalışıyor
+select tst.esit('adminA kullanıcı adsız öğrenci ekleyebilir (pozitif)',
   tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01')$q$), 'ok:1');
 
 -- ===========================================================================
@@ -665,7 +667,7 @@ select tst.esit('öğretmen şube sınıflarını görmez',
 select tst.esit('öğretmen yalnızca kendi kurumunu okur', (select count(*) from public.kurum)::text, '1');
 
 -- ===========================================================================
--- 15. MARKA KODU, ÖZELLİKLER VE MÜŞTERİ BAŞINA TCKN
+-- 15. MARKA KODU, ÖZELLİKLER VE MÜŞTERİ BAŞINA KULLANICI ADI
 -- ===========================================================================
 -- adminA (kök admin): marka kodu ve özelliklere dokunamaz
 reset role;
@@ -711,19 +713,35 @@ set local role authenticated;
 select tst.esit('şube admini kökün marka kodunu okur',
   (select marka_kodu from public.kurum where id = 'c0000000-0000-0000-0000-00000000000a'), 'kurum-a');
 
--- TCKN müşteri başına tekil (şema; postgres rolüyle)
+-- Kullanıcı adı müşteri başına tekil; addan üretim (şema; postgres rolüyle)
 reset role;
 
 select tst.esit('şube öğrencisinin kökü ana kurum',
   (select kok_kurum_id::text from public.ogrenci where id = 'e0000000-0000-0000-0000-000000000a11'), 'c0000000-0000-0000-0000-00000000000a');
 select tst.esit('kök öğrencisinin kökü kendi kurumu',
   (select kok_kurum_id::text from public.ogrenci where id = 'e0000000-0000-0000-0000-0000000000b1'), 'c0000000-0000-0000-0000-00000000000b');
-select tst.esit('A öğrencisine tckn',
-  tst.dene($q$update public.ogrenci set tckn = '11111111110' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
-select tst.esit('aynı tckn başka müşteride (B) kullanılabilir',
-  tst.dene($q$update public.ogrenci set tckn = '11111111110' where id = 'e0000000-0000-0000-0000-0000000000b1'$q$), 'ok:1');
-select tst.esit('aynı tckn aynı müşterinin şubesinde kullanılamaz',
-  tst.dene($q$update public.ogrenci set tckn = '11111111110' where id = 'e0000000-0000-0000-0000-000000000a11'$q$), 'hata:23505');
+select tst.esit('A öğrencisine kullanıcı adı',
+  tst.dene($q$update public.ogrenci set kullanici_adi = 'ali.yilmaz' where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:1');
+select tst.esit('aynı kullanıcı adı başka müşteride (B) kullanılabilir',
+  tst.dene($q$update public.ogrenci set kullanici_adi = 'ali.yilmaz' where id = 'e0000000-0000-0000-0000-0000000000b1'$q$), 'ok:1');
+select tst.esit('aynı kullanıcı adı aynı müşterinin şubesinde kullanılamaz',
+  tst.dene($q$update public.ogrenci set kullanici_adi = 'ali.yilmaz' where id = 'e0000000-0000-0000-0000-000000000a11'$q$), 'hata:23505');
+select tst.esit('kullanıcı adı biçimi denetlenir (büyük harf, boşluk, Türkçe harf olmaz)',
+  tst.dene($q$update public.ogrenci set kullanici_adi = 'Ali Yılmaz' where id = 'e0000000-0000-0000-0000-000000000a11'$q$), 'hata:23514');
+-- Üretim: Türkçe harfler çevrilir, kelimeler noktayla birleşir, çakışmada sona sayı eklenir.
+select tst.esit('taban: Türkçe harf ve boşluk',
+  gizli.kullanici_adi_tabani('  Şükrü  Çağrı IŞIK-Öztürk '), 'sukru.cagri.isik.ozturk');
+select tst.esit('taban: harf kalmazsa ogrenci', gizli.kullanici_adi_tabani('***'), 'ogrenci');
+update public.ogrenci set ad_soyad = 'Ali Yılmaz' where id in ('e0000000-0000-0000-0000-0000000000a2', 'e0000000-0000-0000-0000-0000000000a3');
+select tst.esit('aynı adlı ikinci öğrenci 1 ekini alır',
+  public.ogrenci_kullanici_adi_ata('e0000000-0000-0000-0000-0000000000a2'), 'ali.yilmaz1');
+select tst.esit('üçüncüsü 2 ekini alır',
+  public.ogrenci_kullanici_adi_ata('e0000000-0000-0000-0000-0000000000a3'), 'ali.yilmaz2');
+update public.ogrenci set ad_soyad = 'Başka Ad' where id = 'e0000000-0000-0000-0000-0000000000a2';
+select tst.esit('atanmış ad değişmez (ad düzeltilse bile)',
+  public.ogrenci_kullanici_adi_ata('e0000000-0000-0000-0000-0000000000a2'), 'ali.yilmaz1');
+update public.ogrenci set ad_soyad = 'oA2', kullanici_adi = null where id = 'e0000000-0000-0000-0000-0000000000a2';
+update public.ogrenci set ad_soyad = 'oA3', kullanici_adi = null where id = 'e0000000-0000-0000-0000-0000000000a3';
 select tst.esit('kok_kurum_id elle bozulamaz (trigger düzeltir)',
   tst.dene($q$update public.ogrenci set kok_kurum_id = 'c0000000-0000-0000-0000-00000000000b' where id = 'e0000000-0000-0000-0000-000000000a11'$q$), 'ok:1');
 select tst.esit('kok_kurum_id hâlâ ana kurum',
@@ -1423,23 +1441,23 @@ select tst.esit('kurum admini pin_degistirilmeli bayrağını yazamaz',
 -- ===========================================================================
 reset role;
 
-select tst.esit('öğrenci başvurusu TCKN''siz olamaz',
-  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, veli_ad_soyad, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'x', '2020-01-01', 'v', '05551112233')$q$), 'hata:23514');
+select tst.esit('öğrenci başvurusu doğum tarihsiz olamaz',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, veli_ad_soyad, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'x', 'v', '05551112233')$q$), 'hata:23514');
 select tst.esit('öğrenci başvurusu velisiz olamaz',
-  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, tckn, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'x', '2020-01-01', '12345678950', '05551112233')$q$), 'hata:23514');
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'x', '2020-01-01', '05551112233')$q$), 'hata:23514');
 select tst.esit('personel başvurusu e-postasız olamaz',
   tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x')$q$), 'hata:23514');
-select tst.esit('personel başvurusunda TCKN olamaz',
-  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta, tckn) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local', '12345678950')$q$), 'hata:23514');
+select tst.esit('personel başvurusunda veli bilgisi olamaz',
+  tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta, veli_telefon) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local', '05551112233')$q$), 'hata:23514');
 select tst.esit('sonuçlanmış başvuruda karar tarihi zorunlu',
   tst.dene($q$insert into public.basvuru (kurum_id, tur, ad_soyad, eposta, durum) values ('c0000000-0000-0000-0000-00000000000a', 'personel', 'x', 'x@test.local', 'reddedildi')$q$), 'hata:23514');
 
-insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, tckn, veli_ad_soyad, veli_telefon, eposta) values
-  ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'B1', '2020-05-05', '12345678950', 'Veli', '0555 111 22 33', null),
-  ('c0000000-0000-0000-0000-0000000000a2', 'personel', 'B2', null, null, null, null, 'aday@test.local'),
-  ('c0000000-0000-0000-0000-00000000000b', 'ogrenci', 'B3', '2020-05-05', '12345678950', 'Veli', '0555 111 22 33', null);
-insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, tckn, veli_ad_soyad, veli_telefon, durum, karar_tarihi) values
-  ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'B4', '2020-05-05', '10000000146', 'Veli', '05551112233', 'reddedildi', now());
+insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, veli_ad_soyad, veli_telefon, eposta) values
+  ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'B1', '2020-05-05', 'Veli', '0555 111 22 33', null),
+  ('c0000000-0000-0000-0000-0000000000a2', 'personel', 'B2', null, null, null, 'aday@test.local'),
+  ('c0000000-0000-0000-0000-00000000000b', 'ogrenci', 'B3', '2020-05-05', 'Veli', '0555 111 22 33', null);
+insert into public.basvuru (kurum_id, tur, ad_soyad, dogum_tarihi, veli_ad_soyad, veli_telefon, durum, karar_tarihi) values
+  ('c0000000-0000-0000-0000-00000000000a', 'ogrenci', 'B4', '2020-05-05', 'Veli', '05551112233', 'reddedildi', now());
 select tst.esit('kok_kurum_id şube başvurusunda ana kurumdur', (select kok_kurum_id::text from public.basvuru where ad_soyad = 'B2'), 'c0000000-0000-0000-0000-00000000000a');
 
 -- adminA (kök admin): kendi kurumu + şubeleri; ekleyemez, değiştiremez; yalnızca sonuçlanmışı siler

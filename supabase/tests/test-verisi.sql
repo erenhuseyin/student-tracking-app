@@ -8,7 +8,7 @@
 --     Elazığ
 --     Malatya
 --
--- Tüm hesapların şifresi: Test.1234!   Her sınıfta 6 erkek öğrenci (TCKN'siz; veli hesabı yok).
+-- Tüm hesapların şifresi: Test.1234!   Her sınıfta 6 erkek öğrenci (veli hesabı yok).
 -- Pano için: üç bölgeye il atanır, her sınıfa ders günleri ve son 10 haftanın rastgele yoklaması eklenir.
 
 begin;
