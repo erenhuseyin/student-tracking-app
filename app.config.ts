@@ -1,7 +1,9 @@
 // Müşteriye özel (white-label) uygulama yapılandırması. Hangi markanın derleneceğini MARKA
 // ortam değişkeni belirler (eas.json'daki build profilleri ayarlar); verilmezse `varsayilan`.
 // Her marka `markalar/<kod>/` klasöründe durur: marka.json + google-services.json zorunlu,
-// görseller isteğe bağlı (yoksa assets/images altındaki ortak görseller kullanılır).
+// görseller isteğe bağlı (yoksa assets/images altındaki ortak görseller kullanılır). Uygulama içinde
+// gösterilen logo (logo.png; karanlık tema için logo-koyu.png) da isteğe bağlıdır: Metro marka
+// klasöründen dinamik `require` yapamadığı için derleme sırasında `extra.marka.logo`'ya gömülür.
 // Yeni müşteri uygulaması açma adımları: docs/yeni-marka.md
 /// <reference types="node" />
 import type { ExpoConfig } from 'expo/config';
@@ -29,7 +31,11 @@ type MarkaDosyasi = {
     vurguSoluk?: string;
     zemin?: string;
     ayirici?: string;
+    // İsteğe bağlı; karanlık temanın zemin tonları (verilmezse lib/tema.ts varsayılanı).
+    karanlik?: { zemin?: string; yuzey?: string; anaSoluk?: string; kenarlik?: string; ayirici?: string };
   };
+  // İsteğe bağlı; açılış ekranındaki görselin genişliği (yatay logolar için; varsayılan 76).
+  splashGenislik?: number;
 };
 
 const kod = process.env.MARKA ?? 'varsayilan';
@@ -46,6 +52,15 @@ if (marka.kod !== kod) {
 function gorsel(dosya: string): string {
   return fs.existsSync(path.join(klasor, dosya)) ? `./markalar/${kod}/${dosya}` : `./assets/images/${dosya}`;
 }
+
+// PNG'yi veri adresi olarak okur; genişlik/yükseklik IHDR başlığından alınır (16. ve 20. bayt).
+function logoOku(dosya: string): { uri: string; en: number; boy: number } | undefined {
+  const yol = path.join(klasor, dosya);
+  if (!fs.existsSync(yol)) return undefined;
+  const veri = fs.readFileSync(yol);
+  return { uri: `data:image/png;base64,${veri.toString('base64')}`, en: veri.readUInt32BE(16), boy: veri.readUInt32BE(20) };
+}
+const logo = logoOku('logo.png');
 
 const config: ExpoConfig = {
   name: marka.uygulamaAdi,
@@ -84,7 +99,7 @@ const config: ExpoConfig = {
       {
         backgroundColor: marka.renkler.ana,
         image: gorsel('splash-icon.png'),
-        imageWidth: 76,
+        imageWidth: marka.splashGenislik ?? 76,
       },
     ],
     [
@@ -109,6 +124,7 @@ const config: ExpoConfig = {
       ad: marka.ad,
       seviyeAdlari: marka.seviyeAdlari,
       renkler: marka.renkler,
+      logo: logo ? { ...logo, koyuUri: logoOku('logo-koyu.png')?.uri } : undefined,
     },
   },
   owner: 'ergenecode',

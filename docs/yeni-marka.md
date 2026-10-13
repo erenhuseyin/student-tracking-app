@@ -24,6 +24,10 @@ Her müşteri Google Play'de kendi adı, ikonu ve rengiyle ayrı bir uygulamaya 
 | `renkler.vurgu` / `vurguKoyu` / `vurguSoluk` | İsteğe bağlı ikincil renk: süsleme-ayraç / etiket metni / öne çıkan kart zemini |
 | `renkler.zemin` / `ayirici` | İsteğe bağlı. Ekran zemini ve ince çizgi rengi |
 | `renkler.ikonArkaplan` | Android uyarlanabilir ikon arka planı |
+| `renkler.karanlik` | İsteğe bağlı. Karanlık temanın zemin tonları: `zemin`, `yuzey`, `anaSoluk`, `kenarlik`, `ayirici`. Verilmezse yeşilimsi varsayılan kullanılır; ana rengi yeşil olmayan markada nötr tonlar ver |
+| `splashGenislik` | İsteğe bağlı. Açılış ekranındaki görselin genişliği (varsayılan 76; yatay logoda ~200) |
+
+**Uygulama içi logo** isteğe bağlıdır: `logo.png` (saydam zeminli; giriş ekranlarında ve web kenar çubuğunda görünür) ve karanlık zeminde okunmuyorsa `logo-koyu.png`. Logo yoksa ikon + marka adı gösterilir. Logo derlemeye gömülür, küçük tutulmalı (~50 KB).
 
 Görseller isteğe bağlıdır; klasöre konmayan görsel için `assets/images/` altındaki ortak görsel kullanılır: `icon.png`, `android-icon-foreground.png`, `android-icon-background.png`, `android-icon-monochrome.png`, `splash-icon.png`, `favicon.png`.
 

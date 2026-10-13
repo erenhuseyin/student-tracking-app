@@ -18,7 +18,11 @@ export type Marka = {
     vurguSoluk?: string;
     zemin?: string;
     ayirici?: string;
+    // İsteğe bağlı; karanlık temanın zemin tonları.
+    karanlik?: { zemin?: string; yuzey?: string; anaSoluk?: string; kenarlik?: string; ayirici?: string };
   };
+  // İsteğe bağlı; markalar/<kod>/logo.png (ve karanlık tema için logo-koyu.png), veri adresi olarak.
+  logo?: { uri: string; koyuUri?: string; en: number; boy: number };
 };
 
 const ham = Constants.expoConfig?.extra?.marka as Marka | undefined;

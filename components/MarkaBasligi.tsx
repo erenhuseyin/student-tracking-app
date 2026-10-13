@@ -1,8 +1,10 @@
-// Giriş ekranlarının üstündeki marka alanı (ad `lib/marka.ts`'ten gelir, ekrana sabit yazılmaz).
+// Giriş ekranlarının üstündeki marka alanı: markanın logosu varsa o, yoksa ikon + ad (`lib/marka.ts`;
+// ekrana sabit marka adı yazılmaz).
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Ikon } from '@/components/Ikon';
+import { MarkaLogosu, markaLogosuVar } from '@/components/MarkaLogosu';
 import { marka } from '@/lib/marka';
 import { type Tema, useTema } from '@/lib/tema';
 
@@ -11,10 +13,17 @@ export function MarkaBasligi({ altBaslik }: { altBaslik: string }) {
   const styles = useMemo(() => olustur(tema), [tema]);
   return (
     <View style={styles.kapsayici}>
-      <View style={styles.logo}>
-        <Ikon ad="school" boyut={36} renk={tema.renkler.anaUzeriMetin} />
-      </View>
-      <Text style={[styles.baslik, styles.ortali]}>{marka.ad}</Text>
+      {markaLogosuVar ? (
+        // Logo markanın adını zaten taşır; ad ayrıca yazılmaz.
+        <MarkaLogosu yukseklik={96} />
+      ) : (
+        <>
+          <View style={styles.logo}>
+            <Ikon ad="school" boyut={36} renk={tema.renkler.anaUzeriMetin} />
+          </View>
+          <Text style={[styles.baslik, styles.ortali]}>{marka.ad}</Text>
+        </>
+      )}
       <View style={styles.ayrac} />
       <Text style={[styles.altBaslik, styles.ortali]}>{altBaslik}</Text>
     </View>

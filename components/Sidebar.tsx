@@ -8,8 +8,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Ikon, type IkonAdi } from '@/components/Ikon';
+import { MarkaLogosu, markaLogosuVar } from '@/components/MarkaLogosu';
 import { marka } from '@/lib/marka';
-import { rolEtiketi, useMenu } from '@/lib/menu';
+import { rolEtiketi, rolYolu, useMenu } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { type Tema, useKirilma, useTema } from '@/lib/tema';
 import { type TemaTercihi, useTemaTercihi } from '@/lib/temaTercihi';
@@ -56,7 +57,8 @@ export function Sidebar() {
     // Bir bölümden diğerine geçerken açık detay ekranları kapanır: "geri" bir önceki bölüme değil,
     // bölümün kendi içindeki üst ekrana götürmelidir.
     if (router.canDismiss()) router.dismissAll();
-    router.navigate(href);
+    // Adres kullanıcının rol grubuna sabitlenir (aynı adres başka rol gruplarında da var).
+    router.navigate(kullanici && typeof href === 'string' ? rolYolu(kullanici.rol, href) : href);
   };
 
   const oge = (o: { anahtar: string; etiket: string; ikon: IkonAdi; href: Href }) => {
@@ -90,13 +92,19 @@ export function Sidebar() {
   return (
     <View role="navigation" style={[styles.kenar, dar && styles.kenarDar]}>
       <View style={[styles.marka, dar && styles.ortali]}>
-        <View style={styles.markaIsareti}>
-          <Text style={styles.markaHarfi}>{marka.ad.charAt(0)}</Text>
-        </View>
-        {dar ? null : (
-          <Text style={styles.markaAdi} numberOfLines={1}>
-            {marka.ad}
-          </Text>
+        {markaLogosuVar && !dar ? (
+          <MarkaLogosu yukseklik={40} />
+        ) : (
+          <>
+            <View style={styles.markaIsareti}>
+              <Text style={styles.markaHarfi}>{marka.ad.charAt(0)}</Text>
+            </View>
+            {dar ? null : (
+              <Text style={styles.markaAdi} numberOfLines={1}>
+                {marka.ad}
+              </Text>
+            )}
+          </>
         )}
       </View>
 

@@ -1,6 +1,6 @@
 {
   "kod": "varsayilan",
-  "ad": "Öğrenci Takip",
+  "ad": "Genç Hareket",
   "uygulamaAdi": "ogrenci-takip",
   "slug": "ogrenci-takip",
   "scheme": "ogrencitakip",
@@ -8,14 +8,22 @@
   "easProjectId": "238b87a6-fa82-44b9-9dbd-304631fa0b0a",
   "seviyeAdlari": ["Genel Merkez", "İl", "İlçe", "Temsilcilik"],
   "renkler": {
-    "ana": "#3E5C47",
-    "anaParlak": "#6E8F78",
-    "anaSoluk": "#E7EDE8",
-    "vurgu": "#9C8868",
-    "vurguKoyu": "#6B5A40",
-    "vurguSoluk": "#F1ECE3",
-    "zemin": "#FAF8F4",
-    "ayirici": "#E3DDD0",
-    "ikonArkaplan": "#E7EDE8"
-  }
+    "ana": "#33312E",
+    "anaParlak": "#A8946E",
+    "anaSoluk": "#EFECE6",
+    "vurgu": "#A8946E",
+    "vurguKoyu": "#7A6848",
+    "vurguSoluk": "#F4F1EA",
+    "zemin": "#FAF9F6",
+    "ayirici": "#E6E2DA",
+    "ikonArkaplan": "#FAF9F6",
+    "karanlik": {
+      "zemin": "#141413",
+      "yuzey": "#1D1D1B",
+      "anaSoluk": "#2E2A22",
+      "kenarlik": "#34332F",
+      "ayirici": "#2A2926"
+    }
+  },
+  "splashGenislik": 200
 }
