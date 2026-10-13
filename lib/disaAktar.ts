@@ -55,7 +55,7 @@ async function ortakVeri() {
   const [siniflar, ogrenciler, kurumlar] = await Promise.all([
     tumSatirlar((b, s) => supabase.from('sinif').select('id, ad').order('ad').range(b, s)),
     tumSatirlar((b, s) =>
-      supabase.from('ogrenci').select('id, ad_soyad, sinif_id, kurum_id, dogum_tarihi, tckn, aktif').order('ad_soyad').range(b, s),
+      supabase.from('ogrenci').select('id, ad_soyad, sinif_id, kurum_id, dogum_tarihi, kullanici_adi, aktif').order('ad_soyad').range(b, s),
     ),
     kurumAdlariniGetir(),
   ]);
@@ -67,7 +67,7 @@ async function ortakVeri() {
 export type RaporTuru = 'ogrenciler' | 'yoklama' | 'katilim' | 'ezber' | 'kitap';
 
 export const RAPORLAR: { tur: RaporTuru; baslik: string; aciklama: string; icerik?: true }[] = [
-  { tur: 'ogrenciler', baslik: 'Öğrenci listesi', aciklama: 'Tüm öğrenciler: sınıf, doğum tarihi, TC, durum' },
+  { tur: 'ogrenciler', baslik: 'Öğrenci listesi', aciklama: 'Tüm öğrenciler: sınıf, doğum tarihi, veli kullanıcı adı, durum' },
   { tur: 'yoklama', baslik: 'Yoklama kayıtları (son 30 gün)', aciklama: 'Gün gün: öğrenci, sınıf, durum' },
   { tur: 'katilim', baslik: 'Katılım özeti (son 30 gün)', aciklama: 'Öğrenci başına katıldı / gelmedi / geç / mazeretli ve oran' },
   { tur: 'ezber', baslik: 'Ezber özeti', aciklama: 'Öğrenci başına tamamlanan ve devam eden madde sayısı', icerik: true },
@@ -86,8 +86,8 @@ export async function raporuIndir(tur: RaporTuru): Promise<number> {
   let satirlar: Hucre[][];
 
   if (tur === 'ogrenciler') {
-    basliklar = ['Ad Soyad', 'Birim', 'Sınıf', 'Doğum Tarihi', 'TC Kimlik No', 'Durum'];
-    satirlar = ogrenciler.map((o) => [o.ad_soyad, birim(o.kurum_id), sinifAdi.get(o.sinif_id) ?? '', o.dogum_tarihi, o.tckn, o.aktif ? 'Aktif' : 'Pasif']);
+    basliklar = ['Ad Soyad', 'Birim', 'Sınıf', 'Doğum Tarihi', 'Veli Kullanıcı Adı', 'Durum'];
+    satirlar = ogrenciler.map((o) => [o.ad_soyad, birim(o.kurum_id), sinifAdi.get(o.sinif_id) ?? '', o.dogum_tarihi, o.kullanici_adi, o.aktif ? 'Aktif' : 'Pasif']);
   } else if (tur === 'yoklama' || tur === 'katilim') {
     const yoklamalar = await tumSatirlar((b, s) =>
       supabase.from('yoklama').select('ogrenci_id, tarih, durum').gte('tarih', baslangic).order('tarih').range(b, s),

@@ -8,7 +8,6 @@ import { Avatar } from '@/components/Avatar';
 import { Girdi } from '@/components/Girdi';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { OgrenciFormu } from '@/components/OgrenciFormu';
-import { Rozet } from '@/components/Rozet';
 import { Secim } from '@/components/Secim';
 import type { TabloSutunu } from '@/components/Tablo';
 import { VeriEkrani } from '@/components/VeriEkrani';
@@ -17,7 +16,6 @@ import { birimSecenekleri, kurumAdlariniGetir, type KurumOzeti, kurumYolu } from
 import { OGRENCI_SAYFA_BOYUTU, type OgrenciSiralamasi, ogrencileriAra } from '@/lib/ogrenciler';
 import { useOturum } from '@/lib/oturum';
 import { siniflariGetir } from '@/lib/siniflar';
-import { useTema } from '@/lib/tema';
 import type { Ogrenci, Sinif } from '@/lib/tipler';
 
 type Durum = 'aktif' | 'pasif';
@@ -33,7 +31,6 @@ const tarih = (t: string) => t.split('-').reverse().join('.');
 type Secili = { tur: 'kayit'; ogrenci: Ogrenci } | { tur: 'yeni' } | null;
 
 export default function Ogrenciler() {
-  const tema = useTema();
   const { kurum, kokKurum } = useOturum();
   const [yazilan, setYazilan] = useState('');
   const [arama, setArama] = useState('');
@@ -121,18 +118,15 @@ export default function Ogrenciler() {
       { anahtar: 'dogum_tarihi', baslik: 'Doğum Tarihi', icerik: (o) => tarih(o.dogum_tarihi), siralanabilir: true, genislik: 140, ikincil: true },
       {
         anahtar: 'veli',
-        baslik: 'Veli Girişi',
-        genislik: 120,
+        baslik: 'Veli Kullanıcı Adı',
+        genislik: 200,
         ikincil: true,
         icerik: (o) =>
-          o.tckn ? (
-            <Rozet metin="Açık" renk={tema.renkler.basari} zemin={tema.renkler.basariSoluk} ikon="checkmark-circle" />
-          ) : (
-            'Yok'
-          ),
+          // Boşsa veli girişi açılmamıştır (öğrencinin panelinden açılır).
+          o.kullanici_adi ?? 'Açılmamış',
       },
     ],
-    [birimAdi, sinifAdi, tema],
+    [birimAdi, sinifAdi],
   );
 
   const birimler = kurum ? birimSecenekleri(kurumlar, kurum.id) : [];

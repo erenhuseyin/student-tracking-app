@@ -1,7 +1,7 @@
 // Erişim: yalnızca kurum_admin. "Kullanıcılar": yöneticinin kapsamındaki (kendi birimi ve altındaki
 // tüm birimler; RLS) yöneticiler, öğretmenler ve veliler tek tabloda. Filtreler sunucuda uygulanır.
 // Seçilen kişi yan panelde düzenlenir; "Yeni kullanıcı" seçilen birime personel davet eder
-// (veli hesabı öğrenciye TCKN atanınca açılır, buradan açılmaz).
+// (veli hesabı öğrenci eklenince açılır, buradan açılmaz).
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 

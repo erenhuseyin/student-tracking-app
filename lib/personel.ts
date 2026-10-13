@@ -16,7 +16,7 @@ export const PERSONEL_ROL_ETIKETLERI: Record<PersonelRolu, string> = {
 
 export type PersonelDurumu = 'aktif' | 'davet_bekliyor' | 'pasif';
 
-// Veli hesabı davetle açılmaz (TCKN + PIN); "davet bekliyor" yalnızca personel içindir.
+// Veli hesabı davetle açılmaz (kullanıcı adı + PIN); "davet bekliyor" yalnızca personel içindir.
 export function personelDurumu(k: Kullanici): PersonelDurumu {
   if (!k.aktif) return 'pasif';
   return k.rol === 'veli' || k.sifre_belirlendi ? 'aktif' : 'davet_bekliyor';

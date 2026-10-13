@@ -2,18 +2,19 @@
 // veli-pin-degistir): Auth şifresi PIN'den sunucudaki gizli anahtarla türetilir, istemci onu
 // üretemez. Böylece yanlış PIN denemeleri sayılabilir ve hesap geçici olarak kilitlenebilir.
 import { edgeFonksiyonuCagir } from '@/lib/edge';
+import { kullaniciAdiGecerliMi, kullaniciAdiniDuzelt } from '@/lib/kullaniciAdi';
 import { marka } from '@/lib/marka';
 import { supabase } from '@/lib/supabase';
 
 export const VARSAYILAN_PIN = '1234';
 
 // Erişim: oturumsuz. Başarılıysa oturum açılır (lib/oturum.tsx durumu günceller).
-export async function veliGirisYap(tckn: string, pin: string): Promise<void> {
-  const temizTckn = tckn.trim();
-  if (temizTckn.length !== 11 || pin.length !== 4) throw new Error('TCKN 11, PIN 4 haneli olmalı.');
+export async function veliGirisYap(kullaniciAdi: string, pin: string): Promise<void> {
+  const ad = kullaniciAdiniDuzelt(kullaniciAdi);
+  if (!kullaniciAdiGecerliMi(ad) || pin.length !== 4) throw new Error("Kullanıcı adınızı ve 4 haneli PIN'inizi girin.");
   const oturum = await edgeFonksiyonuCagir<{ access_token: string; refresh_token: string }>(
     'veli-giris',
-    { tckn: temizTckn, pin, marka_kodu: marka.kod },
+    { kullanici_adi: ad, pin, marka_kodu: marka.kod },
     'Giriş yapılamadı, lütfen tekrar deneyin.',
   );
   const { error } = await supabase.auth.setSession({
@@ -43,14 +44,14 @@ export async function veliPinDegistir(yeniPin: string, mevcutPin?: string): Prom
   await supabase.auth.signOut();
 }
 
-// Erişim: yalnızca veli. Başka bir çocuğunu bu hesaba bağlar; kanıt olarak o çocuğun TCKN'si ve
+// Erişim: yalnızca veli. Başka bir çocuğunu bu hesaba bağlar; kanıt olarak o çocuğun kullanıcı adı ve
 // PIN'i istenir (sunucu doğrular). Eklenen çocuğun adını döndürür.
-export async function kardesEkle(tckn: string, pin: string): Promise<string> {
-  const temizTckn = tckn.trim();
-  if (temizTckn.length !== 11 || pin.length !== 4) throw new Error('TCKN 11, PIN 4 haneli olmalı.');
+export async function kardesEkle(kullaniciAdi: string, pin: string): Promise<string> {
+  const ad = kullaniciAdiniDuzelt(kullaniciAdi);
+  if (!kullaniciAdiGecerliMi(ad) || pin.length !== 4) throw new Error("Çocuğun kullanıcı adını ve 4 haneli PIN'ini girin.");
   const sonuc = await edgeFonksiyonuCagir<{ ad_soyad: string }>(
     'veli-kardes-ekle',
-    { tckn: temizTckn, pin },
+    { kullanici_adi: ad, pin },
     'Çocuk eklenemedi, lütfen tekrar deneyin.',
   );
   return sonuc.ad_soyad;

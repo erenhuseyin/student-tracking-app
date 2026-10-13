@@ -40,7 +40,7 @@ export async function basvuruDurumunuGetir(): Promise<BasvuruDurumBilgisi> {
 }
 
 type OrtakGirdi = { kurumId: string | null; adSoyad: string; notMetni: string; riza: boolean };
-export type OgrenciBasvuruGirdisi = OrtakGirdi & { dogumTarihi: string; tckn: string; veliAdSoyad: string; veliTelefon: string };
+export type OgrenciBasvuruGirdisi = OrtakGirdi & { dogumTarihi: string; veliAdSoyad: string; veliTelefon: string };
 export type PersonelBasvuruGirdisi = OrtakGirdi & { eposta: string };
 
 function ortakAlanlar(girdi: OrtakGirdi) {
@@ -65,7 +65,6 @@ export async function ogrenciBasvurusuGonder(girdi: OgrenciBasvuruGirdisi): Prom
       ...ortakAlanlar(girdi),
       tur: 'ogrenci',
       dogum_tarihi: girdi.dogumTarihi,
-      tckn: girdi.tckn.trim(),
       veli_ad_soyad: girdi.veliAdSoyad.trim(),
       veli_telefon: girdi.veliTelefon.trim(),
     },
@@ -98,7 +97,7 @@ export async function basvuruGetir(id: string): Promise<Basvuru> {
 
 // Onay: öğrenci başvurusunda `sinifId` zorunludur; öğrenci + veli hesabı (PIN 1234) ya da
 // öğretmen hesabı (giriş kodu e-postası) sunucuda mevcut akışlarla açılır.
-export async function basvuruyuOnayla(id: string, sinifId?: string): Promise<{ eposta_gonderildi?: boolean }> {
+export async function basvuruyuOnayla(id: string, sinifId?: string): Promise<{ eposta_gonderildi?: boolean; kullanici_adi?: string | null }> {
   return edgeFonksiyonuCagir(FONKSIYON, { islem: 'karar', basvuru_id: id, karar: 'onayla', sinif_id: sinifId }, 'Başvuru onaylanamadı.');
 }
 

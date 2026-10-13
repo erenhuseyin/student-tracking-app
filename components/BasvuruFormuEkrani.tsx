@@ -32,7 +32,6 @@ export function BasvuruFormuEkrani({ tur }: { tur: BasvuruTuru }) {
   const [kurumId, setKurumId] = useState<string | null>(null);
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
-  const [tckn, setTckn] = useState('');
   const [veliAdSoyad, setVeliAdSoyad] = useState('');
   const [veliTelefon, setVeliTelefon] = useState('');
   const [eposta, setEposta] = useState('');
@@ -54,7 +53,7 @@ export function BasvuruFormuEkrani({ tur }: { tur: BasvuruTuru }) {
     setHata(null);
     try {
       const ortak = { kurumId, adSoyad, notMetni, riza };
-      if (ogrenci) await ogrenciBasvurusuGonder({ ...ortak, dogumTarihi, tckn, veliAdSoyad, veliTelefon });
+      if (ogrenci) await ogrenciBasvurusuGonder({ ...ortak, dogumTarihi, veliAdSoyad, veliTelefon });
       else await personelBasvurusuGonder({ ...ortak, eposta });
       setGonderildi(true);
     } catch (e) {
@@ -83,7 +82,7 @@ export function BasvuruFormuEkrani({ tur }: { tur: BasvuruTuru }) {
           aciklama={
             gonderildi
               ? ogrenci
-                ? 'Kurum başvurunuzu inceleyip sizinle iletişime geçecek. Onaylanırsa çocuğunuzun TC kimlik numarası ve size bildirilecek PIN ile giriş yapabilirsiniz.'
+                ? 'Kurum başvurunuzu inceleyip sizinle iletişime geçecek. Onaylanırsa size bildirilecek kullanıcı adı ve PIN ile giriş yapabilirsiniz.'
                 : 'Kurum başvurunuzu inceleyecek. Onaylanırsa e-posta adresinize bir giriş kodu gönderilir.'
               : `${marka.ad} uygulamadan başvuru kabul etmiyor. Lütfen kurumla doğrudan iletişime geçin.`
           }
@@ -121,15 +120,6 @@ export function BasvuruFormuEkrani({ tur }: { tur: BasvuruTuru }) {
         {ogrenci ? (
           <>
             <TarihGirdisi etiket="Öğrencinin doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
-            <Girdi
-              etiket="Öğrencinin TC kimlik numarası"
-              keyboardType="number-pad"
-              maxLength={11}
-              value={tckn}
-              onChangeText={setTckn}
-              editable={!gonderiliyor}
-              buyuk
-            />
             <Girdi etiket="Velinin adı soyadı" value={veliAdSoyad} onChangeText={setVeliAdSoyad} editable={!gonderiliyor} maxLength={120} buyuk />
             <Girdi
               etiket="Velinin telefonu"

@@ -1,4 +1,4 @@
-// Öğrenci düzenleme formu: bilgiler, veli girişi (TCKN / PIN), pasife alma ve silme.
+// Öğrenci düzenleme formu: bilgiler, veli girişi (kullanıcı adı / PIN), pasife alma ve silme.
 // Erişim: yalnızca kurum_admin (yönettiği kurumların öğrencileri; RLS). Hem `/ogrenci-duzenle/[id]`
 // ekranında hem Öğrenciler tablosunun yan panelinde kullanılır.
 import { useRouter } from 'expo-router';
@@ -12,7 +12,7 @@ import { Kart } from '@/components/Kart';
 import { OnayButonu } from '@/components/OnayButonu';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { ogrenciAktifliginiAyarla, ogrenciGetir, ogrenciGuncelle, ogrenciSil, tcknAta, veliPininiSifirla } from '@/lib/ogrenciler';
+import { ogrenciAktifliginiAyarla, ogrenciGetir, ogrenciGuncelle, ogrenciSil, veliGirisiniAc, veliPininiSifirla } from '@/lib/ogrenciler';
 import { useToast } from '@/lib/toast';
 import { useTema } from '@/lib/tema';
 
@@ -29,15 +29,15 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
   const tema = useTema();
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
-  const [tckn, setTckn] = useState<string | null>(null);
+  // Velinin giriş adı; null ise veli girişi açılmamış (eklenirken açılamamış ya da eski kayıt).
+  const [kullaniciAdi, setKullaniciAdi] = useState<string | null>(null);
   const [aktif, setAktif] = useState(true);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
-  const [tcknGirdisi, setTcknGirdisi] = useState('');
-  const [tcknGonderiliyor, setTcknGonderiliyor] = useState(false);
-  const [tcknHata, setTcknHata] = useState<string | null>(null);
+  const [girisAciliyor, setGirisAciliyor] = useState(false);
+  const [girisHatasi, setGirisHatasi] = useState<string | null>(null);
 
   const [pinHata, setPinHata] = useState<string | null>(null);
   const [pinBasarili, setPinBasarili] = useState(false);
@@ -51,7 +51,7 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
         if (iptalEdildi) return;
         setAdSoyad(o.ad_soyad);
         setDogumTarihi(o.dogum_tarihi);
-        setTckn(o.tckn);
+        setKullaniciAdi(o.kullanici_adi);
         setAktif(o.aktif);
       })
       .catch((e: Error) => {
@@ -104,17 +104,16 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
     }
   };
 
-  const tcknAtaTikla = async () => {
-    setTcknGonderiliyor(true);
-    setTcknHata(null);
+  const girisiAc = async () => {
+    setGirisAciliyor(true);
+    setGirisHatasi(null);
     try {
-      await tcknAta(id, tcknGirdisi.trim());
-      setTckn(tcknGirdisi.trim());
+      setKullaniciAdi(await veliGirisiniAc(id));
       onDegisti?.();
     } catch (e) {
-      setTcknHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
+      setGirisHatasi(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
     } finally {
-      setTcknGonderiliyor(false);
+      setGirisAciliyor(false);
     }
   };
 
@@ -143,11 +142,12 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
 
       <Kart>
         <Text style={tema.yazi.bolum}>Veli girişi</Text>
-        {tckn ? (
+        {kullaniciAdi ? (
           <>
-            <Girdi etiket="TCKN (değiştirilemez)" value={tckn} editable={false} />
+            <Girdi etiket="Kullanıcı adı (değişmez)" value={kullaniciAdi} editable={false} />
             <Text style={tema.yazi.kucuk}>
-              Veli bu TCKN ve PIN ile giriş yapar. PIN unutulursa ya da hesap kilitlenirse sıfırlayın; PIN &quot;1234&quot; olur ve veli ilk girişte yenisini belirler.
+              Veli bu kullanıcı adı ve PIN ile giriş yapar. İlk PIN &quot;1234&quot;tür; veli ilk girişte yenisini belirler. PIN
+              unutulursa ya da hesap kilitlenirse sıfırlayın: PIN yeniden &quot;1234&quot; olur.
             </Text>
             <HataMesaji mesaj={pinBasarili ? 'PIN "1234" olarak sıfırlandı.' : null} tur="basari" />
             <HataMesaji mesaj={pinHata} />
@@ -161,18 +161,11 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
         ) : (
           <>
             <Text style={tema.yazi.kucuk}>
-              TCKN atanınca veli hesabı açılır ve PIN &quot;1234&quot; olur; veli ilk girişte yenisini belirler. TCKN sonradan değiştirilemez.
+              Bu öğrenci için veli girişi açılmamış. Açınca öğrencinin adından bir kullanıcı adı üretilir (örn.
+              ali.yilmaz) ve PIN &quot;1234&quot; olur; veli ilk girişte yenisini belirler.
             </Text>
-            <Girdi
-              etiket="Öğrencinin TC kimlik numarası"
-              value={tcknGirdisi}
-              onChangeText={setTcknGirdisi}
-              keyboardType="number-pad"
-              maxLength={11}
-              editable={!tcknGonderiliyor}
-            />
-            <HataMesaji mesaj={tcknHata} />
-            <Buton tur="ikincil" baslik="TCKN Ata" onPress={tcknAtaTikla} yukleniyor={tcknGonderiliyor} />
+            <HataMesaji mesaj={girisHatasi} />
+            <Buton tur="ikincil" baslik="Veli Girişini Aç" onPress={girisiAc} yukleniyor={girisAciliyor} />
           </>
         )}
       </Kart>

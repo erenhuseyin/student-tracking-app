@@ -1,4 +1,4 @@
-// Kullanıcılar tablosunda seçilen velinin paneli. Veli hesabı çocuğun TCKN'siyle açılır ve adı
+// Kullanıcılar tablosunda seçilen velinin paneli. Veli hesabı çocuğun kullanıcı adıyla açılır ve adı
 // değiştirilemez; burada bağlı çocuklar görünür ve veli girişinin PIN'i sıfırlanır.
 // Erişim: yalnızca kurum_admin (RLS: yönettiği kurumların velileri ve öğrencileri).
 import { useEffect, useState } from 'react';
@@ -63,7 +63,7 @@ export function VeliDetay({ id, ogrenciAltBasligi }: Props) {
       <Kart>
         <Girdi etiket="Ad soyad (değiştirilemez)" value={veli.ad_soyad} editable={false} />
         <Text style={tema.yazi.kucuk}>
-          Veli hesabı öğrenciye TC kimlik numarası atanınca açılır; veli o numara ve PIN ile giriş yapar.
+          Veli hesabı öğrenci eklenince açılır; veli çocuğunun kullanıcı adı ve PIN ile giriş yapar.
           {veli.aktif ? '' : ' Bu hesap pasif.'}
         </Text>
       </Kart>
@@ -77,8 +77,9 @@ export function VeliDetay({ id, ogrenciAltBasligi }: Props) {
         <Kart key={c.id}>
           <Text style={tema.yazi.bolum}>{c.ad_soyad}</Text>
           {ogrenciAltBasligi ? <Text style={tema.yazi.kucuk}>{ogrenciAltBasligi(c)}</Text> : null}
-          {c.tckn ? (
+          {c.kullanici_adi ? (
             <>
+              <Text style={tema.yazi.govde}>Kullanıcı adı: {c.kullanici_adi}</Text>
               <Text style={tema.yazi.kucuk}>
                 PIN unutulduysa ya da hesap kilitlendiyse bu öğrencinin veli girişini sıfırlayın.
               </Text>
@@ -91,7 +92,7 @@ export function VeliDetay({ id, ogrenciAltBasligi }: Props) {
               />
             </>
           ) : (
-            <Text style={tema.yazi.kucuk}>Bu öğrenciye TC kimlik numarası atanmamış.</Text>
+            <Text style={tema.yazi.kucuk}>Bu öğrenci için veli girişi açılmamış.</Text>
           )}
         </Kart>
       ))}

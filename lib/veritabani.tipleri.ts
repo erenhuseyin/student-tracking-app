@@ -170,7 +170,7 @@ export type Database = {
           kurum_id: string;
           olusturma_tarihi: string;
           sinif_id: string;
-          tckn: string | null;
+          kullanici_adi: string | null;
         };
         Insert: {
           ad_soyad: string;
@@ -181,7 +181,7 @@ export type Database = {
           kurum_id: string;
           olusturma_tarihi?: string;
           sinif_id: string;
-          tckn?: string | null;
+          kullanici_adi?: string | null;
         };
         Update: {
           ad_soyad?: string;
@@ -192,7 +192,7 @@ export type Database = {
           kurum_id?: string;
           olusturma_tarihi?: string;
           sinif_id?: string;
-          tckn?: string | null;
+          kullanici_adi?: string | null;
         };
         Relationships: [
           {
@@ -526,7 +526,6 @@ export type Database = {
           kurum_id: string;
           not_metni: string | null;
           olusturma_tarihi: string;
-          tckn: string | null;
           tur: Database['public']['Enums']['basvuru_turu'];
           veli_ad_soyad: string | null;
           veli_telefon: string | null;
@@ -544,7 +543,6 @@ export type Database = {
           kurum_id: string;
           not_metni?: string | null;
           olusturma_tarihi?: string;
-          tckn?: string | null;
           tur: Database['public']['Enums']['basvuru_turu'];
           veli_ad_soyad?: string | null;
           veli_telefon?: string | null;
@@ -562,7 +560,6 @@ export type Database = {
           kurum_id?: string;
           not_metni?: string | null;
           olusturma_tarihi?: string;
-          tckn?: string | null;
           tur?: Database['public']['Enums']['basvuru_turu'];
           veli_ad_soyad?: string | null;
           veli_telefon?: string | null;

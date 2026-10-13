@@ -83,7 +83,7 @@ export default function Login() {
       <Buton
         tur="ikincil"
         ikon="people-outline"
-        baslik="Veliyim — TCKN ile giriş"
+        baslik="Veliyim — kullanıcı adıyla giriş"
         onPress={() => router.replace('/veli-giris')}
         pasif={gonderiliyor}
         buyuk

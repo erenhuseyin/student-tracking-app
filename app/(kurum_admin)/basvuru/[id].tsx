@@ -97,7 +97,7 @@ export default function BasvuruDetay() {
       setMesaj({
         tur: 'basari',
         metin: ogrenci
-          ? 'Öğrenci kaydedildi ve veli hesabı açıldı. Veli, öğrencinin TC kimlik numarası ve "1234" PIN\'i ile giriş yapar; ilk girişte yeni PIN belirler. Lütfen veliye bildirin.'
+          ? `Öğrenci kaydedildi ve veli hesabı açıldı. Veli, "${sonuc.kullanici_adi ?? '(öğrencinin ekranında yazar)'}" kullanıcı adı ve "1234" PIN'i ile giriş yapar; ilk girişte yeni PIN belirler. Lütfen veliye bildirin.`
           : sonuc.eposta_gonderildi
             ? 'Öğretmen hesabı açıldı ve giriş kodu e-postayla gönderildi. Sınıf atamasını Personel ekranından yapın.'
             : 'Öğretmen hesabı açıldı ama e-posta gönderilemedi. Personel ekranından giriş kodunu yeniden gönderin.',
@@ -140,7 +140,6 @@ export default function BasvuruDetay() {
         {satir('Başvuru tarihi', tarihiBicimle(etkinlikZamaniniParcala(basvuru.olusturma_tarihi).tarih))}
         {satir(ogrenci ? 'Öğrenci' : 'Ad soyad', basvuru.ad_soyad)}
         {satir('Doğum tarihi', basvuru.dogum_tarihi ? tarihiBicimle(basvuru.dogum_tarihi) : null)}
-        {satir('TC kimlik numarası', basvuru.tckn)}
         {satir('Veli', basvuru.veli_ad_soyad)}
         {satir('Veli telefonu', basvuru.veli_telefon)}
         {satir('E-posta', basvuru.eposta)}

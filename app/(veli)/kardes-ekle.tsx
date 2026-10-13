@@ -1,5 +1,5 @@
-// Erişim: yalnızca veli. Başka bir çocuğunu (kardeşi) bu hesaba bağlar: kardeşin TC kimlik
-// numarası ve o çocuğun PIN'i istenir (sunucu doğrular; bkz. supabase/functions/veli-kardes-ekle).
+// Erişim: yalnızca veli. Başka bir çocuğunu (kardeşi) bu hesaba bağlar: kardeşin kullanıcı
+// adı ve o çocuğun PIN'i istenir (sunucu doğrular; bkz. supabase/functions/veli-kardes-ekle).
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
@@ -18,7 +18,7 @@ export default function KardesEkle() {
   const router = useRouter();
   const tema = useTema();
   const toast = useToast();
-  const [tckn, setTckn] = useState('');
+  const [kullaniciAdi, setKullaniciAdi] = useState('');
   const [pin, setPin] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export default function KardesEkle() {
     setGonderiliyor(true);
     setHata(null);
     try {
-      const adSoyad = await kardesEkle(tckn, pin);
+      const adSoyad = await kardesEkle(kullaniciAdi, pin);
       toast(`${adSoyad} hesabınıza eklendi`);
       router.back();
     } catch (e) {
@@ -42,15 +42,16 @@ export default function KardesEkle() {
 
       <Kart>
         <Text style={tema.yazi.govde}>
-          Bu kurumda başka bir çocuğunuz varsa onu da bu hesapta görebilirsiniz. Eklemek istediğiniz çocuğun TC kimlik
-          numarasını ve onun PIN&apos;ini girin.
+          Bu kurumda başka bir çocuğunuz varsa onu da bu hesapta görebilirsiniz. Eklemek istediğiniz çocuğun kullanıcı
+          adını ve onun PIN&apos;ini girin.
         </Text>
         <Girdi
-          etiket="Diğer çocuğunuzun TC kimlik numarası"
-          keyboardType="number-pad"
-          maxLength={11}
-          value={tckn}
-          onChangeText={setTckn}
+          etiket="Diğer çocuğunuzun kullanıcı adı (örn. ali.yilmaz)"
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={60}
+          value={kullaniciAdi}
+          onChangeText={setKullaniciAdi}
           editable={!gonderiliyor}
           buyuk
         />
@@ -58,7 +59,7 @@ export default function KardesEkle() {
         <HataMesaji mesaj={hata} />
         <Buton baslik="Hesabıma Ekle" onPress={ekle} yukleniyor={gonderiliyor} buyuk />
         <Text style={tema.yazi.kucuk}>
-          PIN&apos;i bilmiyorsanız kurumunuzdan sıfırlamasını isteyin. Çocuğun kendi girişi (TC kimlik numarası + PIN) de
+          PIN&apos;i bilmiyorsanız kurumunuzdan sıfırlamasını isteyin. Çocuğun kendi girişi (kullanıcı adı + PIN) de
           çalışmaya devam eder.
         </Text>
       </Kart>

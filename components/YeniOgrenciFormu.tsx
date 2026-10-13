@@ -41,8 +41,8 @@ export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi, varsayilan
     setGonderiliyor(true);
     setHata(null);
     try {
-      await ogrenciEkle(sinif.kurum_id, sinif.id, adSoyad, dogumTarihi);
-      toast('Öğrenci eklendi');
+      const { kullaniciAdi } = await ogrenciEkle(sinif.kurum_id, sinif.id, adSoyad, dogumTarihi);
+      toast(kullaniciAdi ? `Öğrenci eklendi · veli girişi: ${kullaniciAdi}` : 'Öğrenci eklendi; veli girişi açılamadı (öğrencinin panelinden açın)');
       onEklendi();
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
@@ -70,7 +70,7 @@ export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi, varsayilan
       />
       <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} />
       <TarihGirdisi etiket="Doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
-      <Text style={tema.yazi.kucuk}>Veli girişi için TC kimlik numarası, kayıt açıldıktan sonra öğrencinin panelinden atanır.</Text>
+      <Text style={tema.yazi.kucuk}>Kayıtla birlikte veli girişi açılır: kullanıcı adı öğrencinin adından üretilir (örn. ali.yilmaz), ilk PIN 1234&apos;tür. Kullanıcı adını öğrencinin panelinde görürsünüz.</Text>
       <HataMesaji mesaj={hata} />
       <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
     </Kart>

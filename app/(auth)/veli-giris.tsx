@@ -1,4 +1,4 @@
-// Erişim: oturumu olmayan herkes. Veli, çocuğunun TCKN'si + 4 haneli PIN ile girer.
+// Erişim: oturumu olmayan herkes. Veli, çocuğunun kullanıcı adı (ad.soyad) + 4 haneli PIN ile girer.
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
@@ -14,7 +14,7 @@ import { veliGirisYap } from '@/lib/veli';
 
 export default function VeliGiris() {
   const router = useRouter();
-  const [tckn, setTckn] = useState('');
+  const [kullaniciAdi, setKullaniciAdi] = useState('');
   const [pin, setPin] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function VeliGiris() {
     setHata(null);
     try {
       // Giriş sunucudan geçer (deneme sınırı); başarılıysa oturum açılır ve ekran değişir.
-      await veliGirisYap(tckn, pin);
+      await veliGirisYap(kullaniciAdi, pin);
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'Giriş yapılamadı, lütfen tekrar deneyin.');
       setGonderiliyor(false);
@@ -38,11 +38,13 @@ export default function VeliGiris() {
 
       <Kart>
         <Girdi
-          etiket="Çocuğunuzun TC kimlik numarası"
-          keyboardType="number-pad"
-          maxLength={11}
-          value={tckn}
-          onChangeText={setTckn}
+          etiket="Kullanıcı adı (örn. ali.yilmaz)"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="username"
+          maxLength={60}
+          value={kullaniciAdi}
+          onChangeText={setKullaniciAdi}
           editable={!gonderiliyor}
           buyuk
         />

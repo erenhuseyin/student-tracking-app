@@ -1,7 +1,7 @@
 // Kullanıcının kendi hesabı: ad değiştirme ve oturum açıkken şifre değiştirme.
 // Erişim: giriş yapmış herkes, yalnızca kendi satırı (RLS: kullanici_kendi_satiri_guncelle;
 // kolon yetkisi ad_soyad'a izin verir). Veli adını değiştirmez — adı öğrenciden türetilir
-// (bkz. supabase/functions/tckn-hesap-olustur) ve PIN'ini `(veli)/pin-degistir` ekranından değiştirir.
+// (bkz. supabase/functions/veli-hesap-olustur) ve PIN'ini `(veli)/pin-degistir` ekranından değiştirir.
 import { EN_AZ_SIFRE_UZUNLUGU } from '@/lib/personel';
 import { supabase } from '@/lib/supabase';
 

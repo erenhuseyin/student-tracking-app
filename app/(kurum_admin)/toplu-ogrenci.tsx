@@ -65,18 +65,31 @@ export default function TopluOgrenci() {
 
       {sonuc ? (
         <Kart>
-          <HataMesaji
-            tur="basari"
-            mesaj={`${sonuc.eklenen} öğrenci eklendi${sonuc.veliHesabiAcilan > 0 ? `, ${sonuc.veliHesabiAcilan} veli hesabı açıldı (PIN "1234")` : ''}.`}
-          />
-          {sonuc.tcknHatalari.length > 0 ? (
+          <HataMesaji tur="basari" mesaj={`${sonuc.eklenen} öğrenci eklendi.`} />
+          {sonuc.hesaplar.length > 0 ? (
             <>
               <Text style={tema.yazi.govde}>
-                Şu öğrenciler eklendi ama veli hesapları açılamadı; TC kimlik numarasını öğrencinin kendi ekranından
-                atayabilirsiniz:
+                Veli girişleri açıldı. Velilere çocuklarının kullanıcı adını iletin; ilk PIN herkes için &quot;1234&quot;tür ve
+                veli ilk girişte yenisini belirler. Kullanıcı adları Raporlar &gt; Öğrenci listesinde de yer alır.
               </Text>
-              {sonuc.tcknHatalari.map((h) => (
-                <Text key={h.adSoyad} style={tema.yazi.kucuk}>
+              {sonuc.hesaplar.map((h) => (
+                <View key={h.kullaniciAdi} style={styles.hesap}>
+                  <Text style={[tema.yazi.govde, styles.satirMetinleri]}>{h.adSoyad}</Text>
+                  <Text style={[tema.yazi.govde, { fontFamily: tema.yaziTipi.yariKalin }]} selectable>
+                    {h.kullaniciAdi}
+                  </Text>
+                </View>
+              ))}
+            </>
+          ) : null}
+          {sonuc.veliHatalari.length > 0 ? (
+            <>
+              <Text style={tema.yazi.govde}>
+                Şu öğrenciler eklendi ama veli girişleri açılamadı; öğrencinin kendi ekranından &quot;Veli Girişini Aç&quot; ile
+                açabilirsiniz:
+              </Text>
+              {sonuc.veliHatalari.map((h, i) => (
+                <Text key={`${h.adSoyad}-${i}`} style={tema.yazi.kucuk}>
                   {h.adSoyad}: {h.mesaj}
                 </Text>
               ))}
@@ -100,7 +113,7 @@ export default function TopluOgrenci() {
                 <View style={styles.satirMetinleri}>
                   <Text style={tema.yazi.govde}>{s.adSoyad || '(ad yok)'}</Text>
                   <Text style={[tema.yazi.kucuk, s.hata ? { color: tema.renkler.hata } : null]}>
-                    {s.hata ?? [tarihiBicimle(s.dogumTarihi), s.tckn ? `TC ${s.tckn}` : 'TC yok'].join(' · ')}
+                    {s.hata ?? tarihiBicimle(s.dogumTarihi)}
                   </Text>
                 </View>
               </View>
@@ -118,11 +131,11 @@ export default function TopluOgrenci() {
       ) : (
         <Kart>
           <Text style={tema.yazi.govde}>
-            Her satıra bir öğrenci yazın ya da Excel&apos;den üç sütunu kopyalayıp yapıştırın:
+            Her satıra bir öğrenci yazın ya da Excel&apos;den iki sütunu kopyalayıp yapıştırın:
           </Text>
-          <Text style={styles.ornek}>Ad Soyad · Doğum tarihi · TC kimlik no (isteğe bağlı)</Text>
+          <Text style={styles.ornek}>Ad Soyad · Doğum tarihi</Text>
           <Text style={tema.yazi.kucuk}>
-            Örnek: Elif Kaya; 03.03.2019; 12345678950 — TC kimlik no yazılan öğrencinin veli hesabı da açılır.
+            Örnek: Elif Kaya; 03.03.2019 — her öğrenci için veli girişi de açılır (kullanıcı adı addan üretilir, ilk PIN 1234).
           </Text>
           <Girdi
             etiket="Öğrenci listesi"
@@ -144,6 +157,11 @@ export default function TopluOgrenci() {
 
 function olustur(t: Tema) {
   return StyleSheet.create({
+    hesap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.bosluk.m,
+    },
     satir: {
       flexDirection: 'row',
       alignItems: 'center',
