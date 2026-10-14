@@ -2268,6 +2268,139 @@ select tst.esit('veli cinsiyet panosunu alamaz',
 select tst.esit('veli çocuğunun cinsiyetini yazamaz',
   tst.dene($q$update public.ogrenci set cinsiyet = 'erkek' where id = 'e0000000-0000-0000-0000-00000000d111'$q$), 'ok:0');
 
+-- ===========================================================================
+-- 33. KONU NOTU, YÖNETİCİ YANITI, İŞLENME TARİHİ VE DERS RAPORU
+--   Kurum G ağacı (28. bölüm). 47 ogrG (29. bölüm; semt öğretmeni) sG'ye atanır; yeni 48 ogrG2
+--   (bölge G2) sG2'ye. Kurum G'de "Kademe G" -> "Ders G" -> iki konu; sG ve sG2 bu kademeyi izler.
+-- ===========================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000048', 'authenticated', 'authenticated', 'ogrg2@test.local');
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad) values
+  ('b0000000-0000-0000-0000-000000000048', 'a0000000-0000-0000-0000-000000000048', 'ogretmen', 'c0000000-0000-0000-0000-0000000000d2', 'ogrG2');
+insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values
+  ('c0000000-0000-0000-0000-00000000d111', 'b0000000-0000-0000-0000-000000000047', 'd0000000-0000-0000-0000-00000000d111'),
+  ('c0000000-0000-0000-0000-0000000000d2', 'b0000000-0000-0000-0000-000000000048', 'd0000000-0000-0000-0000-0000000000d2');
+insert into public.kademe (id, kurum_id, ad) values
+  ('f0000000-0000-0000-0000-0000000000d0', 'c0000000-0000-0000-0000-0000000000d0', 'Kademe G');
+insert into public.kademe_dersi (id, kurum_id, kademe_id, ad) values
+  ('f0000000-0000-0000-0000-0000000000d1', 'c0000000-0000-0000-0000-0000000000d0', 'f0000000-0000-0000-0000-0000000000d0', 'Ders G');
+insert into public.ders_konusu (id, kurum_id, ders_id, ad, sira) values
+  ('f0000000-0000-0000-0000-0000000000d2', 'c0000000-0000-0000-0000-0000000000d0', 'f0000000-0000-0000-0000-0000000000d1', 'Konu 1', 1),
+  ('f0000000-0000-0000-0000-0000000000d3', 'c0000000-0000-0000-0000-0000000000d0', 'f0000000-0000-0000-0000-0000000000d1', 'Konu 2', 2);
+update public.sinif set kademe_id = 'f0000000-0000-0000-0000-0000000000d0'
+  where id in ('d0000000-0000-0000-0000-00000000d111', 'd0000000-0000-0000-0000-0000000000d2');
+
+-- ogrG: kendi sınıfına not yazar, konuyu işler; yanıt ve görüldü yazamaz; ileri tarih yok
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000047","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('hoca kendi sınıfına konu notu yazar',
+  tst.dene($q$insert into public.sinif_konu_notu (kurum_id, sinif_id, konu_id, not_metni) values ('c0000000-0000-0000-0000-00000000d111', 'd0000000-0000-0000-0000-00000000d111', 'f0000000-0000-0000-0000-0000000000d2', 'Tekrar edilecek')$q$), 'ok:1');
+select tst.esit('hocanın notu okunmamış başlar',
+  (select (goruldu_zamani is null and yazan_kullanici_id = 'b0000000-0000-0000-0000-000000000047')::text from public.sinif_konu_notu), 'true');
+select tst.esit('hoca başka sınıfa not yazamaz',
+  tst.dene($q$insert into public.sinif_konu_notu (kurum_id, sinif_id, konu_id, not_metni) values ('c0000000-0000-0000-0000-0000000000d2', 'd0000000-0000-0000-0000-0000000000d2', 'f0000000-0000-0000-0000-0000000000d2', 'x')$q$), 'hata:42501');
+select tst.esit('boş not reddedilir',
+  tst.dene($q$update public.sinif_konu_notu set not_metni = '  '$q$), 'hata:23514');
+select tst.esit('hoca yanıt yazamaz', tst.dene($q$update public.sinif_konu_notu set yanit_metni = 'x'$q$), 'hata:42501');
+select tst.esit('hoca görüldü işaretleyemez', tst.dene($q$update public.sinif_konu_notu set goruldu_zamani = now()$q$), 'hata:42501');
+select tst.esit('hoca yazan kişiyi değiştiremez (kolon yetkisi)',
+  tst.dene($q$update public.sinif_konu_notu set yazan_kullanici_id = null$q$), 'hata:42501');
+select tst.esit('hoca konuyu işler',
+  tst.dene($q$insert into public.sinif_konu_ilerleme (kurum_id, sinif_id, konu_id, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000d111', 'd0000000-0000-0000-0000-00000000d111', 'f0000000-0000-0000-0000-0000000000d2', 'b0000000-0000-0000-0000-000000000047')$q$), 'ok:1');
+select tst.esit('hoca işlenme tarihini geçmişe alır',
+  tst.dene($q$update public.sinif_konu_ilerleme set tamamlanma_tarihi = '2026-09-01'$q$), 'ok:1');
+select tst.esit('işlenme tarihi ileri olamaz',
+  tst.dene($q$update public.sinif_konu_ilerleme set tamamlanma_tarihi = current_date + 3$q$), 'hata:23514');
+select tst.esit('hoca ders raporu alamaz (boş)', (select count(*) from public.ders_raporu())::text, '0');
+
+-- ogrG2: başka sınıfın notunu görmez
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000048","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka sınıfın hocası notu görmez', (select count(*) from public.sinif_konu_notu)::text, '0');
+
+-- adminG111 (semt): notu görür, görüldü işaretler, yanıt yazar
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000043","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('yönetici kapsamındaki notu görür', (select count(*) from public.sinif_konu_notu)::text, '1');
+select tst.esit('ders raporunda okunmamış not 1',
+  (select okunmamis_not::text from public.ders_raporu() where sinif_adi = 'sG'), '1');
+select tst.esit('yönetici görüldü işaretler', tst.dene($q$update public.sinif_konu_notu set goruldu_zamani = '2000-01-01'$q$), 'ok:1');
+select tst.esit('görüldü zamanı ve gören sunucudan',
+  (select (goruldu_zamani > now() - interval '1 minute' and goren_kullanici_id = 'b0000000-0000-0000-0000-000000000043')::text from public.sinif_konu_notu), 'true');
+select tst.esit('yönetici yanıt yazar', tst.dene($q$update public.sinif_konu_notu set yanit_metni = 'Tamam, haftaya bakalım'$q$), 'ok:1');
+select tst.esit('yanıtı veren sunucudan',
+  (select (yanit_veren_kullanici_id = 'b0000000-0000-0000-0000-000000000043' and yanit_zamani is not null)::text from public.sinif_konu_notu), 'true');
+select tst.esit('ders raporu: 1/2 konu, son tarih',
+  (select islenen_konu || '/' || toplam_konu || ' ' || son_islenme from public.ders_raporu() where sinif_adi = 'sG'), '1/2 2026-09-01');
+select tst.esit('ders raporu hoca adı', (select hocalar from public.ders_raporu() where sinif_adi = 'sG'), 'ogrG');
+select tst.esit('semt yöneticisi raporda komşu bölgenin sınıfını görmez',
+  (select count(*) from public.ders_raporu() where sinif_adi = 'sG2')::text, '0');
+
+-- ogrG: yanıtı görür; notu değiştirince yeniden okunmamış olur, yanıt korunur
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000047","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('hoca yanıtı görür', (select yanit_metni from public.sinif_konu_notu), 'Tamam, haftaya bakalım');
+select tst.esit('hoca notunu değiştirir', tst.dene($q$update public.sinif_konu_notu set not_metni = 'Tekrar edildi'$q$), 'ok:1');
+select tst.esit('değişen not yeniden okunmamış, yanıt korunur',
+  (select (goruldu_zamani is null and yanit_metni is not null)::text from public.sinif_konu_notu), 'true');
+
+-- adminG2 (komşu bölge): notu görmez, raporda yalnızca kendi sınıfı
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000044","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('komşu bölge yöneticisi notu görmez', (select count(*) from public.sinif_konu_notu)::text, '0');
+select tst.esit('komşu bölge yöneticisi notu güncelleyemez', tst.dene($q$update public.sinif_konu_notu set yanit_metni = 'x'$q$), 'ok:0');
+select tst.esit('komşu bölge raporunda sG yok', (select count(*) from public.ders_raporu() where sinif_adi = 'sG')::text, '0');
+select tst.esit('komşu bölge raporunda sG2 var', (select count(*) from public.ders_raporu() where sinif_adi = 'sG2')::text, '1');
+
+-- adminG (kök): raporda iki sınıf
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000040","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('kök yönetici raporda tüm ağacın sınıfları',
+  (select count(*) from public.ders_raporu())::text, (select count(*) from public.sinif)::text);
+select tst.esit('kök yönetici raporda sG ve sG2', (select count(*) from public.ders_raporu() where sinif_adi in ('sG', 'sG2'))::text, '2');
+
+-- adminB (başka müşteri): hiçbir şey
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('başka müşterinin yöneticisi notu görmez', (select count(*) from public.sinif_konu_notu)::text, '0');
+select tst.esit('başka müşterinin raporunda G sınıfı yok',
+  (select count(*) from public.ders_raporu() where sinif_adi in ('sG', 'sG2'))::text, '0');
+
+-- veliG: konunun işlendiğini görür, notu görmez, rapor boş
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000045","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli işlenen konuyu görür', (select count(*) from public.sinif_konu_ilerleme)::text, '1');
+select tst.esit('veli konu notunu göremez', (select count(*) from public.sinif_konu_notu)::text, '0');
+select tst.esit('veli ders raporu alamaz (boş)', (select count(*) from public.ders_raporu())::text, '0');
+
+-- anon
+reset role;
+set local role anon;
+select tst.esit('anon konu notunu okuyamaz', tst.dene($q$select count(*) from public.sinif_konu_notu$q$), 'hata:42501');
+select tst.esit('anon ders raporunu çağıramaz', tst.dene($q$select count(*) from public.ders_raporu()$q$), 'hata:42501');
+
+-- Konu silinince not da silinir
+reset role;
+delete from public.ders_konusu where id = 'f0000000-0000-0000-0000-0000000000d2';
+select tst.esit('konu silinince notu silinir', (select count(*) from public.sinif_konu_notu)::text, '0');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 
