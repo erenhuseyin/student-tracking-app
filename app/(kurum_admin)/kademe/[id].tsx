@@ -25,6 +25,7 @@ import {
   kademeSil,
   konulariEkle,
   konuSil,
+  topluEklemeMesaji,
 } from '@/lib/icerik';
 import { useOturum } from '@/lib/oturum';
 import { type Tema, useTema } from '@/lib/tema';
@@ -105,11 +106,11 @@ export default function KademeDetay() {
   const topluEkle = () =>
     calistir(async () => {
       if (!kurum) return;
-      const eklenen = seciliDers
+      const sonuc = seciliDers
         ? await konulariEkle(kurum.id, seciliDers.id, topluMetin, seciliDers.konular.length)
         : await ezberleriEkle(kurum.id, id, topluMetin, icerik.ezberler.length);
       setTopluMetin('');
-      toast(`${eklenen} ${tekil} eklendi`);
+      toast(topluEklemeMesaji(sonuc, tekil));
     });
 
   return (
@@ -212,7 +213,9 @@ export default function KademeDetay() {
               try {
                 await kademeSil(id);
                 toast('Kademe silindi');
-                router.back();
+                // Ekran adresle açıldıysa (web'de yenileme) geri gidecek ekran yoktur.
+                if (router.canGoBack()) router.back();
+                else router.replace('/kademeler');
               } catch (e) {
                 setHata(mesajaCevir(e));
               }

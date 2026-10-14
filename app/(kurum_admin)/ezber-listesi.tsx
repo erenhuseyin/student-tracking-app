@@ -13,7 +13,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { OnayButonu } from '@/components/OnayButonu';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { ezberGruplari, ezberleriEkle, ezberListesiniGetir, ezberMaddesiSil } from '@/lib/icerik';
+import { ezberGruplari, ezberleriEkle, ezberListesiniGetir, ezberMaddesiSil, topluEklemeMesaji } from '@/lib/icerik';
 import { useOturum } from '@/lib/oturum';
 import { type Tema, useTema } from '@/lib/tema';
 import { useToast } from '@/lib/toast';
@@ -77,9 +77,9 @@ export default function EzberListesi() {
       if (!kurum) return;
       // Sıra listenin sonundan sürer (silinen maddelerin bıraktığı boşluklar sırayı bozmaz).
       const sonSira = Math.max(0, ...maddeler.map((m) => m.sira));
-      const eklenen = await ezberleriEkle(kurum.id, null, topluMetin, sonSira, grup);
+      const sonuc = await ezberleriEkle(kurum.id, null, topluMetin, sonSira, grup);
       setTopluMetin('');
-      toast(`${eklenen} ezber maddesi eklendi`);
+      toast(topluEklemeMesaji(sonuc, 'ezber maddesi'));
     });
 
   return (

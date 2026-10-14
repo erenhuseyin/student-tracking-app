@@ -25,6 +25,31 @@ export function satirlaraAyir(metin: string): string[] {
   return [...new Set(metin.split(/\r?\n/).map((s) => s.trim()).filter(Boolean))];
 }
 
+// Ad karşılaştırması: büyük/küçük harf ve aradaki boşluk farkı aynı ad sayılır.
+const adAnahtari = (ad: string) => ad.trim().replace(/\s+/g, ' ').toLocaleLowerCase('tr');
+
+export type TopluEklemeSonucu = { eklenen: number; atlanan: number };
+
+// Yapıştırılan satırlardan listede zaten bulunanları ve birbirinin tekrarını ayıklar.
+function yenileriAyir(metin: string, mevcutAdlar: string[], bosHata: string): { yeniler: string[]; atlanan: number } {
+  const adlar = satirlaraAyir(metin);
+  if (adlar.length === 0) throw new Error(bosHata);
+  const gorulen = new Set(mevcutAdlar.map(adAnahtari));
+  const yeniler = adlar.filter((ad) => {
+    const anahtar = adAnahtari(ad);
+    if (gorulen.has(anahtar)) return false;
+    gorulen.add(anahtar);
+    return true;
+  });
+  if (yeniler.length === 0) throw new Error(adlar.length === 1 ? 'Bu ad listede zaten var.' : 'Bu adların hepsi listede zaten var.');
+  return { yeniler, atlanan: adlar.length - yeniler.length };
+}
+
+// Toplu ekleme sonrası kısa bildirim metni ("3 konu eklendi, 2 zaten vardı").
+export function topluEklemeMesaji(sonuc: TopluEklemeSonucu, tekil: string): string {
+  return `${sonuc.eklenen} ${tekil} eklendi${sonuc.atlanan ? `, ${sonuc.atlanan} zaten vardı` : ''}`;
+}
+
 // ---------------------------------------------------------------------------
 // Tanımlar
 // ---------------------------------------------------------------------------
@@ -91,15 +116,25 @@ export async function dersSil(id: string): Promise<void> {
   kontrol(error);
 }
 
-// Her satır bir konu; listenin sonuna eklenir.
-export async function konulariEkle(kokKurumId: string, dersId: string, metin: string, mevcutSayi: number): Promise<number> {
-  const adlar = satirlaraAyir(metin);
-  if (adlar.length === 0) throw new Error('En az bir konu yazın (her satıra bir konu).');
+// Her satır bir konu; listenin sonuna eklenir. Derste aynı adla bulunan konu atlanır.
+export async function konulariEkle(
+  kokKurumId: string,
+  dersId: string,
+  metin: string,
+  mevcutSayi: number,
+): Promise<TopluEklemeSonucu> {
+  const { data: mevcut, error: okumaHatasi } = await supabase.from('ders_konusu').select('ad').eq('ders_id', dersId);
+  kontrol(okumaHatasi);
+  const { yeniler, atlanan } = yenileriAyir(
+    metin,
+    (mevcut ?? []).map((k) => k.ad),
+    'En az bir konu yazın (her satıra bir konu).',
+  );
   const { error } = await supabase
     .from('ders_konusu')
-    .insert(adlar.map((ad, i) => ({ kurum_id: kokKurumId, ders_id: dersId, ad, sira: mevcutSayi + i + 1 })));
+    .insert(yeniler.map((ad, i) => ({ kurum_id: kokKurumId, ders_id: dersId, ad, sira: mevcutSayi + i + 1 })));
   kontrol(error);
-  return adlar.length;
+  return { eklenen: yeniler.length, atlanan };
 }
 
 export async function konuSil(id: string): Promise<void> {
@@ -132,14 +167,19 @@ export async function ezberleriEkle(
   metin: string,
   mevcutSayi: number,
   grup: string | null = null,
-): Promise<number> {
-  const adlar = satirlaraAyir(metin);
-  if (adlar.length === 0) throw new Error('En az bir ezber maddesi yazın (her satıra bir madde).');
+): Promise<TopluEklemeSonucu> {
+  // Kademeye özel madde ortak listedekiyle de karşılaştırılır (sınıfta ikisi birlikte görünür).
+  const mevcut = await ezberListesiniGetir(kademeId);
+  const { yeniler, atlanan } = yenileriAyir(
+    metin,
+    mevcut.map((m) => m.ad),
+    'En az bir ezber maddesi yazın (her satıra bir madde).',
+  );
   const { error } = await supabase
     .from('ezber_maddesi')
-    .insert(adlar.map((ad, i) => ({ kurum_id: kokKurumId, kademe_id: kademeId, ad, sira: mevcutSayi + i + 1, grup: grup?.trim() || null })));
+    .insert(yeniler.map((ad, i) => ({ kurum_id: kokKurumId, kademe_id: kademeId, ad, sira: mevcutSayi + i + 1, grup: grup?.trim() || null })));
   kontrol(error);
-  return adlar.length;
+  return { eklenen: yeniler.length, atlanan };
 }
 
 export async function ezberMaddesiSil(id: string): Promise<void> {
