@@ -1,6 +1,6 @@
 # Yapılacaklar
 
-> Sıradaki işler ve geliştirme önerileri. Bir iş bitince buradan silinir ve `docs/ILERLEME.md > Tamamlananlar`'a yazılır. Sıra önceliktir; kullanıcı sırayı değiştirebilir. Son güncelleme: 2026-10-13.
+> Sıradaki işler ve geliştirme önerileri. Bir iş bitince buradan silinir ve `docs/ILERLEME.md > Tamamlananlar`'a yazılır. Sıra önceliktir; kullanıcı sırayı değiştirebilir. Son güncelleme: 2026-10-14.
 
 ## A. Bekleyen (kullanıcıda)
 
@@ -8,6 +8,8 @@
 2. **`redesign/defter` dalını `main`'e birleştirmek** (telefon kontrolünden sonra).
 0. **Canlıya alma — kullanıcı adı (2026-10-13):** migration `20261021120000_kullanici_adi.sql` (TCKN kolonlarını siler, geri dönüşü yok) → `rls.test.sql` → fonksiyonlar: yeni `veli-hesap-olustur`; güncellenen `veli-giris`, `veli-kardes-ekle`, `veli-pin-degistir`, `basvuru`; Dashboard'dan silinecek `tckn-hesap-olustur` ve `veli-pin-sifirla` → eski veli hesapları için öğrenci ekranından "PIN'i sıfırla" → `npx expo start --clear`. Migration ile fonksiyonlar arasında veli girişi çalışmaz.
 3. **Web'de gözle tur**: yeni web düzeni, logo ve palet; beğenilmeyen ekranlar buraya eklenir.
+4. **Canlıya alma — müşteri istekleri (2026-10-14):** migration `20261022120000_cinsiyet.sql` → `rls.test.sql` (32. bölüm) → `duyuru-bildirim-gonder` deploy → `npx expo start --clear`. Fonksiyon migration'dan bağımsızdır; migration uygulanmadan yeni istemcide cinsiyet alanları kaydedilemez ve panodaki cinsiyet satırı görünmez (pano yine çalışır).
+5. **Bizdeki kademe-ders takibinin test edilmesi** (kullanıcı: "bizdeki kısmını test edelim, sonra oradaki özellikleri ekleriz"); ardından B7.
 
 ## B. Kararı verilmiş, sırası gelen işler (kullanıcı kararları, 2026-10-13)
 
@@ -16,8 +18,10 @@ Her biri çok dosyalı; başlamadan önce plan mode.
 1. **Hocaya da `ad.soyad` kullanıcı adı.** Hoca hesabı e-posta davetiyle açılmaya devam eder; ayrıca kullanıcı adı atanır (girişte e-posta yerine kullanılabilir). Öğrencideki üretim kuralı (`gizli.kullanici_adi_tabani`) yeniden kullanılır; personel girişinin de veli girişi gibi sunucudan geçmesi gerekir (deneme sınırı). Öğrenci ve personel adları aynı havuzdan mı verilecek, planda sorulacak.
 2. **Hoca kendi halkasını (sınıfını) ve öğrencisini açabilsin.** Bugün yalnızca yönetici açıyor. Öğretmene kendi biriminde sınıf açma (kendisi atanmış olarak) ve kendi sınıfına öğrenci ekleme yetkisi: RLS politikaları + testler, öğretmen ekranlarında "Yeni sınıf" / "Yeni öğrenci". Başvuruyla öğrenci kaydı da açık kalır. Hocanın eklediği öğrenciye de veli girişi açılmalı (`veli-hesap-olustur` bugün yalnızca yöneticiye açık). Açık noktalar: hoca sınıfı/öğrenciyi silebilir ya da pasife alabilir mi, müşteri bazında kapatılabilir mi.
 3. **Terimler markaya göre değişsin** (Hoca / Halka / Kademe …). Seviye adları zaten markadan geliyor; rol ve sınıf adları da `marka.json`'dan gelecek. **Sonraki adım (ileride):** ekran bazlı metin katmanı — hem çoklu dil hem de müşterinin ekran başlıklarını ve yazılarını kendisinin değiştirebilmesi için. Bu yüzden 3. madde, sabit metinleri tek bir sözlüğe toplayacak şekilde yapılmalı.
-4. **`genchareket` markasının ayrı uygulama olarak açılması.** Logo ve palet şimdilik `varsayilan` markasına uygulandı. Ayrı marka için: `markalar/genchareket/` (paket `com.ergenecode.genchareket`), EAS projesi, Firebase Android uygulaması + `google-services.json`, veritabanında kök kurumun marka kodu, ezber tohumunun o kurum için çalıştırılması. Mağaza ikonu için **yüksek çözünürlüklü ya da vektör logo** gerekiyor (eldeki 400×149 px).
+4. **`genchareket` markasının ayrı uygulama olarak açılması.** Logo ve palet şimdilik `varsayilan` markasına uygulandı. Ayrı marka için: `markalar/genchareket/` (paket `com.ergenecode.genchareket`), EAS projesi, Firebase Android uygulaması + `google-services.json`, veritabanında kök kurumun marka kodu, ezber tohumunun o kurum için çalıştırılması. Mağaza ikonu için **yüksek çözünürlüklü ya da vektör logo** gerekiyor (eldeki 400×149 px). GH KÂŞİF'te büyük logolar var: `~/Desktop/uygulamam/public/brand/` (yatay 1672×941, rozet ve ikon 1254×1254, beyaz sürüm) — kullanılabilirliği kullanıcıya sorulmalı.
 5. **KVKK ve mağaza hazırlığı**, ardından EAS build + Play Console iç test: aydınlatma metni, açık rıza (başvuru formu dahil), gizlilik politikası, veri silme yolu, demo hesap.
+6. **Görev ve rol tek sistemde mi olmalı?** (kullanıcı, 2026-10-14: "görev ve rol olarak iki farklı sistem yapmışsın, bu biraz anlamsız olabilir; planlama yapacağız, not al"). Bugün: rol sabit ve veri yetkisini belirler (RLS), görev temel role bağlı bir unvan + menü görünürlüğüdür. Planlamada konuşulacaklar: görevlerin "rol" olarak görünmesi (Roller ve Menü Yetkileri ekranlarının birleşmesi), sabit rollerin arayüzde görev gibi yönetilmesi, ya da gerçek rol başına veri yetkisi (tüm RLS'in yetki tablosuna göre yeniden yazılması — 2026-10-08 ve 2026-10-12'de reddedilmişti).
+7. **Kademe-ders takibinde GH KÂŞİF'ten eksikler** (müşteri isteği, 2026-10-14; A5'ten sonra): konu işlenme tarihini değiştirme ve konuya not; hazır Kademe I-III ders/konu tohumu (`~/Desktop/uygulamam/prisma/kademe*-topics.mjs`); ders ekranında Ezber kartı (madde başına "tamamlayan X/Y öğrenci"); yönetici **ders raporu** (halka × hoca × kademe: tamamlanan/kalan konu, ilerleme; hoca/halka/kademe/birim süzgeci, CSV); hocanın sınıf açarken kademe seçmesi (B2 ile birlikte).
 
 ## C. Geliştirme önerileri (Claude'un önerileri; kullanıcı "çoğu güzel" dedi, tek tek onaylanmadı)
 
@@ -41,6 +45,11 @@ Her biri çok dosyalı; başlamadan önce plan mode.
 11. Dönem gelişim raporu (PDF) ve gelişim kaydına fotoğraf (ikisi de yeni build ister; aynı build'e alınabilir).
 12. Duyuruda okundu ve katılım yanıtı.
 13. Kardeşi hesaptan çıkarma.
+
+**Müşteri istekleri turundan kalanlar (2026-10-14)**
+18. Etkinlik hatırlatması (etkinlik günü sabah; zamanlanmış iş — `pg_cron` ya da harici tetikleyici).
+19. Başvuru formunda cinsiyet (`basvuru` fonksiyonu + tablo).
+20. Etkinliğe katılım yanıtı / okundu (C12 ile aynı iş).
 
 **Altyapı**
 14. Supabase CLI bağlantısı (`supabase link`, migration geçmişi, `gen types`): migration ve fonksiyonlar elle kopyalanıyor, tipler elle yazılıyor.
