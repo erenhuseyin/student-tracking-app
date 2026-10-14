@@ -89,7 +89,7 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: false,
   },
   web: {
-    output: 'static',
+    output: 'single',
     favicon: gorsel('favicon.png'),
   },
   plugins: [

@@ -1,0 +1,15 @@
+# Web sürümü (Expo web, tek sayfa). Supabase anahtarları Netlify > Site configuration >
+# Environment variables'ta durur: EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY.
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  MARKA = "varsayilan"
+
+# Tüm adresler uygulamaya gider; yönlendirmeyi Expo Router yapar.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
