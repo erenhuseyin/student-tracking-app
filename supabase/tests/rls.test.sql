@@ -1735,9 +1735,13 @@ set local role authenticated;
 select tst.esit('kök admin kademeyi siler', tst.dene($q$delete from public.kademe where id = '10000000-0000-0000-0000-00000000000a'$q$), 'ok:1');
 reset role;
 select tst.esit('kademeyle birlikte konular silinir', (select count(*) from public.ders_konusu where kurum_id = 'c0000000-0000-0000-0000-00000000000a')::text, '0');
-select tst.esit('kademeyle birlikte konu ilerlemesi silinir', (select count(*) from public.sinif_konu_ilerleme)::text, '0');
-select tst.esit('kademeyle birlikte ezber kayıtları silinir', (select count(*) from public.ogrenci_ezber)::text, '0');
-select tst.esit('sınıfın kademe bağı boşalır', (select count(*) from public.sinif where kademe_id is not null)::text, '0');
+select tst.esit('kademeyle birlikte konu ilerlemesi silinir', (select count(*) from public.sinif_konu_ilerleme
+  where kurum_id in (select id from public.kurum where kok_kurum_id = 'c0000000-0000-0000-0000-00000000000a'))::text, '0');
+-- Sayımlar test müşterisiyle sınırlı: canlıda gerçek ezber/ilerleme kayıtları var.
+select tst.esit('kademeyle birlikte ezber kayıtları silinir', (select count(*) from public.ogrenci_ezber
+  where kurum_id in (select id from public.kurum where kok_kurum_id = 'c0000000-0000-0000-0000-00000000000a'))::text, '0');
+select tst.esit('sınıfın kademe bağı boşalır', (select count(*) from public.sinif where kademe_id is not null
+  and kurum_id in (select id from public.kurum where kok_kurum_id = 'c0000000-0000-0000-0000-00000000000a'))::text, '0');
 
 -- ===========================================================================
 -- 27. PASİF ÖĞRENCİ ve MAZERETLİ YOKLAMA
