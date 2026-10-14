@@ -28,6 +28,7 @@ export default function Layout() {
         </Stack.Protected>
         <Stack.Protected guard={duyurularAcik}>
           <Stack.Screen name="yeni-duyuru" />
+          <Stack.Screen name="takvim" />
           <Stack.Screen name="duyuru-duzenle/[id]" />
         </Stack.Protected>
         <Stack.Protected guard={programAcik}>

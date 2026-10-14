@@ -47,8 +47,12 @@ export async function tumBildirimleriOkunduYap(kullaniciId: string): Promise<voi
 // Bildirime (listede ya da telefondaki push'a) dokununca açılacak ekran. Rolün o ekranı yoksa null.
 export function bildirimHedefi(
   rol: Rol,
-  bildirim: { tip: string; ogrenci_id?: string | null },
+  // `tarih`: etkinlik bildiriminin günü (push verisinde); `baslik`: bildirim listesindeki başlık.
+  bildirim: { tip: string; ogrenci_id?: string | null; tarih?: string | null; baslik?: string | null },
 ): Href | null {
+  if (bildirim.tip === 'duyuru' && rol !== 'super_admin' && (bildirim.tarih || bildirim.baslik === 'Yeni Etkinlik')) {
+    return bildirim.tarih ? { pathname: '/takvim', params: { tarih: bildirim.tarih } } : '/takvim';
+  }
   if (bildirim.tip === 'yoklama' || bildirim.tip === 'gelisim_kaydi') {
     return rol === 'veli' && bildirim.ogrenci_id ? `/cocuk/${bildirim.ogrenci_id}` : null;
   }

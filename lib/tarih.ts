@@ -83,3 +83,34 @@ export function haftaAraligiBicimle(pazartesi: string): string {
 export function gunBasligi(tarih: string): string {
   return `${GUN_KISA_ADLARI[isoGun(tarih) - 1]} ${nesneye(tarih).getDate()}`;
 }
+
+// ---------------------------------------------------------------------------
+// Ay takvimi (Takvim ekranı). Ay 'YYYY-AA' metniyle anılır.
+// ---------------------------------------------------------------------------
+
+export function ayAnahtari(tarih: string): string {
+  return tarih.slice(0, 7);
+}
+
+export function ayEkle(ay: string, ayFarki: number): string {
+  const [yil, a] = ay.split('-').map(Number);
+  return metne(new Date(yil, a - 1 + ayFarki, 1)).slice(0, 7);
+}
+
+// '2026-10' -> 'Ekim 2026'
+export function ayBasligi(ay: string): string {
+  const [yil, a] = ay.split('-').map(Number);
+  return new Date(yil, a - 1, 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+}
+
+// Ay ızgarası: ayın ilk gününün haftasının pazartesisinden başlayan, tam haftalardan oluşan günler
+// (5 ya da 6 hafta). `buAy` false olan günler önceki/sonraki aya aittir.
+export function ayIzgarasi(ay: string): { tarih: string; buAy: boolean }[] {
+  const ilk = `${ay}-01`;
+  const son = gunEkle(`${ayEkle(ay, 1)}-01`, -1);
+  const bas = haftaBaslangici(ilk);
+  const bitis = gunEkle(haftaBaslangici(son), 6);
+  const gunler: { tarih: string; buAy: boolean }[] = [];
+  for (let t = bas; t <= bitis; t = gunEkle(t, 1)) gunler.push({ tarih: t, buAy: t.startsWith(ay) });
+  return gunler;
+}

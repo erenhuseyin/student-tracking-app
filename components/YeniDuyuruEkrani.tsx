@@ -1,6 +1,6 @@
 // Yeni duyuru/etkinlik (kurum admini ve öğretmen). Kapsam seçenekleri role göre: kurum admini
 // kendi kurumunun tamamına ya da bir sınıfına, öğretmen yalnızca atandığı sınıflara yazar.
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { DuyuruFormu, type DuyuruKapsami } from '@/components/DuyuruFormu';
@@ -12,6 +12,7 @@ import { useToast } from '@/lib/toast';
 import { useOturum } from '@/lib/oturum';
 import { EN_FAZLA_SEVIYE, seviyeAdiKucuk } from '@/lib/seviye';
 import { siniflariGetir } from '@/lib/siniflar';
+import { tarihGecerliMi } from '@/lib/tarih';
 import type { Sinif } from '@/lib/tipler';
 
 // Yöneticinin kurumuna yazdığı genel duyuru altındaki tüm birimleri de kapsar.
@@ -23,6 +24,9 @@ function kapsamEtiketi(seviye: number): string {
 export function YeniDuyuruEkrani() {
   const router = useRouter();
   const toast = useToast();
+  // Takvimden açılınca: tür etkinlik ve seçilen gün dolu gelir.
+  const { tur, tarih } = useLocalSearchParams<{ tur?: string; tarih?: string }>();
+  const etkinlikten = tur === 'etkinlik';
   const { kullanici, kurum } = useOturum();
   const [siniflar, setSiniflar] = useState<Sinif[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -46,7 +50,7 @@ export function YeniDuyuruEkrani() {
 
   return (
     <Ekran kaydirilabilir>
-      <Stack.Screen options={{ title: 'Yeni Duyuru' }} />
+      <Stack.Screen options={{ title: etkinlikten ? 'Yeni Etkinlik' : 'Yeni Duyuru' }} />
 
       <HataMesaji mesaj={hata} />
       {kapsamlar && kullanici && kurum ? (
@@ -55,11 +59,14 @@ export function YeniDuyuruEkrani() {
         ) : (
           <DuyuruFormu
             kapsamlar={kapsamlar}
+            varsayilan={
+              etkinlikten ? { tur: 'etkinlik', etkinlikTarihi: tarih && tarihGecerliMi(tarih) ? tarih : '' } : undefined
+            }
             onKaydet={async (girdi, kapsam) => {
               // Sınıfa özel duyuru sınıfın kurumunda durur (bileşik FK); kurum geneli yazanın kurumunda.
               const sinif = siniflar?.find((s) => s.id === kapsam?.sinifId);
               await duyuruEkle(sinif?.kurum_id ?? kurum.id, sinif?.id ?? null, kullanici.id, girdi);
-              toast('Duyuru yayınlandı');
+              toast(girdi.tur === 'etkinlik' ? 'Etkinlik yayınlandı' : 'Duyuru yayınlandı');
               router.back();
             }}
           />

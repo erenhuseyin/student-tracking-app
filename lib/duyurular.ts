@@ -94,15 +94,32 @@ function girdiyiDogrula(girdi: DuyuruGirdisi) {
 // duyuruyu yalnızca o sınıfı görebilenler okur. Birim adları da öyle: herkes kendi kurumunu ve
 // üstlerini, yönetici ayrıca altındaki birimleri okur; okunamazsa kart "Tüm kurum" yazar.
 export async function duyurulariGetir(): Promise<DuyuruSatiri[]> {
-  const [{ data, error }, siniflar, kurumlar] = await Promise.all([
-    supabase.from('duyuru').select('*').order('olusturma_tarihi', { ascending: false }).limit(LISTE_SINIRI),
-    siniflariGetir(),
-    supabase.from('kurum').select('id, ad'),
-  ]);
+  return adlarlaGetir(supabase.from('duyuru').select('*').order('olusturma_tarihi', { ascending: false }).limit(LISTE_SINIRI));
+}
+
+// Takvim: [baslangic, bitis] günlerindeki (cihazın saatine göre, uçlar dahil) etkinlikler, zamana
+// göre sıralı. Aynı güne birden çok etkinlik olabilir. Kapsamı RLS belirler (duyurularla aynı).
+export async function etkinlikleriGetir(baslangic: string, bitis: string): Promise<DuyuruSatiri[]> {
+  const [y1, a1, g1] = baslangic.split('-').map(Number);
+  const [y2, a2, g2] = bitis.split('-').map(Number);
+  return adlarlaGetir(
+    supabase
+      .from('duyuru')
+      .select('*')
+      .eq('tur', 'etkinlik')
+      .gte('etkinlik_zamani', new Date(y1, a1 - 1, g1).toISOString())
+      .lt('etkinlik_zamani', new Date(y2, a2 - 1, g2 + 1).toISOString())
+      .order('etkinlik_zamani')
+      .limit(500),
+  );
+}
+
+async function adlarlaGetir(sorgu: PromiseLike<{ data: Duyuru[] | null; error: { message: string; code?: string } | null }>) {
+  const [{ data, error }, siniflar, kurumlar] = await Promise.all([sorgu, siniflariGetir(), supabase.from('kurum').select('id, ad')]);
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
   const adHaritasi = new Map(siniflar.map((s) => [s.id, s.ad]));
   const kurumAdlari = new Map((kurumlar.data ?? []).map((k) => [k.id, k.ad]));
-  return data.map((d) => ({
+  return (data ?? []).map((d) => ({
     ...d,
     sinif_adi: d.sinif_id ? (adHaritasi.get(d.sinif_id) ?? 'Sınıf') : null,
     kurum_adi: kurumAdlari.get(d.kurum_id) ?? null,

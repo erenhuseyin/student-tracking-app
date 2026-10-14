@@ -12,6 +12,7 @@ export default function Layout() {
   const basvurularAcik = useBolumAcik('basvurular');
   const onerilerAcik = useBolumAcik('oneriler');
   const programAcik = useBolumAcik('kurum-programi');
+  const takvimAcik = useBolumAcik('takvim');
   const kademelerAcik = useBolumAcik('kademeler');
   const raporlarAcik = useBolumAcik('raporlar');
   const rollerAcik = useBolumAcik('roller');
@@ -38,6 +39,9 @@ export default function Layout() {
         </Stack.Protected>
         <Stack.Protected guard={onerilerAcik}>
           <Stack.Screen name="oneriler" />
+        </Stack.Protected>
+        <Stack.Protected guard={takvimAcik}>
+          <Stack.Screen name="takvim" />
         </Stack.Protected>
         <Stack.Protected guard={programAcik}>
           <Stack.Screen name="kurum-programi" />

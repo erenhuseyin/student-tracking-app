@@ -84,6 +84,16 @@ const DUYURULAR_SEKMESI: SekmeOgesi = {
   bolum: 'duyurular',
 };
 
+// Öğretmen ve velide takvim etkinlikleri gösterir; kurum "Duyurular"ı kapattıysa o da kapanır.
+const TAKVIM_SATIRI: MenuSatiri = {
+  anahtar: 'takvim',
+  etiket: 'Takvim',
+  ikon: 'calendar-number-outline',
+  yer: 'menu',
+  rota: '/takvim',
+  bolum: 'duyurular',
+};
+
 const MENULER: Record<Rol, MenuOgesi[]> = {
   kurum_admin: [
     { anahtar: 'ozet', etiket: 'Özet', ikon: 'home-outline', yer: 'sekme', sekme: 'index' },
@@ -95,6 +105,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'subeler', etiket: 'Alt Birimler', ikon: 'business-outline', yer: 'menu', rota: '/subeler', altBirimler: true },
     { anahtar: 'basvurular', etiket: 'Başvurular', ikon: 'mail-unread-outline', yer: 'menu', rota: '/basvurular', ozellik: 'basvuru' },
     { anahtar: 'oneriler', etiket: 'Veli Önerileri', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneriler' },
+    { anahtar: 'takvim', etiket: 'Takvim', ikon: 'calendar-number-outline', yer: 'menu', rota: '/takvim' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'kademeler', etiket: 'Kademeler', ikon: 'layers-outline', yer: 'menu', rota: '/kademeler', ozellik: 'icerik_takibi' },
     { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'download-outline', yer: 'menu', rota: '/raporlar' },
@@ -115,11 +126,13 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'program', etiket: 'Program', ikon: 'calendar-outline', yer: 'sekme', sekme: 'program', bolum: 'program' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
+    TAKVIM_SATIRI,
   ],
   veli: [
     { anahtar: 'cocuklarim', etiket: 'Çocuklarım', ikon: 'people-outline', yer: 'sekme', sekme: 'index' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
+    TAKVIM_SATIRI,
     { anahtar: 'oneri', etiket: 'Öneri Gönder', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneri' },
     { anahtar: 'kardes-ekle', etiket: 'Kardeş Ekle', ikon: 'person-add-outline', yer: 'menu', rota: '/kardes-ekle' },
     { anahtar: 'pin-degistir', etiket: "PIN'imi Değiştir", ikon: 'key-outline', yer: 'menu', rota: '/pin-degistir' },

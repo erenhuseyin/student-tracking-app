@@ -21,19 +21,21 @@ export type DuyuruKapsami = { sinifId: string | null; etiket: string };
 type Props = {
   kapsamlar?: DuyuruKapsami[];
   baslangic?: DuyuruGirdisi;
+  // Yeni kayıtta ön dolu alanlar (ör. takvimden: tür etkinlik ve seçilen gün). `baslangic` düzenlemedir.
+  varsayilan?: Partial<DuyuruGirdisi>;
   onKaydet: (girdi: DuyuruGirdisi, kapsam: DuyuruKapsami | null) => Promise<void>;
 };
 
 const TUR_SECENEKLERI = DUYURU_TURLERI.map((t) => ({ deger: t, etiket: DUYURU_TURU_ETIKETLERI[t] }));
 
-export function DuyuruFormu({ kapsamlar, baslangic, onKaydet }: Props) {
+export function DuyuruFormu({ kapsamlar, baslangic, varsayilan, onKaydet }: Props) {
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
   const [kapsam, setKapsam] = useState<DuyuruKapsami | null>(kapsamlar?.length === 1 ? kapsamlar[0] : null);
-  const [tur, setTur] = useState<DuyuruTuru>(baslangic?.tur ?? 'duyuru');
+  const [tur, setTur] = useState<DuyuruTuru>(baslangic?.tur ?? varsayilan?.tur ?? 'duyuru');
   const [baslik, setBaslik] = useState(baslangic?.baslik ?? '');
   const [icerik, setIcerik] = useState(baslangic?.icerik ?? '');
-  const [etkinlikTarihi, setEtkinlikTarihi] = useState(baslangic?.etkinlikTarihi ?? '');
+  const [etkinlikTarihi, setEtkinlikTarihi] = useState(baslangic?.etkinlikTarihi ?? varsayilan?.etkinlikTarihi ?? '');
   const [etkinlikSaati, setEtkinlikSaati] = useState(baslangic?.etkinlikSaati ?? '');
   const [yer, setYer] = useState(baslangic?.yer ?? '');
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -98,7 +100,13 @@ export function DuyuruFormu({ kapsamlar, baslangic, onKaydet }: Props) {
         textAlignVertical="top"
         style={styles.icerik}
       />
-      {baslangic ? null : <Text style={tema.yazi.kucuk}>Kaydedince kapsamdaki kişilere bildirim gider.</Text>}
+      {baslangic ? null : (
+        <Text style={tema.yazi.kucuk}>
+          {tur === 'etkinlik' && kapsam && kapsam.sinifId === null
+            ? 'Etkinlik kapsamdaki herkesin takviminde görünür; yöneticilere ve öğretmenlere bildirim gider.'
+            : 'Kaydedince kapsamdaki kişilere bildirim gider.'}
+        </Text>
+      )}
       <HataMesaji mesaj={hata} />
       <Buton baslik={baslangic ? 'Kaydet' : 'Yayınla'} onPress={kaydet} yukleniyor={gonderiliyor} />
     </Kart>

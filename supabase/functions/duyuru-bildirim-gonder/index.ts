@@ -10,9 +10,10 @@
 // okuyabilen herhangi biri başkasının duyurusu için tekrar tekrar bildirim tetikleyemez.
 //
 // Alıcılar (yazan kişi hariç, yalnızca aktif hesaplar):
-//   sınıfa özel        -> o sınıftaki öğrencilerin velileri
-//   şube geneli        -> o şubenin velileri ve öğretmenleri
-//   müşteri geneli     -> ana kurumun ve tüm şubelerinin velileri ve öğretmenleri
+//   sınıfa özel (duyuru ya da etkinlik) -> o sınıftaki öğrencilerin velileri
+//   birim geneli duyuru                 -> birimin ve altındaki birimlerin velileri ve öğretmenleri
+//   birim geneli etkinlik               -> birimin ve altındaki birimlerin yöneticileri ve öğretmenleri
+//                                          (velilere gitmez; veliler etkinliği takvimde görür)
 // Kurum "Duyurular" bölümünü bir rol için kapattıysa (kapali_bolum) o role bildirim gitmez.
 //
 // Bildirim metninde yalnızca başlık yer alır; içerik kilit ekranına yazılmaz.
@@ -96,7 +97,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // 3. Duyuru çağıranın JWT'siyle okunur; içerik ve kapsam istemciden değil bu satırdan türetilir.
   const { data: duyuru, error: duyuruHatasi } = await kullaniciClient
     .from('duyuru')
-    .select('id, kurum_id, kok_kurum_id, sinif_id, tur, baslik, giren_kullanici_id')
+    .select('id, kurum_id, kok_kurum_id, sinif_id, tur, baslik, etkinlik_zamani, giren_kullanici_id')
     .eq('id', duyuruId)
     .maybeSingle();
   if (duyuruHatasi) {
@@ -136,7 +137,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
     alicilar = (data ?? []) as Alici[];
   } else {
-    // Bir düğüme yazılmış genel duyuru o düğümün altındaki tüm düğümleri de kapsar.
+    // Bir düğüme yazılmış genel duyuru o düğümün altındaki tüm düğümleri de kapsar. Birim geneli
+    // etkinlik yalnızca personele (yönetici + öğretmen) bildirilir; veliler takvimde görür.
+    const roller = duyuru.tur === 'etkinlik' ? ['kurum_admin', 'ogretmen'] : ['veli', 'ogretmen'];
     const { data: dugumler, error: dugumHatasi } = await servis.from('kurum').select('id').contains('yol', [duyuru.kurum_id]);
     if (dugumHatasi) {
       console.error('duyuru-bildirim-gonder: alt kurumlar okunamadı', dugumHatasi);
@@ -148,7 +151,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .from('kullanici')
       .select(ALICI_KOLONLARI)
       .in('kurum_id', kurumIdleri)
-      .in('rol', ['veli', 'ogretmen'])
+      .in('rol', roller)
       .eq('aktif', true);
     if (error) {
       console.error('duyuru-bildirim-gonder: alıcılar okunamadı', error);
@@ -168,6 +171,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   alicilar = alicilar.filter((a) => a.id !== cagiran.id && !kapaliRoller.has(a.rol));
   if (alicilar.length === 0) return bos();
 
+  // Etkinlikte bildirime dokununca takvim o güne açılır (gün Türkiye saatine göre).
+  const etkinlikGunu = duyuru.etkinlik_zamani
+    ? new Date(duyuru.etkinlik_zamani).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' })
+    : null;
+
   // 5. Push token'ı olanlara partiler halinde gönder
   const tokenliler = alicilar.filter((a) => a.expo_push_token);
   if (tokenliler.length > 0 && expoErisimTokeni) {
@@ -175,7 +183,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       to: a.expo_push_token,
       title: duyuru.tur === 'etkinlik' ? 'Yeni Etkinlik' : 'Yeni Duyuru',
       body: duyuru.baslik,
-      data: { duyuru_id: duyuru.id, tip: 'duyuru' },
+      data: { duyuru_id: duyuru.id, tip: 'duyuru', tarih: etkinlikGunu },
     }));
     for (let i = 0; i < mesajlar.length; i += PUSH_PARTI_BOYUTU) {
       try {
