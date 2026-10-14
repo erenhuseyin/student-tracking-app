@@ -22,6 +22,7 @@ export default function KurumAdminOzet() {
   const styles = useMemo(() => olustur(tema), [tema]);
   const { kurum } = useOturum();
   const basvuruAcik = useOzellik('basvuru');
+  const icerikAcik = useOzellik('icerik_takibi');
   const [ozet, setOzet] = useState<YoneticiOzeti | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -29,7 +30,7 @@ export default function KurumAdminOzet() {
     useCallback(() => {
       let iptalEdildi = false;
       setHata(null);
-      yoneticiOzetiniGetir(basvuruAcik)
+      yoneticiOzetiniGetir(basvuruAcik, icerikAcik)
         .then((veri) => {
           if (!iptalEdildi) setOzet(veri);
         })
@@ -39,7 +40,7 @@ export default function KurumAdminOzet() {
       return () => {
         iptalEdildi = true;
       };
-    }, [basvuruAcik]),
+    }, [basvuruAcik, icerikAcik]),
   );
 
   // Yeni kurum: sırayla sınıf, öğrenci, öğretmen. Üçü de tamamlanınca rehber kaybolur.
@@ -101,6 +102,15 @@ export default function KurumAdminOzet() {
                   ikon="mail-unread-outline"
                   baslik={`${ozet.bekleyenBasvuruSayisi} bekleyen başvuru`}
                   onPress={() => router.push('/basvurular')}
+                />
+              ) : null}
+
+              {icerikAcik && ozet.okunmamisKonuNotuSayisi > 0 ? (
+                <Buton
+                  tur="ikincil"
+                  ikon="chatbubble-ellipses-outline"
+                  baslik={`${ozet.okunmamisKonuNotuSayisi} okunmamış konu notu`}
+                  onPress={() => router.push('/konu-notlari')}
                 />
               ) : null}
             </>

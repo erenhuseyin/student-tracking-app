@@ -1,5 +1,6 @@
 // Yöneticinin KENDİ KAPSAMINA ait ayrıntılar (RLS: kendi birimi ve altındaki birimler): kurulum
-// adımları için sayılar, bugün dersi olup yoklaması alınmamış sınıfların adları, bekleyen başvurular.
+// adımları için sayılar, bugün dersi olup yoklaması alınmamış sınıfların adları, bekleyen başvurular,
+// okunmamış konu notları.
 // Toplamlar ve oranlar panodadır ve sunucuda hesaplanır (lib/pano.ts); burada sınıf adı gösterildiği
 // için sorgular RLS'e tabi tablolar üzerinden yapılır.
 import { haftaninPlani } from '@/lib/katilim';
@@ -15,6 +16,8 @@ export type YoneticiOzeti = {
   bugunDersiOlanSinifSayisi: number;
   yoklamasiAlinmayanSiniflar: Pick<Sinif, 'id' | 'ad'>[];
   bekleyenBasvuruSayisi: number;
+  // Hocaların yazdığı, henüz hiçbir yöneticinin görmediği konu notları (içerik takibi açıksa).
+  okunmamisKonuNotuSayisi: number;
 };
 
 function hataMesajinaCevir(mesaj: string): string {
@@ -22,17 +25,18 @@ function hataMesajinaCevir(mesaj: string): string {
   return 'Özet alınamadı, lütfen tekrar deneyin.';
 }
 
-export async function yoneticiOzetiniGetir(basvuruAcik: boolean): Promise<YoneticiOzeti> {
+export async function yoneticiOzetiniGetir(basvuruAcik: boolean, icerikAcik: boolean): Promise<YoneticiOzeti> {
   const bugun = bugununTarihi();
   const pazartesi = haftaBaslangici(bugun);
 
-  const [siniflar, ogrenciler, personel, yoklamalar, planlar, basvurular] = await Promise.all([
+  const [siniflar, ogrenciler, personel, yoklamalar, planlar, basvurular, notlar] = await Promise.all([
     supabase.from('sinif').select('id, ad').order('ad'),
     supabase.from('ogrenci').select('id, sinif_id').eq('aktif', true),
     supabase.from('kullanici').select('id', { count: 'exact', head: true }).eq('rol', 'ogretmen').eq('aktif', true),
     supabase.from('yoklama').select('ogrenci_id').eq('tarih', bugun),
     supabase.from('sinif_ders_plani').select('*').order('baslangic_tarihi', { ascending: false }),
     basvuruAcik ? supabase.from('basvuru').select('id', { count: 'exact', head: true }).eq('durum', 'bekliyor') : null,
+    icerikAcik ? supabase.from('sinif_konu_notu').select('konu_id', { count: 'exact', head: true }).is('goruldu_zamani', null) : null,
   ]);
   const hata = siniflar.error ?? ogrenciler.error ?? personel.error ?? yoklamalar.error ?? planlar.error;
   if (hata) throw new Error(hataMesajinaCevir(hata.message));
@@ -59,5 +63,7 @@ export async function yoneticiOzetiniGetir(basvuruAcik: boolean): Promise<Yoneti
       (s) => !(sinifinOgrencileri.get(s.id) ?? []).some((id) => bugunYoklamasiOlanlar.has(id)),
     ),
     bekleyenBasvuruSayisi: basvurular?.count ?? 0,
+    // Okunamazsa (ör. migration uygulanmadı) kart gösterilmez.
+    okunmamisKonuNotuSayisi: notlar?.count ?? 0,
   };
 }
