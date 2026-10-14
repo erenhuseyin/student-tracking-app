@@ -2209,6 +2209,61 @@ reset role;
 select tst.esit('ortak maddeyle birlikte ezber kayıtları silinir',
   (select count(*) from public.ogrenci_ezber where ogrenci_id = 'e0000000-0000-0000-0000-0000000000a1')::text, '0');
 
+-- ===========================================================================
+-- 32. CİNSİYET: yönetici kapsamındaki personel ve öğrencide yazar; panoda yalnızca sayı
+--   Kurum G ağacı (28. bölüm).
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000041","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('bölge yöneticisi altındaki öğrencinin cinsiyetini yazar',
+  tst.dene($q$update public.ogrenci set cinsiyet = 'kadin' where id = 'e0000000-0000-0000-0000-00000000d111'$q$), 'ok:1');
+select tst.esit('bölge yöneticisi altındaki yöneticinin cinsiyetini yazar',
+  tst.dene($q$update public.kullanici set cinsiyet = 'erkek' where id = 'b0000000-0000-0000-0000-000000000043'$q$), 'ok:1');
+select tst.esit('yönetici kendi cinsiyetini yazar',
+  tst.dene($q$update public.kullanici set cinsiyet = 'erkek' where id = 'b0000000-0000-0000-0000-000000000041'$q$), 'ok:1');
+select tst.esit('cinsiyetle öğrenci eklenir',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi, cinsiyet) values ('c0000000-0000-0000-0000-00000000d111', 'd0000000-0000-0000-0000-00000000d111', 'oG2', '2020-01-01', 'erkek')$q$), 'ok:1');
+select tst.esit('geçersiz cinsiyet reddedilir',
+  tst.dene($q$update public.ogrenci set cinsiyet = 'x' where id = 'e0000000-0000-0000-0000-00000000d111'$q$), 'hata:22P02');
+select tst.esit('pano: kadın öğrenci',
+  (public.pano_cinsiyet('c0000000-0000-0000-0000-0000000000d1') -> 'ogrenci' ->> 'kadin'), '1');
+select tst.esit('pano: erkek öğrenci',
+  (public.pano_cinsiyet('c0000000-0000-0000-0000-0000000000d1') -> 'ogrenci' ->> 'erkek'), '1');
+select tst.esit('pano cinsiyet ad döndürmez',
+  position('oG' in public.pano_cinsiyet('c0000000-0000-0000-0000-0000000000d0')::text)::text, '0');
+
+-- adminG2 (komşu bölge): satırı yazamaz, toplamı görür
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000044","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('komşu bölge yöneticisi öğrencinin cinsiyetini yazamaz',
+  tst.dene($q$update public.ogrenci set cinsiyet = 'erkek' where id = 'e0000000-0000-0000-0000-00000000d111'$q$), 'ok:0');
+select tst.esit('komşu bölge yöneticisi başka bölgenin yöneticisini yazamaz',
+  tst.dene($q$update public.kullanici set cinsiyet = 'kadin' where id = 'b0000000-0000-0000-0000-000000000043'$q$), 'ok:0');
+select tst.esit('komşu bölge toplamı görür',
+  (public.pano_cinsiyet('c0000000-0000-0000-0000-0000000000d1') -> 'ogrenci' ->> 'kadin'), '1');
+
+-- adminG111 (semt): üstündeki yöneticiyi yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000043","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('semt yöneticisi üstündeki yöneticiyi yazamaz',
+  tst.dene($q$update public.kullanici set cinsiyet = 'kadin' where id = 'b0000000-0000-0000-0000-000000000041'$q$), 'ok:0');
+
+-- veliG: pano yok, öğrencinin cinsiyetini yazamaz
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000045","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('veli cinsiyet panosunu alamaz',
+  tst.dene($q$select public.pano_cinsiyet('c0000000-0000-0000-0000-00000000d111')$q$), 'hata:42501');
+select tst.esit('veli çocuğunun cinsiyetini yazamaz',
+  tst.dene($q$update public.ogrenci set cinsiyet = 'erkek' where id = 'e0000000-0000-0000-0000-00000000d111'$q$), 'ok:0');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 
