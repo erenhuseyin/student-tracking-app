@@ -126,7 +126,7 @@ export function KurumProgrami() {
       ) : null}
 
       {dersler && dersler.length > 0 && web ? (
-        <ScrollView horizontal style={styles.kaydirma} contentContainerStyle={styles.izgara}>
+        <ScrollView style={styles.kaydirma} contentContainerStyle={styles.izgara}>
           {GUN_ADLARI.map((ad, i) => {
             const liste = gununDersleri(i + 1);
             return (
@@ -134,9 +134,9 @@ export function KurumProgrami() {
                 <Text style={[tema.yazi.etiket, styles.sutunBasligi]}>
                   {ad} · {liste.length}
                 </Text>
-                <ScrollView contentContainerStyle={styles.sutunIcerigi}>
+                <View style={styles.sutunIcerigi}>
                   {liste.length === 0 ? <Text style={tema.yazi.kucuk}>Ders yok</Text> : liste.map((d) => dersKarti(d, true))}
-                </ScrollView>
+                </View>
               </View>
             );
           })}
@@ -179,13 +179,14 @@ function olustur(t: Tema) {
       paddingBottom: t.bosluk.l,
     },
     izgara: {
-      flexGrow: 1,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
       gap: t.bosluk.s,
       paddingBottom: t.bosluk.l,
     },
     sutun: {
       flex: 1,
-      minWidth: 150,
+      minWidth: 0,
       borderWidth: 1,
       borderColor: t.renkler.ayirici,
       borderRadius: t.yaricap.l,
