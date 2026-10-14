@@ -92,3 +92,47 @@ export async function kullanilanDersAdlari(): Promise<string[]> {
   if (error) return [];
   return [...new Set(data.map((d) => d.ders_adi))].sort((a, b) => a.localeCompare(b, 'tr'));
 }
+
+// Yöneticinin "herkesin programı" görünümü için ders satırı: sınıf, birim ve sınıfın hocaları.
+export type ProgramSatiri = DersSaati & { sinif_adi: string; hocalar: { id: string; ad_soyad: string }[] };
+
+// Erişim: kurum_admin (RLS: yönettiği birim ve altı). Genel merkez yöneticisi tüm ağacı görür.
+// Program 1000 satırı aşarsa sayfa sayfa okunur.
+export async function tumProgramiGetir(): Promise<ProgramSatiri[]> {
+  const dersler: DersSaati[] = [];
+  for (let bas = 0; ; bas += 1000) {
+    const { data, error } = await supabase
+      .from('ders_programi')
+      .select('*')
+      .order('gun')
+      .order('baslangic_saati')
+      .order('id')
+      .range(bas, bas + 999);
+    if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+    dersler.push(...data);
+    if (data.length < 1000) break;
+  }
+  const sinifIdleri = [...new Set(dersler.map((d) => d.sinif_id))];
+  if (sinifIdleri.length === 0) return [];
+
+  const [siniflar, atamalar] = await Promise.all([
+    supabase.from('sinif').select('id, ad').in('id', sinifIdleri),
+    supabase.from('ogretmen_sinif').select('sinif_id, ogretmen_id').in('sinif_id', sinifIdleri),
+  ]);
+  if (siniflar.error) throw new Error(hataMesajinaCevir(siniflar.error.message));
+  // Hoca adları okunamazsa program yine gösterilir.
+  const hocaIdleri = [...new Set((atamalar.data ?? []).map((a) => a.ogretmen_id))];
+  const hocalar = hocaIdleri.length ? await supabase.from('kullanici').select('id, ad_soyad').in('id', hocaIdleri) : null;
+  const hocaAdlari = new Map((hocalar?.data ?? []).map((h) => [h.id, h.ad_soyad]));
+  const sinifAdlari = new Map(siniflar.data.map((s) => [s.id, s.ad]));
+  const sinifHocalari = new Map<string, { id: string; ad_soyad: string }[]>();
+  for (const a of atamalar.data ?? []) {
+    const ad = hocaAdlari.get(a.ogretmen_id);
+    if (ad) sinifHocalari.set(a.sinif_id, [...(sinifHocalari.get(a.sinif_id) ?? []), { id: a.ogretmen_id, ad_soyad: ad }]);
+  }
+  return dersler.map((d) => ({
+    ...d,
+    sinif_adi: sinifAdlari.get(d.sinif_id) ?? 'Sınıf',
+    hocalar: sinifHocalari.get(d.sinif_id) ?? [],
+  }));
+}

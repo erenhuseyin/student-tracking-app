@@ -1,6 +1,7 @@
-// Seçilen günün tüm dersleri, saat sırasıyla ve sınıf adıyla: kurum admini için kurumun (ve
-// şubelerinin), öğretmen için atandığı sınıfların birleşik programı. Hangi satırların geldiğini
-// RLS belirler. Kendi kaydırmasını yapar: kaydırmasız bir `Ekran` içinde kullanılır.
+// Seçilen günün tüm dersleri, saat sırasıyla ve sınıf adıyla: öğretmenin atandığı sınıfların
+// birleşik programı (Program sekmesi). Hangi satırların geldiğini RLS belirler. Yöneticinin
+// birim/hoca süzgeçli görünümü components/KurumProgrami'dir. Kendi kaydırmasını yapar: kaydırmasız
+// bir `Ekran` içinde kullanılır.
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
