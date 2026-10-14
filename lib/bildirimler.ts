@@ -75,11 +75,12 @@ export function useBildirimYonlendirme(): void {
       }
       const veri: unknown = yanit.notification.request.content.data;
       if (typeof veri !== 'object' || veri === null) return;
-      const { tip, ogrenci_id, tarih } = veri as { tip?: unknown; ogrenci_id?: unknown; tarih?: unknown };
+      const { tip, ogrenci_id, sinif_id, tarih } = veri as { tip?: unknown; ogrenci_id?: unknown; sinif_id?: unknown; tarih?: unknown };
       if (typeof tip !== 'string') return;
       const hedef = bildirimHedefi(rol, {
         tip,
         ogrenci_id: typeof ogrenci_id === 'string' ? ogrenci_id : null,
+        sinif_id: typeof sinif_id === 'string' ? sinif_id : null,
         tarih: typeof tarih === 'string' ? tarih : null,
       });
       if (hedef) routerRef.current.push(hedef);

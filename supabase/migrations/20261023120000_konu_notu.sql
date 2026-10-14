@@ -12,6 +12,10 @@
 
 alter type public.bildirim_tipi add value if not exists 'konu_notu';
 
+-- Konu notu bildirimine dokununca sınıfın ders takibi açılır (satırı yalnızca service role yazar).
+alter table public.bildirim_log
+  add column sinif_id uuid references public.sinif (id) on delete cascade;
+
 create table public.sinif_konu_notu (
   kurum_id uuid not null references public.kurum (id),
   sinif_id uuid not null,

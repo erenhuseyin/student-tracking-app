@@ -1,5 +1,5 @@
 // Uygulama içi bildirim listesi: kullanıcıya gönderilmiş bildirimler (yoklama, gelişim, duyuru,
-// başvuru) ve okundu durumu. Satırları sunucudaki fonksiyonlar yazar; kullanıcı yalnızca kendi
+// başvuru, konu notu yanıtı) ve okundu durumu. Satırları sunucudaki fonksiyonlar yazar; kullanıcı yalnızca kendi
 // satırlarını okur ve okundu olarak işaretler (RLS: bildirim_log_veli_oku, _alici_guncelle).
 // Sorgular alıcıya göre süzülür: yönetici RLS gereği kurumunun tüm satırlarını görebilir ama
 // burada yalnızca kendisine gönderilenler istenir.
@@ -15,6 +15,7 @@ const VARSAYILAN_BASLIKLAR: Record<BildirimTipi, string> = {
   gelisim_kaydi: 'Gelişim Kaydı',
   duyuru: 'Duyuru',
   basvuru: 'Yeni Başvuru',
+  konu_notu: 'Konu Notu',
 };
 
 export const bildirimBasligi = (b: Pick<BildirimLog, 'baslik' | 'tip'>) => b.baslik ?? VARSAYILAN_BASLIKLAR[b.tip];
@@ -48,7 +49,7 @@ export async function tumBildirimleriOkunduYap(kullaniciId: string): Promise<voi
 export function bildirimHedefi(
   rol: Rol,
   // `tarih`: etkinlik bildiriminin günü (push verisinde); `baslik`: bildirim listesindeki başlık.
-  bildirim: { tip: string; ogrenci_id?: string | null; tarih?: string | null; baslik?: string | null },
+  bildirim: { tip: string; ogrenci_id?: string | null; sinif_id?: string | null; tarih?: string | null; baslik?: string | null },
 ): Href | null {
   if (bildirim.tip === 'duyuru' && rol !== 'super_admin' && (bildirim.tarih || bildirim.baslik === 'Yeni Etkinlik')) {
     return bildirim.tarih ? { pathname: '/takvim', params: { tarih: bildirim.tarih } } : '/takvim';
@@ -58,5 +59,10 @@ export function bildirimHedefi(
   }
   if (bildirim.tip === 'duyuru') return rol === 'super_admin' ? null : '/duyurular';
   if (bildirim.tip === 'basvuru') return rol === 'kurum_admin' ? '/basvurular' : null;
+  if (bildirim.tip === 'konu_notu') {
+    return (rol === 'ogretmen' || rol === 'kurum_admin') && bildirim.sinif_id
+      ? { pathname: '/ders-takibi/[sinifId]', params: { sinifId: bildirim.sinif_id } }
+      : null;
+  }
   return null;
 }

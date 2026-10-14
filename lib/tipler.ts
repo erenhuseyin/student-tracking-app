@@ -71,6 +71,8 @@ export type Kademe = Tables<'kademe'>;
 export type KademeDersi = Tables<'kademe_dersi'>;
 export type DersKonusu = Tables<'ders_konusu'>;
 export type EzberMaddesi = Tables<'ezber_maddesi'>;
+// Sınıfın bir konusuna not (hoca/yönetici), görüldü işareti ve yönetici yanıtı; veli göremez.
+export type KonuNotu = Tables<'sinif_konu_notu'>;
 
 export type EzberDurumu = Tables<'ogrenci_ezber'>['durum'];
 export type OgrenciEzber = Tables<'ogrenci_ezber'>;

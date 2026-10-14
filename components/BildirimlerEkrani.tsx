@@ -19,6 +19,7 @@ const IKONLAR: Record<BildirimTipi, IkonAdi> = {
   gelisim_kaydi: 'trending-up-outline',
   duyuru: 'megaphone-outline',
   basvuru: 'mail-unread-outline',
+  konu_notu: 'chatbubble-ellipses-outline',
 };
 
 export function BildirimlerEkrani() {

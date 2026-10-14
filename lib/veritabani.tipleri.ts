@@ -365,6 +365,7 @@ export type Database = {
           kurum_id: string;
           metin: string | null;
           ogrenci_id: string | null;
+          sinif_id: string | null;
           okundu_mu: boolean;
           tip: Database['public']['Enums']['bildirim_tipi'];
         };
@@ -377,6 +378,7 @@ export type Database = {
           kurum_id: string;
           metin?: string | null;
           ogrenci_id?: string | null;
+          sinif_id?: string | null;
           okundu_mu?: boolean;
           tip: Database['public']['Enums']['bildirim_tipi'];
         };
@@ -389,6 +391,7 @@ export type Database = {
           kurum_id?: string;
           metin?: string | null;
           ogrenci_id?: string | null;
+          sinif_id?: string | null;
           okundu_mu?: boolean;
           tip?: Database['public']['Enums']['bildirim_tipi'];
         };
@@ -971,6 +974,35 @@ export type Database = {
 
         ];
       };
+      sinif_konu_notu: {
+        Row: {
+          goren_kullanici_id: string | null;
+          goruldu_zamani: string | null;
+          konu_id: string;
+          kurum_id: string;
+          not_metni: string;
+          sinif_id: string;
+          yanit_metni: string | null;
+          yanit_veren_kullanici_id: string | null;
+          yanit_zamani: string | null;
+          yazan_kullanici_id: string | null;
+          yazilma_zamani: string;
+        };
+        Insert: {
+          konu_id: string;
+          kurum_id: string;
+          not_metni: string;
+          sinif_id: string;
+        };
+        Update: {
+          goruldu_zamani?: string | null;
+          not_metni?: string;
+          yanit_metni?: string | null;
+        };
+        Relationships: [
+
+        ];
+      };
       ogrenci_ezber: {
         Row: {
           durum: Database['public']['Enums']['ezber_durumu'];
@@ -1098,6 +1130,22 @@ export type Database = {
         Args: { p_kurum_id: string };
         Returns: Json;
       };
+      ders_raporu: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          sinif_id: string;
+          sinif_adi: string;
+          kurum_id: string;
+          kademe_id: string | null;
+          kademe_adi: string | null;
+          hocalar: string | null;
+          ogrenci_sayisi: number;
+          toplam_konu: number;
+          islenen_konu: number;
+          son_islenme: string | null;
+          okunmamis_not: number;
+        }[];
+      };
     };
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
@@ -1106,7 +1154,7 @@ export type Database = {
       yoklama_durumu: 'geldi' | 'gelmedi' | 'gec' | 'mazeretli';
       basvuru_durumu: 'bekliyor' | 'onaylandi' | 'reddedildi';
       basvuru_turu: 'ogrenci' | 'personel';
-      bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru' | 'basvuru';
+      bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru' | 'basvuru' | 'konu_notu';
       duyuru_turu: 'duyuru' | 'etkinlik';
       cinsiyet: 'kadin' | 'erkek';
     };
@@ -1132,7 +1180,7 @@ export const Constants = {
       yoklama_durumu: ['geldi', 'gelmedi', 'gec', 'mazeretli'],
       basvuru_durumu: ['bekliyor', 'onaylandi', 'reddedildi'],
       basvuru_turu: ['ogrenci', 'personel'],
-      bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru', 'basvuru'],
+      bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru', 'basvuru', 'konu_notu'],
       duyuru_turu: ['duyuru', 'etkinlik'],
       cinsiyet: ['kadin', 'erkek'],
     },

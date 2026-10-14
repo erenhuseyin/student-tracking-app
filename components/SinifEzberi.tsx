@@ -2,7 +2,7 @@
 //   Öğrenciye göre : öğrenciler, ezber özetiyle; dokununca öğrencinin tüm listesi açılır.
 //   Maddeye göre   : bir sure/dua seçilir, sınıfın tüm öğrencileri o madde için tek dokunuşla
 //                    işaretlenir (derste aynı maddeyi birçok öğrenciden dinleyen hoca için).
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -37,8 +37,10 @@ export function SinifEzberi({ sinifId }: { sinifId: string }) {
   const [maddeler, setMaddeler] = useState<EzberMaddesi[]>([]);
   // 'ogrenciId:maddeId' -> durum (satır yoksa başlamadı)
   const [durumlar, setDurumlar] = useState<Map<string, EzberDurumu>>(new Map());
-  const [gorunum, setGorunum] = useState<Gorunum>('ogrenci');
-  const [secilenMaddeId, setSecilenMaddeId] = useState<string | null>(null);
+  // `madde`: ders takibindeki ezber görünümünden gelince o madde "maddeye göre" açılır.
+  const { madde } = useLocalSearchParams<{ madde?: string }>();
+  const [gorunum, setGorunum] = useState<Gorunum>(madde ? 'madde' : 'ogrenci');
+  const [secilenMaddeId, setSecilenMaddeId] = useState<string | null>(madde ?? null);
   const [kaydedilen, setKaydedilen] = useState<Set<string>>(new Set());
   const [hata, setHata] = useState<string | null>(null);
 
