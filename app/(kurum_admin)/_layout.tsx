@@ -15,6 +15,8 @@ export default function Layout() {
   const takvimAcik = useBolumAcik('takvim');
   const kademelerAcik = useBolumAcik('kademeler');
   const raporlarAcik = useBolumAcik('raporlar');
+  const konuNotlariAcik = useBolumAcik('konu-notlari');
+  const dersRaporuAcik = useBolumAcik('ders-raporu');
   const rollerAcik = useBolumAcik('roller');
   const menuYetkileriAcik = useBolumAcik('menu-yetkileri');
   const kategorilerAcik = useBolumAcik('gelisim-kategorileri');
@@ -50,6 +52,12 @@ export default function Layout() {
           <Stack.Screen name="kademeler" />
           <Stack.Screen name="kademe/[id]" />
           <Stack.Screen name="ezber-listesi" />
+        </Stack.Protected>
+        <Stack.Protected guard={konuNotlariAcik}>
+          <Stack.Screen name="konu-notlari" />
+        </Stack.Protected>
+        <Stack.Protected guard={dersRaporuAcik}>
+          <Stack.Screen name="ders-raporu" />
         </Stack.Protected>
         <Stack.Protected guard={raporlarAcik}>
           <Stack.Screen name="raporlar" />

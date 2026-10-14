@@ -108,6 +108,8 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'takvim', etiket: 'Takvim', ikon: 'calendar-number-outline', yer: 'menu', rota: '/takvim' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'kademeler', etiket: 'Kademeler', ikon: 'layers-outline', yer: 'menu', rota: '/kademeler', ozellik: 'icerik_takibi' },
+    { anahtar: 'konu-notlari', etiket: 'Konu Notları', ikon: 'chatbubble-ellipses-outline', yer: 'menu', rota: '/konu-notlari', ozellik: 'icerik_takibi' },
+    { anahtar: 'ders-raporu', etiket: 'Ders Raporu', ikon: 'stats-chart-outline', yer: 'menu', rota: '/ders-raporu', ozellik: 'icerik_takibi' },
     { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'download-outline', yer: 'menu', rota: '/raporlar' },
     { anahtar: 'roller', etiket: 'Roller', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     { anahtar: 'menu-yetkileri', etiket: 'Menü Yetkileri', ikon: 'eye-off-outline', yer: 'menu', rota: '/menu-yetkileri' },

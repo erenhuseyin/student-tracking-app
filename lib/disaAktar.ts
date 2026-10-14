@@ -4,6 +4,7 @@
 import { Platform } from 'react-native';
 
 import { CINSIYET_ETIKETLERI } from '@/lib/cinsiyet';
+import { type DersRaporuSatiri, dersRaporunuGetir, ilerlemeOrani } from '@/lib/dersRaporu';
 import { katilimHesapla, yuzdeMetni } from '@/lib/katilim';
 import { KITAP_DURUMU_ETIKETLERI } from '@/lib/kitaplar';
 import { kurumAdlariniGetir, kurumYolu } from '@/lib/kurumlar';
@@ -13,7 +14,7 @@ import { YOKLAMA_ETIKETLERI } from '@/lib/yoklama';
 
 export const disaAktarmaDestekleniyor = Platform.OS === 'web';
 
-type Hucre = string | number | null | undefined;
+export type Hucre = string | number | null | undefined;
 
 // Türkçe Excel noktalı virgülle ayrılmış dosyayı doğrudan sütunlara böler; baştaki BOM Türkçe
 // karakterlerin doğru görünmesini sağlar.
@@ -25,7 +26,7 @@ export function csvOlustur(basliklar: string[], satirlar: Hucre[][]): string {
   return '\uFEFF' + [basliklar, ...satirlar].map((s) => s.map(hucre).join(';')).join('\r\n');
 }
 
-function indir(dosyaAdi: string, icerik: string): void {
+export function indir(dosyaAdi: string, icerik: string): void {
   if (!disaAktarmaDestekleniyor) throw new Error('Dışa aktarma yalnızca bilgisayardan (web) yapılabilir.');
   const baglanti = document.createElement('a');
   const adres = URL.createObjectURL(new Blob([icerik], { type: 'text/csv;charset=utf-8' }));
@@ -35,6 +36,28 @@ function indir(dosyaAdi: string, icerik: string): void {
   baglanti.click();
   baglanti.remove();
   URL.revokeObjectURL(adres);
+}
+
+// Ders raporu (sınıf başına); Ders Raporu ekranı süzülmüş satırlarla da kullanır.
+export function dersRaporuCsv(satirlar: DersRaporuSatiri[], birim: (kurumId: string) => string): string {
+  return csvOlustur(
+    ['Sınıf', 'Birim', 'Kademe', 'Hoca', 'Öğrenci', 'İşlenen Konu', 'Toplam Konu', 'İlerleme', 'Son İşlenme', 'Okunmamış Not'],
+    satirlar.map((s) => {
+      const oran = ilerlemeOrani(s);
+      return [
+        s.sinif_adi,
+        birim(s.kurum_id),
+        s.kademe_adi ?? '',
+        s.hocalar ?? '',
+        s.ogrenci_sayisi,
+        s.islenen_konu,
+        s.toplam_konu,
+        oran === null ? '' : `%${Math.round(oran * 100)}`,
+        s.son_islenme ?? '',
+        s.okunmamis_not,
+      ];
+    }),
+  );
 }
 
 const SAYFA = 1000;
@@ -65,7 +88,7 @@ async function ortakVeri() {
   return { ogrenciler, birim, sinifAdi: new Map(siniflar.map((x) => [x.id, x.ad])) };
 }
 
-export type RaporTuru = 'ogrenciler' | 'yoklama' | 'katilim' | 'ezber' | 'kitap';
+export type RaporTuru = 'ogrenciler' | 'yoklama' | 'katilim' | 'ezber' | 'kitap' | 'ders';
 
 export const RAPORLAR: { tur: RaporTuru; baslik: string; aciklama: string; icerik?: true }[] = [
   { tur: 'ogrenciler', baslik: 'Öğrenci listesi', aciklama: 'Tüm öğrenciler: sınıf, doğum tarihi, veli kullanıcı adı, durum' },
@@ -73,11 +96,18 @@ export const RAPORLAR: { tur: RaporTuru; baslik: string; aciklama: string; iceri
   { tur: 'katilim', baslik: 'Katılım özeti (son 30 gün)', aciklama: 'Öğrenci başına katıldı / gelmedi / geç / mazeretli ve oran' },
   { tur: 'ezber', baslik: 'Ezber özeti', aciklama: 'Öğrenci başına tamamlanan ve devam eden madde sayısı', icerik: true },
   { tur: 'kitap', baslik: 'Kitap kayıtları', aciklama: 'Öğrenci, kitap, yazar, durum, tarihler', icerik: true },
+  { tur: 'ders', baslik: 'Ders raporu', aciklama: 'Sınıf başına kademe, hoca, işlenen / toplam konu ve ilerleme', icerik: true },
 ];
 
 // Raporu hazırlar ve indirir; satır sayısını döndürür.
 export async function raporuIndir(tur: RaporTuru): Promise<number> {
   const bugun = bugununTarihi();
+  if (tur === 'ders') {
+    // Sınıf başına; sayılar sunucuda toplanır (ders_raporu).
+    const [satirlar, kurumlar] = await Promise.all([dersRaporunuGetir(), kurumAdlariniGetir()]);
+    indir(`ders-raporu-${bugun}.csv`, dersRaporuCsv(satirlar, (id) => kurumYolu(kurumlar, id)));
+    return satirlar.length;
+  }
   const baslangic = gunEkle(bugun, -30);
   const { ogrenciler, birim, sinifAdi } = await ortakVeri();
   const ogrenci = new Map(ogrenciler.map((o) => [o.id, o]));
