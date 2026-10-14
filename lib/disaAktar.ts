@@ -3,6 +3,7 @@
 // raporlar zaten bilgisayardan alınır. Hangi satırların geldiğini RLS belirler (yönettiği kurumlar).
 import { Platform } from 'react-native';
 
+import { CINSIYET_ETIKETLERI } from '@/lib/cinsiyet';
 import { katilimHesapla, yuzdeMetni } from '@/lib/katilim';
 import { KITAP_DURUMU_ETIKETLERI } from '@/lib/kitaplar';
 import { kurumAdlariniGetir, kurumYolu } from '@/lib/kurumlar';
@@ -55,7 +56,7 @@ async function ortakVeri() {
   const [siniflar, ogrenciler, kurumlar] = await Promise.all([
     tumSatirlar((b, s) => supabase.from('sinif').select('id, ad').order('ad').range(b, s)),
     tumSatirlar((b, s) =>
-      supabase.from('ogrenci').select('id, ad_soyad, sinif_id, kurum_id, dogum_tarihi, kullanici_adi, aktif').order('ad_soyad').range(b, s),
+      supabase.from('ogrenci').select('id, ad_soyad, sinif_id, kurum_id, dogum_tarihi, cinsiyet, kullanici_adi, aktif').order('ad_soyad').range(b, s),
     ),
     kurumAdlariniGetir(),
   ]);
@@ -86,8 +87,8 @@ export async function raporuIndir(tur: RaporTuru): Promise<number> {
   let satirlar: Hucre[][];
 
   if (tur === 'ogrenciler') {
-    basliklar = ['Ad Soyad', 'Birim', 'Sınıf', 'Doğum Tarihi', 'Veli Kullanıcı Adı', 'Durum'];
-    satirlar = ogrenciler.map((o) => [o.ad_soyad, birim(o.kurum_id), sinifAdi.get(o.sinif_id) ?? '', o.dogum_tarihi, o.kullanici_adi, o.aktif ? 'Aktif' : 'Pasif']);
+    basliklar = ['Ad Soyad', 'Birim', 'Sınıf', 'Doğum Tarihi', 'Cinsiyet', 'Veli Kullanıcı Adı', 'Durum'];
+    satirlar = ogrenciler.map((o) => [o.ad_soyad, birim(o.kurum_id), sinifAdi.get(o.sinif_id) ?? '', o.dogum_tarihi, o.cinsiyet ? CINSIYET_ETIKETLERI[o.cinsiyet] : '', o.kullanici_adi, o.aktif ? 'Aktif' : 'Pasif']);
   } else if (tur === 'yoklama' || tur === 'katilim') {
     const yoklamalar = await tumSatirlar((b, s) =>
       supabase.from('yoklama').select('ogrenci_id, tarih, durum').gte('tarih', baslangic).order('tarih').range(b, s),

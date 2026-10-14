@@ -12,8 +12,9 @@ import { Kart } from '@/components/Kart';
 import { OnayKutusu } from '@/components/OnayKutusu';
 import { Secenekler } from '@/components/Secenekler';
 import { Secim } from '@/components/Secim';
+import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { gorevAta } from '@/lib/gorevler';
-import { PERSONEL_ROL_ETIKETLERI, personelDavetEt, type PersonelRolu } from '@/lib/personel';
+import { PERSONEL_ROL_ETIKETLERI, personelCinsiyetiniAyarla, personelDavetEt, type PersonelRolu } from '@/lib/personel';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Gorev, Sinif } from '@/lib/tipler';
@@ -36,6 +37,7 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
   const [eposta, setEposta] = useState('');
   const [rol, setRol] = useState<PersonelRolu>(roller[0]);
   const [gorevId, setGorevId] = useState<string | null>(null);
+  const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
   const uygunGorevler = gorevler.filter((g) => g.temel_rol === rol);
   const bitir = () => (onTamam ? onTamam() : router.back());
   const [siniflar, setSiniflar] = useState<Sinif[]>([]);
@@ -69,6 +71,8 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
       const sonuc = await personelDavetEt({ kurumId, adSoyad, eposta, rol, sinifIdleri: seciliSiniflar });
       // Hesap açıldı; görev atanamazsa davet geri alınmaz, görev kişinin ekranından sonradan atanır.
       if (gorevId) await gorevAta(sonuc.kullanici_id, gorevId).catch(() => {});
+      const c = cinsiyetGirdisi(cinsiyet);
+      if (c) await personelCinsiyetiniAyarla(sonuc.kullanici_id, c).catch(() => {});
       if (sonuc.eposta_gonderildi) {
         toast('Personel eklendi, davet e-postası gönderildi');
         bitir();
@@ -127,6 +131,7 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
         onChangeText={setEposta}
         editable={!gonderiliyor}
       />
+      <Secenekler etiket="Cinsiyet" secenekler={CINSIYET_SECENEKLERI} secili={cinsiyet} onSec={setCinsiyet} pasif={gonderiliyor} />
 
       {rol === 'ogretmen' && siniflar.length > 0 ? (
         <>

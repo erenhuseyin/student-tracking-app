@@ -5,7 +5,7 @@
 // tablolar üzerinde yapılır, yetkiyi RLS (kullanici_kurum_admin_*, ogretmen_sinif_kurum_admin) verir.
 import { edgeFonksiyonuCagir } from '@/lib/edge';
 import { supabase } from '@/lib/supabase';
-import type { Kullanici } from '@/lib/tipler';
+import type { Cinsiyet, Kullanici } from '@/lib/tipler';
 
 export type PersonelRolu = 'ogretmen' | 'kurum_admin';
 
@@ -56,6 +56,13 @@ export async function personelAdGuncelle(id: string, adSoyad: string): Promise<v
   if (!temizAd) throw new Error('Ad soyad gerekli.');
   const { error } = await supabase.from('kullanici').update({ ad_soyad: temizAd }).eq('id', id);
   if (error) throw new Error(hataMesajinaCevir(error.message));
+}
+
+// Satırı RLS sınırlar: yönetici kapsamındaki personeli, herkes kendini günceller.
+export async function personelCinsiyetiniAyarla(id: string, cinsiyet: Cinsiyet | null): Promise<void> {
+  const { data, error } = await supabase.from('kullanici').update({ cinsiyet }).eq('id', id).select('id');
+  if (error) throw new Error(hataMesajinaCevir(error.message));
+  if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
 }
 
 // Görev (rol) değişikliği. Kuralları veritabanı zorlar: kimse kendi rolünü değiştiremez, sınıf

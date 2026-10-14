@@ -10,8 +10,10 @@ import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { OnayButonu } from '@/components/OnayButonu';
+import { Secenekler } from '@/components/Secenekler';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { Yukleniyor } from '@/components/Yukleniyor';
+import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { ogrenciAktifliginiAyarla, ogrenciGetir, ogrenciGuncelle, ogrenciSil, veliGirisiniAc, veliPininiSifirla } from '@/lib/ogrenciler';
 import { useToast } from '@/lib/toast';
 import { useTema } from '@/lib/tema';
@@ -29,6 +31,7 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
   const tema = useTema();
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
+  const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
   // Velinin giriş adı; null ise veli girişi açılmamış (eklenirken açılamamış ya da eski kayıt).
   const [kullaniciAdi, setKullaniciAdi] = useState<string | null>(null);
   const [aktif, setAktif] = useState(true);
@@ -51,6 +54,7 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
         if (iptalEdildi) return;
         setAdSoyad(o.ad_soyad);
         setDogumTarihi(o.dogum_tarihi);
+        setCinsiyet(o.cinsiyet ?? '');
         setKullaniciAdi(o.kullanici_adi);
         setAktif(o.aktif);
       })
@@ -69,7 +73,7 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
     setGonderiliyor(true);
     setHata(null);
     try {
-      await ogrenciGuncelle(id, adSoyad, dogumTarihi);
+      await ogrenciGuncelle(id, adSoyad, dogumTarihi, cinsiyetGirdisi(cinsiyet));
       toast('Öğrenci kaydedildi');
       if (onDegisti) onDegisti();
       else router.back();
@@ -136,6 +140,7 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
         <Text style={tema.yazi.bolum}>Bilgiler</Text>
         <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} />
         <TarihGirdisi etiket="Doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
+        <Secenekler etiket="Cinsiyet" secenekler={CINSIYET_SECENEKLERI} secili={cinsiyet} onSec={setCinsiyet} pasif={gonderiliyor} />
         <HataMesaji mesaj={hata} />
         <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />
       </Kart>

@@ -4,7 +4,7 @@
 // dogum_tarihi biçimi: YYYY-AA-GG (native tarih seçici bu adımda kapsam dışı).
 import { edgeFonksiyonuCagir } from '@/lib/edge';
 import { supabase } from '@/lib/supabase';
-import type { Ogrenci } from '@/lib/tipler';
+import type { Cinsiyet, Ogrenci } from '@/lib/tipler';
 
 const TARIH_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -70,11 +70,12 @@ export async function ogrenciEkle(
   sinifId: string,
   adSoyad: string,
   dogumTarihi: string,
+  cinsiyet: Cinsiyet | null = null,
 ): Promise<OgrenciEklemeSonucu> {
   const girdi = girdiyiDogrula(adSoyad, dogumTarihi);
   const { data, error } = await supabase
     .from('ogrenci')
-    .insert({ kurum_id: kurumId, sinif_id: sinifId, ...girdi })
+    .insert({ kurum_id: kurumId, sinif_id: sinifId, ...girdi, cinsiyet })
     .select()
     .single();
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
@@ -101,12 +102,19 @@ export type TopluEklemeSonucu = {
 export async function ogrencileriTopluEkle(
   kurumId: string,
   sinifId: string,
-  satirlar: { adSoyad: string; dogumTarihi: string }[],
+  satirlar: { adSoyad: string; dogumTarihi: string; cinsiyet?: Cinsiyet | null }[],
 ): Promise<TopluEklemeSonucu> {
   if (satirlar.length === 0) throw new Error('Eklenecek öğrenci yok.');
   const { data, error } = await supabase
     .from('ogrenci')
-    .insert(satirlar.map((s) => ({ kurum_id: kurumId, sinif_id: sinifId, ...girdiyiDogrula(s.adSoyad, s.dogumTarihi) })))
+    .insert(
+      satirlar.map((s) => ({
+        kurum_id: kurumId,
+        sinif_id: sinifId,
+        ...girdiyiDogrula(s.adSoyad, s.dogumTarihi),
+        cinsiyet: s.cinsiyet ?? null,
+      })),
+    )
     .select('id, ad_soyad');
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
 
@@ -125,9 +133,14 @@ export async function ogrencileriTopluEkle(
   return sonuc;
 }
 
-export async function ogrenciGuncelle(id: string, adSoyad: string, dogumTarihi: string): Promise<Ogrenci> {
+export async function ogrenciGuncelle(
+  id: string,
+  adSoyad: string,
+  dogumTarihi: string,
+  cinsiyet: Cinsiyet | null,
+): Promise<Ogrenci> {
   const girdi = girdiyiDogrula(adSoyad, dogumTarihi);
-  const { data, error } = await supabase.from('ogrenci').update(girdi).eq('id', id).select().single();
+  const { data, error } = await supabase.from('ogrenci').update({ ...girdi, cinsiyet }).eq('id', id).select().single();
   if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
   return data;
 }
@@ -145,6 +158,7 @@ export type OgrenciAramasi = {
   durum: 'aktif' | 'pasif';
   // Seçilen birim ve altındaki tüm birimler.
   birimId?: string | null;
+  cinsiyet?: Cinsiyet | null;
 };
 export type OgrenciSiralamasi = { anahtar: 'ad_soyad' | 'dogum_tarihi'; yon: 'artan' | 'azalan' };
 export const OGRENCI_SAYFA_BOYUTU = 30;
@@ -153,7 +167,7 @@ export const OGRENCI_SAYFA_BOYUTU = 30;
 // sayfalanır: kurum büyüdükçe tüm listeyi indirmemek ve varsayılan 1000 satır sınırına takılmamak için.
 // Birim süzgeci kurumun `yol`'u üzerinden yapılır (tek kimlikle tüm alt ağaç).
 export async function ogrencileriAra(
-  { arama, sinifId, durum, birimId }: OgrenciAramasi,
+  { arama, sinifId, durum, birimId, cinsiyet }: OgrenciAramasi,
   sayfa: number,
   siralama: OgrenciSiralamasi = { anahtar: 'ad_soyad', yon: 'artan' },
 ): Promise<{ ogrenciler: Ogrenci[]; toplam: number }> {
@@ -163,6 +177,7 @@ export async function ogrencileriAra(
     .eq('aktif', durum === 'aktif');
   if (birimId) sorgu = sorgu.contains('kurum.yol', [birimId]);
   if (sinifId) sorgu = sorgu.eq('sinif_id', sinifId);
+  if (cinsiyet) sorgu = sorgu.eq('cinsiyet', cinsiyet);
   // % ve _ ilike joker karakterleridir; kullanıcının yazdığı metinde kaçırılır.
   const temiz = arama.trim().replace(/[%_\\]/g, (k) => `\\${k}`);
   if (temiz) sorgu = sorgu.ilike('ad_soyad', `%${temiz}%`);

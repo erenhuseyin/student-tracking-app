@@ -10,6 +10,7 @@ import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Ikon } from '@/components/Ikon';
 import { Kart } from '@/components/Kart';
+import { cinsiyetEtiketi } from '@/lib/cinsiyet';
 import { ogrencileriTopluEkle, type TopluEklemeSonucu } from '@/lib/ogrenciler';
 import { useOturum } from '@/lib/oturum';
 import { tarihiBicimle } from '@/lib/tarih';
@@ -113,7 +114,7 @@ export default function TopluOgrenci() {
                 <View style={styles.satirMetinleri}>
                   <Text style={tema.yazi.govde}>{s.adSoyad || '(ad yok)'}</Text>
                   <Text style={[tema.yazi.kucuk, s.hata ? { color: tema.renkler.hata } : null]}>
-                    {s.hata ?? tarihiBicimle(s.dogumTarihi)}
+                    {s.hata ?? [tarihiBicimle(s.dogumTarihi), s.cinsiyet ? cinsiyetEtiketi(s.cinsiyet) : null].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
               </View>
@@ -131,11 +132,11 @@ export default function TopluOgrenci() {
       ) : (
         <Kart>
           <Text style={tema.yazi.govde}>
-            Her satıra bir öğrenci yazın ya da Excel&apos;den iki sütunu kopyalayıp yapıştırın:
+            Her satıra bir öğrenci yazın ya da Excel&apos;den sütunları kopyalayıp yapıştırın:
           </Text>
-          <Text style={styles.ornek}>Ad Soyad · Doğum tarihi</Text>
+          <Text style={styles.ornek}>Ad Soyad · Doğum tarihi · Cinsiyet (isteğe bağlı: K / E)</Text>
           <Text style={tema.yazi.kucuk}>
-            Örnek: Elif Kaya; 03.03.2019 — her öğrenci için veli girişi de açılır (kullanıcı adı addan üretilir, ilk PIN 1234).
+            Örnek: Elif Kaya; 03.03.2019; K — her öğrenci için veli girişi de açılır (kullanıcı adı addan üretilir, ilk PIN 1234).
           </Text>
           <Girdi
             etiket="Öğrenci listesi"

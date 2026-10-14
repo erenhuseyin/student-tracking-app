@@ -65,6 +65,7 @@ export type Database = {
           ad_soyad: string;
           aktif: boolean;
           auth_id: string;
+          cinsiyet: Database['public']['Enums']['cinsiyet'] | null;
           eposta: string | null;
           expo_push_token: string | null;
           giris_deneme_sayisi: number;
@@ -83,6 +84,7 @@ export type Database = {
           ad_soyad: string;
           auth_id: string;
           aktif?: boolean;
+          cinsiyet?: Database['public']['Enums']['cinsiyet'] | null;
           eposta?: string | null;
           expo_push_token?: string | null;
           giris_deneme_sayisi?: number;
@@ -101,6 +103,7 @@ export type Database = {
           ad_soyad?: string;
           auth_id?: string;
           aktif?: boolean;
+          cinsiyet?: Database['public']['Enums']['cinsiyet'] | null;
           eposta?: string | null;
           expo_push_token?: string | null;
           giris_deneme_sayisi?: number;
@@ -164,6 +167,7 @@ export type Database = {
         Row: {
           ad_soyad: string;
           aktif: boolean;
+          cinsiyet: Database['public']['Enums']['cinsiyet'] | null;
           dogum_tarihi: string;
           id: string;
           kok_kurum_id: string;
@@ -175,6 +179,7 @@ export type Database = {
         Insert: {
           ad_soyad: string;
           aktif?: boolean;
+          cinsiyet?: Database['public']['Enums']['cinsiyet'] | null;
           dogum_tarihi: string;
           id?: string;
           kok_kurum_id?: string;
@@ -186,6 +191,7 @@ export type Database = {
         Update: {
           ad_soyad?: string;
           aktif?: boolean;
+          cinsiyet?: Database['public']['Enums']['cinsiyet'] | null;
           dogum_tarihi?: string;
           id?: string;
           kok_kurum_id?: string;
@@ -1088,6 +1094,10 @@ export type Database = {
         Args: { p_baslangic: string; p_bitis: string };
         Returns: Json;
       };
+      pano_cinsiyet: {
+        Args: { p_kurum_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       rol: 'super_admin' | 'kurum_admin' | 'ogretmen' | 'veli';
@@ -1098,6 +1108,7 @@ export type Database = {
       basvuru_turu: 'ogrenci' | 'personel';
       bildirim_tipi: 'yoklama' | 'gelisim_kaydi' | 'duyuru' | 'basvuru';
       duyuru_turu: 'duyuru' | 'etkinlik';
+      cinsiyet: 'kadin' | 'erkek';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1123,6 +1134,7 @@ export const Constants = {
       basvuru_turu: ['ogrenci', 'personel'],
       bildirim_tipi: ['yoklama', 'gelisim_kaydi', 'duyuru', 'basvuru'],
       duyuru_turu: ['duyuru', 'etkinlik'],
+      cinsiyet: ['kadin', 'erkek'],
     },
   },
 } as const;

@@ -38,6 +38,9 @@ import {
   panoIlleriniGetir,
   type PanoOzeti,
   panoOzetiniGetir,
+  panoCinsiyetiniGetir,
+  cinsiyetMetni,
+  type PanoCinsiyet,
 } from '@/lib/pano';
 import { EN_FAZLA_SEVIYE, seviyeAdi, seviyeAdiCogul, seviyeAdiKucuk } from '@/lib/seviye';
 import { haftaAraligiBicimle } from '@/lib/tarih';
@@ -76,6 +79,7 @@ export function Pano({ sabit = false, alt }: Props) {
   const [iller, setIller] = useState<PanoIli[] | null>(null);
   const [haritaOlcusu, setHaritaOlcusu] = useState<HaritaOlcusu>('katilim');
   const [secilenIl, setSecilenIl] = useState<PanoIli | null>(null);
+  const [cinsiyet, setCinsiyet] = useState<PanoCinsiyet | null>(null);
   const [siralama, setSiralama] = useState<TabloSiralamasi>({ anahtar: 'ogrenci', yon: 'azalan' });
 
   const birimId = secilenId ?? kurum?.id ?? null;
@@ -92,6 +96,14 @@ export function Pano({ sabit = false, alt }: Props) {
         })
         .catch((e: Error) => {
           if (!iptalEdildi) setHata(e.message);
+        });
+      // Okunamazsa (ör. veritabanı güncellenmemiş) kırılım satırı gösterilmez.
+      panoCinsiyetiniGetir(birimId)
+        .then((veri) => {
+          if (!iptalEdildi) setCinsiyet(veri);
+        })
+        .catch(() => {
+          if (!iptalEdildi) setCinsiyet(null);
         });
       return () => {
         iptalEdildi = true;
@@ -321,6 +333,11 @@ export function Pano({ sabit = false, alt }: Props) {
         Dönemde {sayilar.yeni_kayit} yeni kayıt · {sayilar.pasif_ogrenci} pasif (ayrılmış) öğrenci · veli girişi açık:{' '}
         {sayilar.veli_girisi_acik}/{sayilar.ogrenci} · {sayilar.yonetici} yönetici
       </Text>
+      {cinsiyet ? (
+        <Text style={tema.yazi.kucuk}>
+          Öğrenci: {cinsiyetMetni(cinsiyet.ogrenci)} · Öğretmen: {cinsiyetMetni(cinsiyet.ogretmen)}
+        </Text>
+      ) : null}
 
       <View style={styles.izgara}>
         <View style={styles.hucre}>

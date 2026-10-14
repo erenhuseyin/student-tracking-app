@@ -83,3 +83,8 @@ export type KitapOkuma = Tables<'kitap_okuma'>;
 // Müşterinin tanımladığı görev: bir temel role bağlıdır, o görevdeki kişilere gizlenen menü
 // öğelerini tutar (görünürlük ayarı; veri yetkisi temel rolden gelir).
 export type Gorev = Tables<'gorev'>;
+
+export const CINSIYETLER = Constants.public.Enums.cinsiyet;
+
+// Hoca ve öğrencide isteğe bağlı; null = belirtilmemiş.
+export type Cinsiyet = (typeof CINSIYETLER)[number];

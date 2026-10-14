@@ -24,6 +24,7 @@ import {
   ogretmenSinifKaldir,
   PERSONEL_ROL_ETIKETLERI,
   personelAdGuncelle,
+  personelCinsiyetiniAyarla,
   personelAktifligiDegistir,
   personelDavetIptal,
   personelEpostaDegistir,
@@ -32,6 +33,7 @@ import {
   personelRolDegistir,
   type PersonelRolu,
 } from '@/lib/personel';
+import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Gorev, Kullanici, Sinif } from '@/lib/tipler';
@@ -76,6 +78,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const [personel, setPersonel] = useState<Kullanici | null>(null);
   const { kurum: personelKurumu } = useKurum(personel?.kurum_id ?? undefined);
   const [adSoyad, setAdSoyad] = useState('');
+  const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
   const [siniflar, setSiniflar] = useState<Sinif[]>([]);
   const [atananlar, setAtananlar] = useState<string[]>([]);
   const [yuklemeHatasi, setYuklemeHatasi] = useState<string | null>(null);
@@ -109,6 +112,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const uygula = (veri: PersonelVerisi) => {
     setPersonel(veri.personel);
     setAdSoyad(veri.personel.ad_soyad);
+    setCinsiyet(veri.personel.cinsiyet ?? '');
     setEposta(veri.personel.eposta ?? '');
     setSiniflar(veri.siniflar);
     setAtananlar(veri.atananlar);
@@ -216,6 +220,11 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
     setAdMesaji(null);
     try {
       await personelAdGuncelle(personel.id, adSoyad);
+      const yeniCinsiyet = cinsiyetGirdisi(cinsiyet);
+      if (yeniCinsiyet !== personel.cinsiyet) {
+        await personelCinsiyetiniAyarla(personel.id, yeniCinsiyet);
+        setPersonel({ ...personel, cinsiyet: yeniCinsiyet });
+      }
       setAdMesaji({ tur: 'basari', metin: 'Kaydedildi.' });
       onDegisti?.();
     } catch (e) {
@@ -275,6 +284,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
       <Kart>
         <PersonelDurumRozeti personel={personel} />
         <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!adKaydediliyor} />
+        <Secenekler etiket="Cinsiyet" secenekler={CINSIYET_SECENEKLERI} secili={cinsiyet} onSec={setCinsiyet} pasif={adKaydediliyor} />
         {davetBekliyor ? null : (
           <Girdi etiket="E-posta (değiştirilemez)" value={personel.eposta ?? '—'} editable={false} />
         )}

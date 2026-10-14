@@ -8,8 +8,10 @@ import { Buton } from '@/components/Buton';
 import { Girdi } from '@/components/Girdi';
 import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
+import { Secenekler } from '@/components/Secenekler';
 import { Secim } from '@/components/Secim';
 import { TarihGirdisi } from '@/components/TarihGirdisi';
+import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { ogrenciEkle } from '@/lib/ogrenciler';
 import { useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
@@ -29,6 +31,7 @@ export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi, varsayilan
   const [sinifId, setSinifId] = useState<string | null>(varsayilanSinifId);
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
+  const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -41,7 +44,7 @@ export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi, varsayilan
     setGonderiliyor(true);
     setHata(null);
     try {
-      const { kullaniciAdi } = await ogrenciEkle(sinif.kurum_id, sinif.id, adSoyad, dogumTarihi);
+      const { kullaniciAdi } = await ogrenciEkle(sinif.kurum_id, sinif.id, adSoyad, dogumTarihi, cinsiyetGirdisi(cinsiyet));
       toast(kullaniciAdi ? `Öğrenci eklendi · veli girişi: ${kullaniciAdi}` : 'Öğrenci eklendi; veli girişi açılamadı (öğrencinin panelinden açın)');
       onEklendi();
     } catch (e) {
@@ -70,6 +73,7 @@ export function YeniOgrenciFormu({ siniflar, sinifEtiketi, onEklendi, varsayilan
       />
       <Girdi etiket="Ad soyad" value={adSoyad} onChangeText={setAdSoyad} editable={!gonderiliyor} />
       <TarihGirdisi etiket="Doğum tarihi" deger={dogumTarihi} onDegis={setDogumTarihi} pasif={gonderiliyor} />
+      <Secenekler etiket="Cinsiyet" secenekler={CINSIYET_SECENEKLERI} secili={cinsiyet} onSec={setCinsiyet} pasif={gonderiliyor} />
       <Text style={tema.yazi.kucuk}>Kayıtla birlikte veli girişi açılır: kullanıcı adı öğrencinin adından üretilir (örn. ali.yilmaz), ilk PIN 1234&apos;tür. Kullanıcı adını öğrencinin panelinde görürsünüz.</Text>
       <HataMesaji mesaj={hata} />
       <Buton baslik="Kaydet" onPress={kaydet} yukleniyor={gonderiliyor} />

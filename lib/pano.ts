@@ -114,6 +114,26 @@ export async function panoIlleriniGetir(donem: PanoDonemi): Promise<PanoIli[]> {
   return data as unknown as PanoIli[];
 }
 
+// Aktif öğrenci ve öğretmenlerin cinsiyete göre sayısı (seçilen birim ve altı).
+export type CinsiyetSayilari = { kadin: number; erkek: number; belirtilmemis: number };
+export type PanoCinsiyet = { ogrenci: CinsiyetSayilari; ogretmen: CinsiyetSayilari };
+
+export async function panoCinsiyetiniGetir(kurumId: string): Promise<PanoCinsiyet> {
+  const { data, error } = await supabase.rpc('pano_cinsiyet', { p_kurum_id: kurumId });
+  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+  return data as unknown as PanoCinsiyet;
+}
+
+// Kısa metin: "12 kadın · 9 erkek · 3 belirtilmemiş" (sıfır olanlar yazılmaz).
+export function cinsiyetMetni(s: CinsiyetSayilari): string {
+  const parcalar = [
+    s.kadin ? `${s.kadin} kadın` : null,
+    s.erkek ? `${s.erkek} erkek` : null,
+    s.belirtilmemis ? `${s.belirtilmemis} belirtilmemiş` : null,
+  ].filter(Boolean);
+  return parcalar.length ? parcalar.join(' · ') : '—';
+}
+
 // Katılım oranı: katıldı / (katıldı + gelmedi). Mazeretli paydaya girmez (bkz. lib/katilim.ts).
 // Hiç yoklama yoksa null.
 export function oran(katildi: number, gelmedi: number): number | null {

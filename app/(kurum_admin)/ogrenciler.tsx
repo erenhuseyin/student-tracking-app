@@ -12,11 +12,12 @@ import { Secim } from '@/components/Secim';
 import type { TabloSutunu } from '@/components/Tablo';
 import { VeriEkrani } from '@/components/VeriEkrani';
 import { YeniOgrenciFormu } from '@/components/YeniOgrenciFormu';
+import { CINSIYET_SUZGECI, cinsiyetEtiketi } from '@/lib/cinsiyet';
 import { birimSecenekleri, kurumAdlariniGetir, type KurumOzeti, kurumYolu } from '@/lib/kurumlar';
 import { OGRENCI_SAYFA_BOYUTU, type OgrenciSiralamasi, ogrencileriAra } from '@/lib/ogrenciler';
 import { useOturum } from '@/lib/oturum';
 import { siniflariGetir } from '@/lib/siniflar';
-import type { Ogrenci, Sinif } from '@/lib/tipler';
+import type { Cinsiyet, Ogrenci, Sinif } from '@/lib/tipler';
 
 type Durum = 'aktif' | 'pasif';
 const DURUM_SECENEKLERI: { deger: Durum; etiket: string }[] = [
@@ -37,6 +38,7 @@ export default function Ogrenciler() {
   const [birimId, setBirimId] = useState<string | null>(null);
   const [sinifId, setSinifId] = useState<string | null>(null);
   const [durum, setDurum] = useState<Durum>('aktif');
+  const [cinsiyet, setCinsiyet] = useState<Cinsiyet | null>(null);
   const [siralama, setSiralama] = useState<OgrenciSiralamasi>({ anahtar: 'ad_soyad', yon: 'artan' });
   const [sayfa, setSayfa] = useState(0);
   const [yenileme, setYenileme] = useState(0);
@@ -61,7 +63,7 @@ export default function Ogrenciler() {
     useCallback(() => {
       let iptalEdildi = false;
       setHata(null);
-      ogrencileriAra({ arama, sinifId, durum, birimId }, sayfa, siralama)
+      ogrencileriAra({ arama, sinifId, durum, birimId, cinsiyet }, sayfa, siralama)
         .then((sonuc) => {
           if (iptalEdildi) return;
           setOgrenciler(sonuc.ogrenciler);
@@ -75,7 +77,7 @@ export default function Ogrenciler() {
       };
       // `yenileme`: panelde bir kayıt değişince aynı sorguyu yeniden çalıştırır.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [arama, sinifId, durum, birimId, sayfa, siralama, yenileme]),
+    }, [arama, sinifId, durum, birimId, cinsiyet, sayfa, siralama, yenileme]),
   );
 
   useFocusEffect(
@@ -115,6 +117,7 @@ export default function Ogrenciler() {
       { anahtar: 'ad_soyad', baslik: 'Ad Soyad', icerik: (o) => o.ad_soyad, siralanabilir: true },
       { anahtar: 'birim', baslik: 'Birim', icerik: (o) => birimAdi(o.kurum_id) },
       { anahtar: 'sinif', baslik: 'Sınıf', icerik: (o) => sinifAdi(o.sinif_id) },
+      { anahtar: 'cinsiyet', baslik: 'Cinsiyet', icerik: (o) => cinsiyetEtiketi(o.cinsiyet), genislik: 100, ikincil: true },
       { anahtar: 'dogum_tarihi', baslik: 'Doğum Tarihi', icerik: (o) => tarih(o.dogum_tarihi), siralanabilir: true, genislik: 140, ikincil: true },
       {
         anahtar: 'veli',
@@ -168,6 +171,17 @@ export default function Ogrenciler() {
             bosEtiket="Tümü"
           />,
           <Secim
+            key="cinsiyet"
+            etiket="Cinsiyet"
+            secenekler={CINSIYET_SUZGECI.filter((c) => c.deger !== '') as { deger: Cinsiyet; etiket: string }[]}
+            secili={cinsiyet}
+            onSec={(c) => {
+              setCinsiyet(c);
+              setSayfa(0);
+            }}
+            bosEtiket="Tümü"
+          />,
+          <Secim
             key="durum"
             etiket="Durum"
             secenekler={DURUM_SECENEKLERI}
@@ -178,7 +192,7 @@ export default function Ogrenciler() {
             }}
           />,
         ]}
-        etkinFiltreSayisi={[birimId, sinifId, durum === 'pasif' ? durum : null].filter(Boolean).length}
+        etkinFiltreSayisi={[birimId, sinifId, cinsiyet, durum === 'pasif' ? durum : null].filter(Boolean).length}
         yeniEtiket="Yeni Öğrenci"
         onYeni={() => setSecili({ tur: 'yeni' })}
         ozet={`${toplam} öğrenci`}
@@ -186,7 +200,7 @@ export default function Ogrenciler() {
         hata={hata}
         anahtar={(o) => o.id}
         sutunlar={sutunlar}
-        tabloEnAzGenislik={760}
+        tabloEnAzGenislik={860}
         kart={(o) => (
           <ListeSatiri
             baslik={o.ad_soyad}

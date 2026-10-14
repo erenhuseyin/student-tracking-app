@@ -2,7 +2,7 @@
 // Erişim: kurum_admin (RLS: yönettiği kurumlar — kendi birimi ve altındaki tüm birimler).
 // Sunucuda süzülür, sıralanır ve sayfalanır. Personel işlemleri lib/personel.ts'tedir.
 import { supabase } from '@/lib/supabase';
-import type { Kullanici, Ogrenci, Rol } from '@/lib/tipler';
+import type { Cinsiyet, Kullanici, Ogrenci, Rol } from '@/lib/tipler';
 
 // Satırın durumu lib/personel.ts > personelDurumu ile hesaplanır (aynı üç değer).
 export type KullaniciDurumu = 'aktif' | 'davet_bekliyor' | 'pasif';
@@ -21,6 +21,7 @@ export type KullaniciAramasi = {
   // Seçilen birim ve altındaki tüm birimler.
   birimId: string | null;
   durum: KullaniciDurumu | null;
+  cinsiyet?: Cinsiyet | null;
 };
 
 export type KullaniciSiralamasi = { anahtar: 'ad_soyad' | 'eposta' | 'rol'; yon: 'artan' | 'azalan' };
@@ -33,7 +34,7 @@ function hataMesajinaCevir(mesaj: string): string {
 }
 
 export async function kullanicilariAra(
-  { arama, rol, gorevId, birimId, durum }: KullaniciAramasi,
+  { arama, rol, gorevId, birimId, durum, cinsiyet }: KullaniciAramasi,
   siralama: KullaniciSiralamasi,
   sayfa: number,
 ): Promise<{ kullanicilar: Kullanici[]; toplam: number }> {
@@ -47,6 +48,7 @@ export async function kullanicilariAra(
   if (gorevId) sorgu = sorgu.eq('gorev_id', gorevId);
   if (durum === 'pasif') sorgu = sorgu.eq('aktif', false);
   if (durum === 'aktif') sorgu = sorgu.eq('aktif', true).or('sifre_belirlendi.eq.true,rol.eq.veli');
+  if (cinsiyet) sorgu = sorgu.eq('cinsiyet', cinsiyet);
   if (durum === 'davet_bekliyor') sorgu = sorgu.eq('aktif', true).eq('sifre_belirlendi', false).neq('rol', 'veli');
   // % ve _ ilike joker karakterleridir; virgül ve parantez `or` süzgecinin sözdizimini bozar.
   const temiz = arama

@@ -16,6 +16,7 @@ import { Secim } from '@/components/Secim';
 import type { TabloSutunu } from '@/components/Tablo';
 import { VeliDetay } from '@/components/VeliDetay';
 import { VeriEkrani } from '@/components/VeriEkrani';
+import { CINSIYET_SUZGECI, cinsiyetEtiketi } from '@/lib/cinsiyet';
 import { gorevleriGetir } from '@/lib/gorevler';
 import {
   KULLANICI_DURUMU_ETIKETLERI,
@@ -28,7 +29,7 @@ import {
 import { birimSecenekleri, kurumAdlariniGetir, type KurumOzeti, kurumYolu } from '@/lib/kurumlar';
 import { ROL_ETIKETLERI, rolEtiketi } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
-import type { Gorev, Kullanici } from '@/lib/tipler';
+import type { Cinsiyet, Gorev, Kullanici } from '@/lib/tipler';
 
 const ARAMA_GECIKMESI_MS = 350;
 const ROL_SECENEKLERI: { deger: ListelenenRol; etiket: string }[] = [
@@ -51,6 +52,7 @@ export default function Kullanicilar() {
   const [gorevId, setGorevId] = useState<string | null>(null);
   const [birimId, setBirimId] = useState<string | null>(null);
   const [durum, setDurum] = useState<KullaniciDurumu | null>(null);
+  const [cinsiyet, setCinsiyet] = useState<Cinsiyet | null>(null);
   const [siralama, setSiralama] = useState<KullaniciSiralamasi>({ anahtar: 'ad_soyad', yon: 'artan' });
   const [sayfa, setSayfa] = useState(0);
   const [yenileme, setYenileme] = useState(0);
@@ -76,7 +78,7 @@ export default function Kullanicilar() {
     useCallback(() => {
       let iptalEdildi = false;
       setHata(null);
-      kullanicilariAra({ arama, rol, gorevId, birimId, durum }, siralama, sayfa)
+      kullanicilariAra({ arama, rol, gorevId, birimId, durum, cinsiyet }, siralama, sayfa)
         .then((sonuc) => {
           if (iptalEdildi) return;
           setKullanicilar(sonuc.kullanicilar);
@@ -90,7 +92,7 @@ export default function Kullanicilar() {
       };
       // `yenileme`: panelde bir kayıt değişince aynı sorguyu yeniden çalıştırır.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [arama, rol, gorevId, birimId, durum, siralama, sayfa, yenileme]),
+    }, [arama, rol, gorevId, birimId, durum, cinsiyet, siralama, sayfa, yenileme]),
   );
 
   useFocusEffect(
@@ -136,6 +138,7 @@ export default function Kullanicilar() {
       { anahtar: 'ad_soyad', baslik: 'Ad Soyad', icerik: (k) => k.ad_soyad, siralanabilir: true },
       { anahtar: 'rol', baslik: 'Rol / Görev', icerik: gorevi, siralanabilir: true },
       { anahtar: 'birim', baslik: 'Birim', icerik: (k) => birimAdi(k.kurum_id) },
+      { anahtar: 'cinsiyet', baslik: 'Cinsiyet', icerik: (k) => cinsiyetEtiketi(k.cinsiyet), genislik: 100, ikincil: true },
       { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '—', siralanabilir: true, ikincil: true },
       { anahtar: 'durum', baslik: 'Durum', icerik: (k) => <PersonelDurumRozeti personel={k} />, genislik: 170 },
     ],
@@ -169,9 +172,17 @@ export default function Kullanicilar() {
         birimler.length > 1 ? (
           <Secim key="birim" etiket="Birim" secenekler={birimler} secili={birimId} onSec={filtrele(setBirimId)} bosEtiket="Tümü" />
         ) : null,
+        <Secim
+          key="cinsiyet"
+          etiket="Cinsiyet"
+          secenekler={CINSIYET_SUZGECI.filter((c) => c.deger !== '') as { deger: Cinsiyet; etiket: string }[]}
+          secili={cinsiyet}
+          onSec={filtrele(setCinsiyet)}
+          bosEtiket="Tümü"
+        />,
         <Secim key="durum" etiket="Durum" secenekler={DURUM_SECENEKLERI} secili={durum} onSec={filtrele(setDurum)} bosEtiket="Tümü" />,
       ]}
-      etkinFiltreSayisi={[rol, gorevId, birimId, durum].filter(Boolean).length}
+      etkinFiltreSayisi={[rol, gorevId, birimId, durum, cinsiyet].filter(Boolean).length}
       yeniEtiket="Yeni Kullanıcı"
       onYeni={() => setSecili({ tur: 'yeni' })}
       ozet={`${toplam} kullanıcı`}
@@ -179,7 +190,7 @@ export default function Kullanicilar() {
       hata={hata}
       anahtar={(k) => k.id}
       sutunlar={sutunlar}
-      tabloEnAzGenislik={820}
+      tabloEnAzGenislik={920}
       kart={(k) => (
         <ListeSatiri
           baslik={k.ad_soyad}
