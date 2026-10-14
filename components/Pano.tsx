@@ -9,6 +9,7 @@ import { useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Buton } from '@/components/Buton';
 import { CubukGrafik } from '@/components/CubukGrafik';
 import { Ekran } from '@/components/Ekran';
 import { HataMesaji } from '@/components/HataMesaji';
@@ -49,6 +50,9 @@ import { type Tema, useKirilma, useTema } from '@/lib/tema';
 // 'YYYY-AA-GG' -> '07.09' (grafik ekseni; dar sütuna sığsın diye sayısal)
 const kisaTarih = (t: string) => `${t.slice(8, 10)}.${t.slice(5, 7)}`;
 
+// İl tablosunda ilk gösterilen il sayısı (gerisi "Tüm iller" ile).
+const IL_SINIRI = 8;
+
 const HARITA_OLCULERI: { deger: HaritaOlcusu; etiket: string }[] = [
   { deger: 'katilim', etiket: 'Katılım oranı' },
   { deger: 'ogrenci', etiket: 'Öğrenci sayısı' },
@@ -79,6 +83,7 @@ export function Pano({ sabit = false, alt }: Props) {
   const [iller, setIller] = useState<PanoIli[] | null>(null);
   const [haritaOlcusu, setHaritaOlcusu] = useState<HaritaOlcusu>('katilim');
   const [secilenIl, setSecilenIl] = useState<PanoIli | null>(null);
+  const [tumIller, setTumIller] = useState(false);
   const [cinsiyet, setCinsiyet] = useState<PanoCinsiyet | null>(null);
   const [siralama, setSiralama] = useState<TabloSiralamasi>({ anahtar: 'ogrenci', yon: 'azalan' });
 
@@ -233,7 +238,10 @@ export function Pano({ sabit = false, alt }: Props) {
   const fark = donemOrani !== null && oncekiOran !== null ? Math.round((donemOrani - oncekiOran) * 100) : null;
   const altSeviye = ozet.birim.seviye + 1;
   const enler = enleriBul(altBirimler, seviyeAdiKucuk(altSeviye));
-  const sonIller = [...(iller ?? [])].sort((a, b) => b.ogrenci - a.ogrenci);
+  // Öğrencisi çok olan il önce; tablo kartı uzatmasın diye ilk IL_SINIRI il gösterilir, gerisi
+  // "Tüm iller" ile açılır (birimi olup henüz öğrencisi olmayan iller sona düşer).
+  const sonIller = [...(iller ?? [])].sort((a, b) => b.ogrenci - a.ogrenci || b.alt_birim - a.alt_birim);
+  const gorunenIller = tumIller ? sonIller : sonIller.slice(0, IL_SINIRI);
 
   // Harita (telefonda il tablosu) birim seçtiği için süzgeçlerin hemen altında durur.
   const haritaKarti =
@@ -257,7 +265,15 @@ export function Pano({ sabit = false, alt }: Props) {
                 </View>
               ) : null}
               <View style={styles.ilTablosu}>
-                <Tablo veri={sonIller} sutunlar={ilSutunlari} anahtar={(i) => String(i.il_kodu)} onPress={ilSec} />
+                <Tablo veri={gorunenIller} sutunlar={ilSutunlari} anahtar={(i) => String(i.il_kodu)} onPress={ilSec} />
+                {sonIller.length > IL_SINIRI ? (
+                  <Buton
+                    tur="ikincil"
+                    ikon={tumIller ? 'chevron-up' : 'chevron-down'}
+                    baslik={tumIller ? 'Daha az göster' : `Tüm iller (${sonIller.length})`}
+                    onPress={() => setTumIller((t) => !t)}
+                  />
+                ) : null}
               </View>
             </View>
             {secilenIl ? (
@@ -531,6 +547,7 @@ function olustur(t: Tema) {
       flexGrow: 1,
       flexBasis: 420,
       minWidth: 0,
+      gap: t.bosluk.s,
     },
     olcuAlani: {
       maxWidth: 360,
