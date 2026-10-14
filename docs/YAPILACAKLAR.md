@@ -8,7 +8,7 @@
 2. **`redesign/defter` dalını `main`'e birleştirmek** (telefon kontrolünden sonra).
 3. **Web'de gözle tur**: yeni web düzeni, logo ve palet; beğenilmeyen ekranlar buraya eklenir.
 4. **Canlıda denenecekler (2026-10-14; kullanıcı adı ve müşteri istekleri canlıya alındı):** `npx expo start --clear`; eski veli hesaplarına öğrenci ekranından "PIN'i sıfırla", veli kullanıcı adı + 1234 ile giriş ve zorunlu PIN değişimi; yeni öğrenci eklenince veli girişinin kendiliğinden açılması; takvime etkinlik ekleme (personele bildirim, velide yalnızca takvim); program ekranı; cinsiyet alanları ve panodaki satır; öğrenci ve hoca detay ekranları.
-5. **Bizdeki kademe-ders takibinin test edilmesi** (kullanıcı: "bizdeki kısmını test edelim, sonra oradaki özellikleri ekleriz"); ardından B7.
+5. **Bizdeki kademe-ders takibinin test edilmesi** (kullanıcı: "bizdeki kısmını test edelim, sonra oradaki özellikleri ekleriz"); ardından B7. **Yerelde test edildi (2026-10-14, görünmez Chrome + REST, 38 kontrol):** tanımlar, sınıfa atama, hoca/yönetici işaretlemesi, hoca detayı ve panoda sayı, il yöneticisinde salt okunurluk, başka hocanın erişememesi, ders/kademe silmede kayıtların gitmesi çalışıyor. Bulunan iki küçük kusur: (1) aynı ad derse ikinci kez konu olarak eklenebiliyor (yapıştırılan liste kendi içinde tekilleşiyor, mevcut konularla karşılaştırılmıyor); (2) web'de kademe ekranı adresle açılmışsa (yenileme) "Kademeyi Sil" sonrası geri gidecek ekran olmadığı için silinen kademenin ekranında kalınıyor. Canlıda gözle bakılması kullanıcıda.
 
 ## B. Kararı verilmiş, sırası gelen işler (kullanıcı kararları, 2026-10-13)
 
