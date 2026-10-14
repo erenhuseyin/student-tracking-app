@@ -26,7 +26,8 @@ type Vurgu = { hovered?: boolean; pressed: boolean };
 // Bölümün detay ekranları (öğe anahtarı -> adres önekleri): detaydayken de bölüm seçili görünür.
 const ALT_ROTALAR: Record<string, string[]> = {
   siniflar: ['/sinif', '/yeni-sinif', '/sinif-duzenle', '/sinif-katilim', '/toplu-ogrenci', '/yeni-ogrenci', '/ogrenci-duzenle'],
-  personel: ['/yeni-personel'],
+  personel: ['/yeni-personel', '/personel-detay'],
+  ogrenciler: ['/ogrenci-detay'],
   duyurular: ['/yeni-duyuru', '/duyuru-duzenle'],
   subeler: ['/sube', '/yeni-sube', '/sube-duzenle', '/sube-personel'],
   basvurular: ['/basvuru'],

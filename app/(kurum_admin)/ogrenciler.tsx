@@ -1,10 +1,11 @@
 // Erişim: yalnızca kurum_admin (yönettiği kurumların öğrencileri; RLS). Tüm öğrenciler tek tabloda:
 // ada, birime, sınıfa ve aktif/pasif durumuna göre süzülür. Sonuçlar sunucuda süzülür, sıralanır
 // ve sayfalanır. Seçilen öğrenci yan panelde düzenlenir; "Yeni öğrenci" sınıf seçerek ekler.
-import { Stack, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Avatar } from '@/components/Avatar';
+import { Buton } from '@/components/Buton';
 import { Girdi } from '@/components/Girdi';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { OgrenciFormu } from '@/components/OgrenciFormu';
@@ -32,6 +33,7 @@ const tarih = (t: string) => t.split('-').reverse().join('.');
 type Secili = { tur: 'kayit'; ogrenci: Ogrenci } | { tur: 'yeni' } | null;
 
 export default function Ogrenciler() {
+  const router = useRouter();
   const { kurum, kokKurum } = useOturum();
   const [yazilan, setYazilan] = useState('');
   const [arama, setArama] = useState('');
@@ -228,7 +230,15 @@ export default function Ogrenciler() {
               onEklendi={kapatVeYenile}
             />
           ) : seciliOgrenci ? (
-            <OgrenciFormu key={seciliOgrenci.id} id={seciliOgrenci.id} onDegisti={yenile} onSilindi={kapatVeYenile} />
+            <>
+              <Buton
+                tur="ikincil"
+                ikon="open-outline"
+                baslik="Ayrıntılar"
+                onPress={() => router.push({ pathname: '/ogrenci-detay/[id]', params: { id: seciliOgrenci.id } })}
+              />
+              <OgrenciFormu key={seciliOgrenci.id} id={seciliOgrenci.id} onDegisti={yenile} onSilindi={kapatVeYenile} />
+            </>
           ) : null
         }
       />

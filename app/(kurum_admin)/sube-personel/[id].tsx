@@ -13,7 +13,7 @@ export default function BirimPersoneli() {
   return (
     <Ekran>
       <Stack.Screen options={{ title: kurum ? `${kurum.ad} · Personel` : 'Personel' }} />
-      <PersonelListesi kurumId={id} />
+      <PersonelListesi kurumId={id} detayRotasi="/personel-detay" />
     </Ekran>
   );
 }

@@ -16,7 +16,15 @@ import { type Tema, useTema } from '@/lib/tema';
 import type { Kullanici } from '@/lib/tipler';
 import { useKurum } from '@/lib/useKurum';
 
-export function PersonelListesi({ kurumId }: { kurumId: string }) {
+// `detayRotasi`: satıra dokununca açılan ekran (kurum yöneticisinde salt okunur detay, süper adminde
+// düzenleme ekranı).
+export function PersonelListesi({
+  kurumId,
+  detayRotasi = '/personel',
+}: {
+  kurumId: string;
+  detayRotasi?: '/personel' | '/personel-detay';
+}) {
   const router = useRouter();
   const tema = useTema();
   const styles = useMemo(() => olustur(tema), [tema]);
@@ -60,14 +68,14 @@ export function PersonelListesi({ kurumId }: { kurumId: string }) {
           { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '' },
           { anahtar: 'durum', baslik: 'Durum', genislik: 160, icerik: (k) => <PersonelDurumRozeti personel={k} /> },
         ]}
-        onSatirPress={(k) => router.push(`/personel/${k.id}`)}
+        onSatirPress={(k) => router.push(`${detayRotasi}/${k.id}`)}
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad_soyad}
             altBaslik={[rolEtiketi(k.rol, kurum), k.eposta].filter(Boolean).join(' · ')}
             sol={<Avatar ad={k.ad_soyad} />}
             sag={<PersonelDurumRozeti personel={k} />}
-            onPress={() => router.push(`/personel/${k.id}`)}
+            onPress={() => router.push(`${detayRotasi}/${k.id}`)}
           />
         )}
       />

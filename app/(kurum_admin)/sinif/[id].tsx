@@ -111,13 +111,14 @@ export default function SinifDetay() {
             icerik: (o) => <IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/ogrenci-duzenle/${o.id}`)} />,
           },
         ]}
-        onSatirPress={(o) => router.push(`/ogrenci-duzenle/${o.id}`)}
+        onSatirPress={(o) => router.push(`/ogrenci-detay/${o.id}`)}
         satir={(o) => (
           <ListeSatiri
             baslik={o.ad_soyad}
             altBaslik={tarihiBicimle(o.dogum_tarihi)}
             sol={<Avatar ad={o.ad_soyad} />}
             sag={<IkonButon ikon="create-outline" etiket="Düzenle" onPress={() => router.push(`/ogrenci-duzenle/${o.id}`)} />}
+            onPress={() => router.push(`/ogrenci-detay/${o.id}`)}
           />
         )}
       />

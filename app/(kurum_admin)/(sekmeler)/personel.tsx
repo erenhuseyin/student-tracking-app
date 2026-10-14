@@ -2,10 +2,11 @@
 // tüm birimler; RLS) yöneticiler, öğretmenler ve veliler tek tabloda. Filtreler sunucuda uygulanır.
 // Seçilen kişi yan panelde düzenlenir; "Yeni kullanıcı" seçilen birime personel davet eder
 // (veli hesabı öğrenci eklenince açılır, buradan açılmaz).
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Avatar } from '@/components/Avatar';
+import { Buton } from '@/components/Buton';
 import { Girdi } from '@/components/Girdi';
 import { Kart } from '@/components/Kart';
 import { ListeSatiri } from '@/components/ListeSatiri';
@@ -45,6 +46,7 @@ const DURUM_SECENEKLERI = (Object.keys(KULLANICI_DURUMU_ETIKETLERI) as Kullanici
 type Secili = { tur: 'kayit'; kullanici: Kullanici } | { tur: 'yeni' } | null;
 
 export default function Kullanicilar() {
+  const router = useRouter();
   const { kurum, kokKurum } = useOturum();
   const [yazilan, setYazilan] = useState('');
   const [arama, setArama] = useState('');
@@ -232,7 +234,15 @@ export default function Kullanicilar() {
         ) : seciliKullanici?.rol === 'veli' ? (
           <VeliDetay key={seciliKullanici.id} id={seciliKullanici.id} ogrenciAltBasligi={(o) => birimAdi(o.kurum_id)} />
         ) : seciliKullanici ? (
-          <PersonelDetay key={seciliKullanici.id} id={seciliKullanici.id} onDegisti={yenile} onSilindi={kapatVeYenile} />
+          <>
+            <Buton
+              tur="ikincil"
+              ikon="open-outline"
+              baslik="Ayrıntılar"
+              onPress={() => router.push({ pathname: '/personel-detay/[id]', params: { id: seciliKullanici.id } })}
+            />
+            <PersonelDetay key={seciliKullanici.id} id={seciliKullanici.id} onDegisti={yenile} onSilindi={kapatVeYenile} />
+          </>
         ) : null
       }
     />
