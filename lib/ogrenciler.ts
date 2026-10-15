@@ -1,5 +1,6 @@
 // Öğrenci CRUD. RLS (ogrenci_kurum_admin politikası) kurum_admin'in yalnızca yönettiği
-// kurumlardaki (kendi kurumu + şubeleri) öğrencileri yönetmesine izin verir. Yeni öğrencinin
+// kurumlardaki (kendi kurumu + şubeleri) öğrencileri yönetmesine izin verir; öğretmen (ogretmen_kayit
+// bayrağı açıksa) atandığı sınıflara öğrenci ekler, onları düzenler ve pasife alır, silemez. Yeni öğrencinin
 // kurum_id'si sınıfının kurumuyla aynı olmalıdır (bileşik FK).
 // dogum_tarihi biçimi: YYYY-AA-GG (native tarih seçici bu adımda kapsam dışı).
 import { edgeFonksiyonuCagir } from '@/lib/edge';
@@ -24,13 +25,14 @@ function girdiyiDogrula(adSoyad: string, dogumTarihi: string): { ad_soyad: strin
 }
 
 // Sınıfın aktif öğrencileri. Pasife alınmış (ayrılmış) öğrenciler sınıf listelerinde, yoklamada ve
-// takip ekranlarında görünmez; yönetici onları Öğrenciler ekranındaki "Pasifler" süzgeciyle bulur.
-export async function ogrencileriGetir(sinifId: string): Promise<Ogrenci[]> {
+// takip ekranlarında görünmez; yönetici onları Öğrenciler ekranındaki "Pasifler" süzgeciyle, öğretmen
+// sınıf ekranındaki "Ayrılanlar" ile bulur (aktif = false).
+export async function ogrencileriGetir(sinifId: string, aktif = true): Promise<Ogrenci[]> {
   const { data, error } = await supabase
     .from('ogrenci')
     .select('*')
     .eq('sinif_id', sinifId)
-    .eq('aktif', true)
+    .eq('aktif', aktif)
     .order('ad_soyad');
   if (error) throw new Error(hataMesajinaCevir(error.message));
   return data;

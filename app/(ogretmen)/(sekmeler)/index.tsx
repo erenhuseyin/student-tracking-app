@@ -1,11 +1,13 @@
-// Erişim: yalnızca ogretmen
+// Erişim: yalnızca ogretmen. Müşteride ogretmen_kayit açıksa (varsayılan) buradan sınıf da açar.
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Ekran } from '@/components/Ekran';
 import { Ikon } from '@/components/Ikon';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { OGRETMEN_KAYIT_OZELLIGI, useOzellik } from '@/lib/ozellikler';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Sinif } from '@/lib/tipler';
@@ -15,6 +17,7 @@ export default function OgretmenAnaSayfa() {
   const tema = useTema();
   const [siniflar, setSiniflar] = useState<Sinif[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const kayitAcik = useOzellik(OGRETMEN_KAYIT_OZELLIGI, true);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,12 +31,14 @@ export default function OgretmenAnaSayfa() {
 
   return (
     <Ekran>
+      {kayitAcik ? <BaslikEkleButonu etiket="Yeni sınıf" onPress={() => router.push('/yeni-sinif')} /> : null}
       <Liste
         veri={siniflar}
         hata={hata}
         anahtar={(s) => s.id}
         bosIkon="school-outline"
         bosBaslik="Henüz size atanmış sınıf yok"
+        bosAciklama={kayitAcik ? 'Sağ üstteki düğmeyle kendi sınıfınızı açabilirsiniz.' : undefined}
         sutunlar={[
           { anahtar: 'ad', baslik: 'Sınıf', icerik: (s) => s.ad },
           { anahtar: 'donem', baslik: 'Dönem', icerik: (s) => s.donem },

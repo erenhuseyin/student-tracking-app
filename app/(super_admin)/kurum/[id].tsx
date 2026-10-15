@@ -10,13 +10,9 @@ import { Kart } from '@/components/Kart';
 import { OnayKutusu } from '@/components/OnayKutusu';
 import { PersonelListesi } from '@/components/PersonelListesi';
 import { kurumGetir, kurumOzelligiAyarla } from '@/lib/kurumlar';
+import { OGRETMEN_KAYIT_OZELLIGI, ozellikAcikMi } from '@/lib/ozellikler';
 import { useTema } from '@/lib/tema';
 import type { Kurum } from '@/lib/tipler';
-
-function ozellikAcik(kurum: Kurum, ad: string): boolean {
-  const o = kurum.ozellikler;
-  return typeof o === 'object' && o !== null && !Array.isArray(o) && o[ad] === true;
-}
 
 export default function KurumDetay() {
   const tema = useTema();
@@ -61,7 +57,7 @@ export default function KurumDetay() {
           <Text style={tema.yazi.bolum}>Özellikler</Text>
           <OnayKutusu
             etiket="Uygulamadan başvuru (öğrenci ön kaydı, öğretmen başvurusu)"
-            secili={ozellikAcik(kurum, 'basvuru')}
+            secili={ozellikAcikMi(kurum.ozellikler, 'basvuru')}
             onDegis={(acik) => ozelligiAyarla('basvuru', acik)}
             pasif={degisiyor}
           />
@@ -71,13 +67,23 @@ export default function KurumDetay() {
           </Text>
           <OnayKutusu
             etiket="İçerik takibi (kademe, ders/konu, ezber, kitap)"
-            secili={ozellikAcik(kurum, 'icerik_takibi')}
+            secili={ozellikAcikMi(kurum.ozellikler, 'icerik_takibi')}
             onDegis={(acik) => ozelligiAyarla('icerik_takibi', acik)}
             pasif={degisiyor}
           />
           <Text style={tema.yazi.kucuk}>
             Açıkken yöneticide Menü &gt; Kademeler, sınıf ekranlarında Dersler / Ezber / Kitap çıkar; veli çocuğunun ezber
             ve kitap ilerlemesini görür.
+          </Text>
+          <OnayKutusu
+            etiket="Hoca kendi sınıfını ve öğrencisini açabilir"
+            secili={ozellikAcikMi(kurum.ozellikler, OGRETMEN_KAYIT_OZELLIGI, true)}
+            onDegis={(acik) => ozelligiAyarla(OGRETMEN_KAYIT_OZELLIGI, acik)}
+            pasif={degisiyor}
+          />
+          <Text style={tema.yazi.kucuk}>
+            Varsayılan açık. Açıkken öğretmen kendi birimine sınıf açar, sınıfına öğrenci ekler (veli girişi birlikte açılır),
+            sınıfını ve öğrencisini düzenler, öğrenciyi pasife alır. Silme ve PIN sıfırlama yöneticidedir.
           </Text>
           <HataMesaji mesaj={hata} />
         </Kart>
