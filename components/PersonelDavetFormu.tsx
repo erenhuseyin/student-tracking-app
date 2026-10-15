@@ -1,6 +1,7 @@
 // Yeni personel (öğretmen / yönetici) davet formu. Hesap sunucuda açılır ve kişiye e-postayla
-// giriş kodu gider; şifresini kendisi belirler. `roller` tek elemanlıysa rol seçimi gösterilmez
-// (süper admin yalnızca yönetici davet edebilir).
+// giriş kodu gider; şifresini kendisi belirler. Rol tek seçimdir: sistem rolü ya da ona dayanan
+// tanımlı rol (lib/roller.ts). Tek seçenek varsa seçim gösterilmez (süper admin yalnızca yönetici
+// davet edebilir).
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
@@ -14,7 +15,8 @@ import { Secenekler } from '@/components/Secenekler';
 import { Secim } from '@/components/Secim';
 import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { gorevAta } from '@/lib/gorevler';
-import { PERSONEL_ROL_ETIKETLERI, personelCinsiyetiniAyarla, personelDavetEt, type PersonelRolu } from '@/lib/personel';
+import { personelCinsiyetiniAyarla, personelDavetEt, type PersonelRolu } from '@/lib/personel';
+import { rolSecenegiEtiketi, rolSecenekleri } from '@/lib/roller';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Gorev, Sinif } from '@/lib/tipler';
@@ -23,7 +25,7 @@ import { useToast } from '@/lib/toast';
 type Props = {
   kurumId: string;
   roller: PersonelRolu[];
-  // Verilirse seçilen role uygun görevler arasından tanımlı görev de seçilebilir.
+  // Verilirse `roller`e dayanan tanımlı roller de seçilebilir.
   gorevler?: Gorev[];
   // Tablo + panel ekranlarında (bkz. VeriEkrani) davet bitince çağrılır; verilmezse önceki ekrana dönülür.
   onTamam?: () => void;
@@ -35,10 +37,11 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
   const tema = useTema();
   const [adSoyad, setAdSoyad] = useState('');
   const [eposta, setEposta] = useState('');
-  const [rol, setRol] = useState<PersonelRolu>(roller[0]);
-  const [gorevId, setGorevId] = useState<string | null>(null);
+  const secenekler = rolSecenekleri(gorevler, roller);
+  const [rolAnahtari, setRolAnahtari] = useState<string>(roller[0]);
+  const secilenRol = secenekler.find((r) => r.anahtar === rolAnahtari) ?? secenekler[0];
+  const rol = secilenRol.temelRol;
   const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
-  const uygunGorevler = gorevler.filter((g) => g.temel_rol === rol);
   const bitir = () => (onTamam ? onTamam() : router.back());
   const [siniflar, setSiniflar] = useState<Sinif[]>([]);
   const [seciliSiniflar, setSeciliSiniflar] = useState<string[]>([]);
@@ -69,8 +72,9 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
     setHata(null);
     try {
       const sonuc = await personelDavetEt({ kurumId, adSoyad, eposta, rol, sinifIdleri: seciliSiniflar });
-      // Hesap açıldı; görev atanamazsa davet geri alınmaz, görev kişinin ekranından sonradan atanır.
-      if (gorevId) await gorevAta(sonuc.kullanici_id, gorevId).catch(() => {});
+      // Hesap dayandığı sistem rolüyle açılır; tanımlı rol atanamazsa davet geri alınmaz, rol kişinin
+      // ekranından sonradan verilir.
+      if (secilenRol.gorevId) await gorevAta(sonuc.kullanici_id, secilenRol.gorevId).catch(() => {});
       const c = cinsiyetGirdisi(cinsiyet);
       if (c) await personelCinsiyetiniAyarla(sonuc.kullanici_id, c).catch(() => {});
       if (sonuc.eposta_gonderildi) {
@@ -99,25 +103,12 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
 
   return (
     <Kart>
-      {roller.length > 1 ? (
-        <Secenekler
-          etiket="Rol"
-          secenekler={roller.map((r) => ({ deger: r, etiket: PERSONEL_ROL_ETIKETLERI[r] }))}
-          secili={rol}
-          onSec={(r) => {
-            setRol(r);
-            setGorevId(null);
-          }}
-          pasif={gonderiliyor}
-        />
-      ) : null}
-      {uygunGorevler.length > 0 ? (
+      {secenekler.length > 1 ? (
         <Secim
-          etiket="Tanımlı görev (isteğe bağlı)"
-          secenekler={uygunGorevler.map((g) => ({ deger: g.id, etiket: g.ad }))}
-          secili={gorevId}
-          onSec={setGorevId}
-          bosEtiket="Yok"
+          etiket="Rol"
+          secenekler={secenekler.map((r) => ({ deger: r.anahtar, etiket: rolSecenegiEtiketi(r) }))}
+          secili={secilenRol.anahtar}
+          onSec={(a) => setRolAnahtari(a ?? roller[0])}
           pasif={gonderiliyor}
         />
       ) : null}

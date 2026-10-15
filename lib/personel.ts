@@ -1,7 +1,7 @@
 // Personel (öğretmen, kurum yöneticisi) yönetimi.
 // Erişim: süper admin (yalnızca kurum yöneticisi davet eder) ve kurum admini (yönettiği
 // kurumlar: kendi kurumu + şubeleri). Hesap açma, kod gönderme ve pasifleştirme sunucudadır
-// (supabase/functions/personel-yonet); listeleme, ad ve görev değiştirme, sınıf ataması doğrudan
+// (supabase/functions/personel-yonet); listeleme, ad değiştirme, sınıf ataması (rol: lib/roller.ts) doğrudan
 // tablolar üzerinde yapılır, yetkiyi RLS (kullanici_kurum_admin_*, ogretmen_sinif_kurum_admin) verir.
 import { edgeFonksiyonuCagir } from '@/lib/edge';
 import { supabase } from '@/lib/supabase';
@@ -63,16 +63,6 @@ export async function personelCinsiyetiniAyarla(id: string, cinsiyet: Cinsiyet |
   const { data, error } = await supabase.from('kullanici').update({ cinsiyet }).eq('id', id).select('id');
   if (error) throw new Error(hataMesajinaCevir(error.message));
   if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
-}
-
-// Görev (rol) değişikliği. Kuralları veritabanı zorlar: kimse kendi rolünü değiştiremez, sınıf
-// ataması olan öğretmenin rolü değişmez (önce atamalar kaldırılır), kurum admini süper admin yapamaz.
-export async function personelRolDegistir(id: string, rol: PersonelRolu): Promise<void> {
-  const { error } = await supabase.from('kullanici').update({ rol }).eq('id', id);
-  if (!error) return;
-  if (/bağı olan/i.test(error.message)) throw new Error('Önce bu öğretmenin sınıf atamalarını kaldırın.');
-  if (/kendi rolünü/i.test(error.message)) throw new Error('Kendi görevinizi değiştiremezsiniz.');
-  throw new Error(hataMesajinaCevir(error.message));
 }
 
 export type DavetSonucu = { kullanici_id: string; eposta_gonderildi: boolean };

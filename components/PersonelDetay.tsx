@@ -1,4 +1,4 @@
-// Tek bir personelin yönetimi: ad, görev, sınıf atamaları (öğretmen), giriş kodu, pasifleştirme;
+// Tek bir personelin yönetimi: ad, rol (sistem ya da tanımlı rol; lib/roller.ts), sınıf atamaları (öğretmen), giriş kodu, pasifleştirme;
 // daveti henüz kabul etmemiş kişide e-posta düzeltme ve davet iptali.
 // Kurum admini ve süper admin ekranları paylaşır.
 import { useRouter } from 'expo-router';
@@ -15,14 +15,13 @@ import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
 import { Secenekler } from '@/components/Secenekler';
 import { Secim } from '@/components/Secim';
 import { Yukleniyor } from '@/components/Yukleniyor';
-import { gorevAta, gorevleriGetir } from '@/lib/gorevler';
+import { gorevleriGetir } from '@/lib/gorevler';
 import { rolEtiketi } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import {
   ogretmenSinifAta,
   ogretmenSinifIdleriniGetir,
   ogretmenSinifKaldir,
-  PERSONEL_ROL_ETIKETLERI,
   personelAdGuncelle,
   personelCinsiyetiniAyarla,
   personelAktifligiDegistir,
@@ -30,19 +29,13 @@ import {
   personelEpostaDegistir,
   personelGetir,
   personelKodGonder,
-  personelRolDegistir,
-  type PersonelRolu,
 } from '@/lib/personel';
+import { kisininRolAnahtari, kisiyeRolVer, rolSecenegiEtiketi, rolSecenekleri } from '@/lib/roller';
 import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { siniflariGetir } from '@/lib/siniflar';
 import { useTema } from '@/lib/tema';
 import type { Gorev, Kullanici, Sinif } from '@/lib/tipler';
 import { useKurum } from '@/lib/useKurum';
-
-const ROL_SECENEKLERI: { deger: PersonelRolu; etiket: string }[] = [
-  { deger: 'ogretmen', etiket: PERSONEL_ROL_ETIKETLERI.ogretmen },
-  { deger: 'kurum_admin', etiket: PERSONEL_ROL_ETIKETLERI.kurum_admin },
-];
 
 const mesajaCevir = (e: unknown) => (e instanceof Error ? e.message : 'İşlem yapılamadı, lütfen tekrar deneyin.');
 
@@ -106,8 +99,6 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const [rolDegisiyor, setRolDegisiyor] = useState(false);
   const [rolHatasi, setRolHatasi] = useState<string | null>(null);
   const [gorevler, setGorevler] = useState<Gorev[]>([]);
-  const [gorevDegisiyor, setGorevDegisiyor] = useState(false);
-  const [gorevHatasi, setGorevHatasi] = useState<string | null>(null);
 
   const uygula = (veri: PersonelVerisi) => {
     setPersonel(veri.personel);
@@ -127,7 +118,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
       .catch((e) => {
         if (!iptalEdildi) setYuklemeHatasi(mesajaCevir(e));
       });
-    // Görevler okunamazsa görev seçimi gösterilmez; diğer işlemler etkilenmez.
+    // Tanımlı roller okunamazsa yalnızca sistem rolleri seçilebilir; diğer işlemler etkilenmez.
     gorevleriGetir()
       .then((veri) => {
         if (!iptalEdildi) setGorevler(veri);
@@ -144,38 +135,24 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const kendisi = personel.id === kullanici?.id;
   // Kişi hesabını kullanmaya başlamadıysa adres düzeltilebilir ve davet tümüyle silinebilir.
   const davetBekliyor = personel.aktif && !personel.sifre_belirlendi;
-  // Süper admin yalnızca kurum yöneticisi yönetir; görev değişikliği kurum yöneticisinin işidir.
+  // Süper admin yalnızca kurum yöneticisi yönetir; rol değişikliği kurum yöneticisinin işidir.
   const rolDegisebilir = kullanici?.rol === 'kurum_admin' && !kendisi && personel.aktif;
-  const uygunGorevler = gorevler.filter((g) => g.temel_rol === personel.rol);
+  const roller = rolSecenekleri(gorevler);
   const gorevAdi = gorevler.find((g) => g.id === personel.gorev_id)?.ad;
 
-  const rolDegistir = async (rol: PersonelRolu) => {
-    if (rol === personel.rol) return;
+  const rolDegistir = async (anahtar: string | null) => {
+    const secenek = roller.find((r) => r.anahtar === anahtar);
+    if (!secenek || secenek.anahtar === kisininRolAnahtari(personel)) return;
     setRolDegisiyor(true);
     setRolHatasi(null);
     try {
-      await personelRolDegistir(personel.id, rol);
+      await kisiyeRolVer(personel.id, secenek);
       uygula(await personelVerisiniGetir(personel.id));
       onDegisti?.();
     } catch (e) {
       setRolHatasi(mesajaCevir(e));
     } finally {
       setRolDegisiyor(false);
-    }
-  };
-
-  const gorevDegistir = async (gorevId: string | null) => {
-    if (gorevId === personel.gorev_id) return;
-    setGorevDegisiyor(true);
-    setGorevHatasi(null);
-    try {
-      await gorevAta(personel.id, gorevId);
-      setPersonel({ ...personel, gorev_id: gorevId });
-      onDegisti?.();
-    } catch (e) {
-      setGorevHatasi(mesajaCevir(e));
-    } finally {
-      setGorevDegisiyor(false);
     }
   };
 
@@ -290,7 +267,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
         )}
         {rolDegisebilir ? null : (
           <Girdi
-            etiket="Görev"
+            etiket="Rol"
             value={rolEtiketi(personel.rol, personelKurumu, gorevAdi)}
             editable={false}
           />
@@ -327,37 +304,19 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
 
       {rolDegisebilir ? (
         <Kart>
-          <Secenekler
+          <Secim
             etiket="Rol"
-            secenekler={ROL_SECENEKLERI}
-            secili={personel.rol as PersonelRolu}
+            secenekler={roller.map((r) => ({ deger: r.anahtar, etiket: rolSecenegiEtiketi(r) }))}
+            secili={kisininRolAnahtari(personel)}
             onSec={rolDegistir}
-            pasif={rolDegisiyor || atananlar.length > 0}
+            pasif={rolDegisiyor}
           />
           <Text style={tema.yazi.kucuk}>
             {atananlar.length > 0
-              ? 'Rolü değiştirmek için önce aşağıdaki sınıf atamalarını kaldırın.'
-              : 'Yönetici bu kurumun sınıflarını, öğrencilerini ve personelini yönetir; öğretmen yalnızca atandığı sınıfları görür.'}
+              ? 'Yönetici rolüne (ya da ona dayanan bir role) geçirmek için önce aşağıdaki sınıf atamalarını kaldırın.'
+              : 'Kişinin neyi görüp değiştirebildiğini rolün dayandığı Yönetici ya da Öğretmen rolü ve bağlı olduğu birim belirler; tanımlı rol unvanını ve gördüğü menüleri belirler.'}
           </Text>
           <HataMesaji mesaj={rolHatasi} />
-        </Kart>
-      ) : null}
-
-      {rolDegisebilir && uygunGorevler.length > 0 ? (
-        <Kart>
-          <Secim
-            etiket="Tanımlı görev"
-            secenekler={uygunGorevler.map((g) => ({ deger: g.id, etiket: g.ad }))}
-            secili={personel.gorev_id}
-            onSec={gorevDegistir}
-            bosEtiket={`Yok (${rolEtiketi(personel.rol, personelKurumu)})`}
-            pasif={gorevDegisiyor}
-          />
-          <Text style={tema.yazi.kucuk}>
-            Görev kişinin unvanını ve hangi menüleri gördüğünü belirler; neyi görebildiğini ve değiştirebildiğini
-            yukarıdaki rol ve bağlı olduğu birim belirler.
-          </Text>
-          <HataMesaji mesaj={gorevHatasi} />
         </Kart>
       ) : null}
 

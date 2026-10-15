@@ -33,11 +33,19 @@ import { useOturum } from '@/lib/oturum';
 import type { Cinsiyet, Gorev, Kullanici } from '@/lib/tipler';
 
 const ARAMA_GECIKMESI_MS = 350;
-const ROL_SECENEKLERI: { deger: ListelenenRol; etiket: string }[] = [
-  { deger: 'kurum_admin', etiket: ROL_ETIKETLERI.kurum_admin },
-  { deger: 'ogretmen', etiket: ROL_ETIKETLERI.ogretmen },
-  { deger: 'veli', etiket: ROL_ETIKETLERI.veli },
-];
+const SISTEM_ROLLERI: ListelenenRol[] = ['kurum_admin', 'ogretmen', 'veli'];
+
+// Tek "Rol" süzgeci: sistem rolü o role dayanan herkesi (tanımlı rolde olanlar dahil), tanımlı rol
+// yalnızca o roldekileri listeler. Değer sistem rolünde rol adı, tanımlı rolde görev kimliğidir.
+function rolSuzgeciSecenekleri(gorevler: Gorev[]): { deger: string; etiket: string }[] {
+  return [
+    ...SISTEM_ROLLERI.map((r) => ({
+      deger: r,
+      etiket: gorevler.some((g) => g.temel_rol === r) ? `${ROL_ETIKETLERI[r]} (tümü)` : ROL_ETIKETLERI[r],
+    })),
+    ...gorevler.map((g) => ({ deger: g.id, etiket: g.ad })),
+  ];
+}
 const DURUM_SECENEKLERI = (Object.keys(KULLANICI_DURUMU_ETIKETLERI) as KullaniciDurumu[]).map((d) => ({
   deger: d,
   etiket: KULLANICI_DURUMU_ETIKETLERI[d],
@@ -50,8 +58,7 @@ export default function Kullanicilar() {
   const { kurum, kokKurum } = useOturum();
   const [yazilan, setYazilan] = useState('');
   const [arama, setArama] = useState('');
-  const [rol, setRol] = useState<ListelenenRol | null>(null);
-  const [gorevId, setGorevId] = useState<string | null>(null);
+  const [rolSuzgeci, setRolSuzgeci] = useState<string | null>(null);
   const [birimId, setBirimId] = useState<string | null>(null);
   const [durum, setDurum] = useState<KullaniciDurumu | null>(null);
   const [cinsiyet, setCinsiyet] = useState<Cinsiyet | null>(null);
@@ -66,6 +73,9 @@ export default function Kullanicilar() {
   const [gorevler, setGorevler] = useState<Gorev[]>([]);
   const [secili, setSecili] = useState<Secili>(null);
   const [yeniBirimId, setYeniBirimId] = useState<string | null>(null);
+
+  const rol = SISTEM_ROLLERI.includes(rolSuzgeci as ListelenenRol) ? (rolSuzgeci as ListelenenRol) : null;
+  const gorevId = rolSuzgeci && !rol ? rolSuzgeci : null;
 
   // Her tuş vuruşunda sorgu atmamak için yazma bitince aranır.
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function Kullanicilar() {
 
   useFocusEffect(
     useCallback(() => {
-      // Birim ve görev adları okunamazsa tablo yine çalışır; ilgili sütun ve filtre boş kalır.
+      // Birim ve tanımlı rol adları okunamazsa tablo yine çalışır; ilgili sütun ve filtre boş kalır.
       kurumAdlariniGetir()
         .then(setKurumlar)
         .catch(() => {});
@@ -129,7 +139,7 @@ export default function Kullanicilar() {
     },
     [kurumlar, kokKurum?.id],
   );
-  const gorevi = useCallback(
+  const rolu = useCallback(
     (k: Kullanici) =>
       rolEtiketi(k.rol, kurumlar.find((x) => x.id === k.kurum_id) ?? null, gorevler.find((g) => g.id === k.gorev_id)?.ad),
     [kurumlar, gorevler],
@@ -138,13 +148,13 @@ export default function Kullanicilar() {
   const sutunlar = useMemo<TabloSutunu<Kullanici>[]>(
     () => [
       { anahtar: 'ad_soyad', baslik: 'Ad Soyad', icerik: (k) => k.ad_soyad, siralanabilir: true },
-      { anahtar: 'rol', baslik: 'Rol / Görev', icerik: gorevi, siralanabilir: true },
+      { anahtar: 'rol', baslik: 'Rol', icerik: rolu, siralanabilir: true },
       { anahtar: 'birim', baslik: 'Birim', icerik: (k) => birimAdi(k.kurum_id) },
       { anahtar: 'cinsiyet', baslik: 'Cinsiyet', icerik: (k) => cinsiyetEtiketi(k.cinsiyet), genislik: 100, ikincil: true },
       { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '—', siralanabilir: true, ikincil: true },
       { anahtar: 'durum', baslik: 'Durum', icerik: (k) => <PersonelDurumRozeti personel={k} />, genislik: 170 },
     ],
-    [birimAdi, gorevi],
+    [birimAdi, rolu],
   );
 
   const birimler = kurum ? birimSecenekleri(kurumlar, kurum.id) : [];
@@ -160,17 +170,14 @@ export default function Kullanicilar() {
     <VeriEkrani
       arama={<Girdi etiket="Ad ya da e-posta ara" value={yazilan} onChangeText={setYazilan} autoCorrect={false} autoCapitalize="none" />}
       filtreler={[
-        <Secim key="rol" etiket="Rol" secenekler={ROL_SECENEKLERI} secili={rol} onSec={filtrele(setRol)} bosEtiket="Tümü" />,
-        gorevler.length > 0 ? (
-          <Secim
-            key="gorev"
-            etiket="Görev"
-            secenekler={gorevler.map((g) => ({ deger: g.id, etiket: g.ad }))}
-            secili={gorevId}
-            onSec={filtrele(setGorevId)}
-            bosEtiket="Tümü"
-          />
-        ) : null,
+        <Secim
+          key="rol"
+          etiket="Rol"
+          secenekler={rolSuzgeciSecenekleri(gorevler)}
+          secili={rolSuzgeci}
+          onSec={filtrele(setRolSuzgeci)}
+          bosEtiket="Tümü"
+        />,
         birimler.length > 1 ? (
           <Secim key="birim" etiket="Birim" secenekler={birimler} secili={birimId} onSec={filtrele(setBirimId)} bosEtiket="Tümü" />
         ) : null,
@@ -184,7 +191,7 @@ export default function Kullanicilar() {
         />,
         <Secim key="durum" etiket="Durum" secenekler={DURUM_SECENEKLERI} secili={durum} onSec={filtrele(setDurum)} bosEtiket="Tümü" />,
       ]}
-      etkinFiltreSayisi={[rol, gorevId, birimId, durum, cinsiyet].filter(Boolean).length}
+      etkinFiltreSayisi={[rolSuzgeci, birimId, durum, cinsiyet].filter(Boolean).length}
       yeniEtiket="Yeni Kullanıcı"
       onYeni={() => setSecili({ tur: 'yeni' })}
       ozet={`${toplam} kullanıcı`}
@@ -196,7 +203,7 @@ export default function Kullanicilar() {
       kart={(k) => (
         <ListeSatiri
           baslik={k.ad_soyad}
-          altBaslik={[gorevi(k), birimAdi(k.kurum_id)].filter(Boolean).join(' · ')}
+          altBaslik={[rolu(k), birimAdi(k.kurum_id)].filter(Boolean).join(' · ')}
           sol={<Avatar ad={k.ad_soyad} />}
           sag={<PersonelDurumRozeti personel={k} />}
           onPress={() => setSecili({ tur: 'kayit', kullanici: k })}
