@@ -19,8 +19,11 @@
 // olan öğrencide yeni hesap açılmaz; o hesabın e-postası ve şifresi yeni biçime çevrilir
 // ('cevrildi'; PIN '1234' olur). İki işlem de bunu yapar.
 //
-// Yetki: yalnızca super_admin ve kurum_admin. Öğrenciye erişim RLS'e bırakılır: öğrenci çağıranın
-// JWT'siyle okunur; okunamıyorsa (yönetmediği kurum) işlem yapılmaz.
+// Yetki: super_admin ve kurum_admin her iki işlemi; ogretmen yalnızca 'ac' işlemini (müşterisinde
+// ozellikler.ogretmen_kayit kapalı değilse; hoca sınıfına eklediği öğrencinin veli girişini açar).
+// PIN sıfırlama ve eski biçimli hesabın çevrilmesi (PIN'i 1234 yapar) yöneticide kalır. Öğrenciye
+// erişim RLS'e bırakılır: öğrenci çağıranın JWT'siyle okunur; okunamıyorsa (yönetmediği kurum ya da
+// hocanın sınıfında olmayan öğrenci) işlem yapılmaz.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
@@ -116,16 +119,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const { data: cagiran, error: cagiranHatasi } = await kullaniciClient
     .from('kullanici')
-    .select('id, rol')
+    .select('id, rol, kok_kurum_id')
     .eq('auth_id', kimlik.user.id)
     .maybeSingle();
   if (cagiranHatasi) {
     console.error('veli-hesap-olustur: çağıran okunamadı', cagiranHatasi);
     return hata(500, 'İşlem şu an yapılamıyor.');
   }
-  if (!cagiran || (cagiran.rol !== 'super_admin' && cagiran.rol !== 'kurum_admin')) {
+  if (!cagiran || !['super_admin', 'kurum_admin', 'ogretmen'].includes(cagiran.rol)) {
     return hata(403, 'Bu işlem için yetkiniz yok.');
   }
+  const ogretmen = cagiran.rol === 'ogretmen';
 
   // 2. Gövdeyi doğrula
   let govde: Record<string, unknown>;
@@ -138,6 +142,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const islem = govde.islem;
   if (islem !== 'ac' && islem !== 'pin_sifirla') return hata(400, 'Geçersiz işlem.');
+  if (ogretmen && islem !== 'ac') return hata(403, 'Bu işlem için yetkiniz yok.');
   const idler =
     islem === 'ac' ? (Array.isArray(govde.ogrenci_idleri) ? govde.ogrenci_idleri : []) : [govde.ogrenci_id];
   if (idler.length === 0 || idler.length > EN_FAZLA_OGRENCI || !idler.every((i) => typeof i === 'string' && UUID_RE.test(i))) {
@@ -163,6 +168,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const servis = createClient(supabaseUrl, servisAnahtar, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Hoca için müşteri bayrağı (yazılmamışsa açık; bkz. migration 20261025120000_ogretmen_kayit).
+  if (ogretmen) {
+    const { data: kok } = await servis.from('kurum').select('ozellikler').eq('id', cagiran.kok_kurum_id).maybeSingle();
+    const ozellikler = kok?.ozellikler as Record<string, unknown> | null | undefined;
+    if (!kok || ozellikler?.ogretmen_kayit === false) return hata(403, 'Bu işlem için yetkiniz yok.');
+  }
 
   const markaKodlari = new Map<string, string | null>();
   const markaKodu = async (kokKurumId: string): Promise<string | null> => {
@@ -194,7 +206,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       sonuclar.push({ ogrenci_id: id, kullanici_adi: null, durum: 'hata', mesaj: 'Bu öğrenci için yetkiniz yok.' });
       continue;
     }
-    sonuclar.push(await hesapAc(servis, pinAnahtari, ogrenci, await markaKodu(ogrenci.kok_kurum_id)));
+    sonuclar.push(await hesapAc(servis, pinAnahtari, ogrenci, await markaKodu(ogrenci.kok_kurum_id), !ogretmen));
   }
   return yanit(200, { sonuclar });
 });
@@ -209,6 +221,8 @@ async function hesapAc(
   pinAnahtari: string,
   ogrenci: { id: string; kurum_id: string; ad_soyad: string },
   marka: string | null,
+  // Eski biçimli hesabı çevirmek PIN'i sıfırlar; yalnızca yönetici yapabilir.
+  eskiyiCevirebilir: boolean,
 ): Promise<Sonuc> {
   const basarisiz = (mesaj: string, kullaniciAdi: string | null = null): Sonuc => ({
     ogrenci_id: ogrenci.id,
@@ -232,6 +246,7 @@ async function hesapAc(
   }
   const eski = hesaplar.find((h) => eskiBicimMi(h.eposta, marka));
   if (eski) {
+    if (!eskiyiCevirebilir) return basarisiz('Bu öğrencinin eski bir veli hesabı var; yöneticiniz öğrenci ekranından PIN\'i sıfırlamalı.');
     return (await pinBaslangicaAl(servis, pinAnahtari, eski, eposta))
       ? { ogrenci_id: ogrenci.id, kullanici_adi: kullaniciAdi, durum: 'cevrildi' }
       : basarisiz('Mevcut veli hesabı yeni kullanıcı adına çevrilemedi.', kullaniciAdi);
