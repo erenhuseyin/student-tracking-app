@@ -2417,6 +2417,69 @@ reset role;
 delete from public.ders_konusu where id = 'f0000000-0000-0000-0000-0000000000d2';
 select tst.esit('konu silinince notu silinir', (select count(*) from public.sinif_konu_notu)::text, '0');
 
+-- ===========================================================================
+-- 34. PERSONEL KULLANICI ADI: addan üretilir, müşteri başına tekil, yalnızca yönetici değiştirir
+--   Kurum G ağacı (28. bölüm). Kimlikler: 50 hocaG (semt), 51 hocaG2 (komşu bölge),
+--   52 hocaA (Kurum A), 53 veliG2 (semt) — dördünün de adı "Ali Yılmaz"
+-- ===========================================================================
+reset role;
+
+insert into auth.users (id, aud, role, email) values
+  ('a0000000-0000-0000-0000-000000000050', 'authenticated', 'authenticated', 'hocag@test.local'),
+  ('a0000000-0000-0000-0000-000000000051', 'authenticated', 'authenticated', 'hocag2@test.local'),
+  ('a0000000-0000-0000-0000-000000000052', 'authenticated', 'authenticated', 'hocaa@test.local'),
+  ('a0000000-0000-0000-0000-000000000053', 'authenticated', 'authenticated', 'velig2@test.local');
+insert into public.kullanici (id, auth_id, rol, kurum_id, ad_soyad) values
+  ('b0000000-0000-0000-0000-000000000050', 'a0000000-0000-0000-0000-000000000050', 'ogretmen', 'c0000000-0000-0000-0000-00000000d111', 'Ali Yılmaz'),
+  ('b0000000-0000-0000-0000-000000000051', 'a0000000-0000-0000-0000-000000000051', 'ogretmen', 'c0000000-0000-0000-0000-0000000000d2', 'Ali Yılmaz'),
+  ('b0000000-0000-0000-0000-000000000052', 'a0000000-0000-0000-0000-000000000052', 'ogretmen', 'c0000000-0000-0000-0000-00000000000a', 'Ali Yılmaz'),
+  ('b0000000-0000-0000-0000-000000000053', 'a0000000-0000-0000-0000-000000000053', 'veli', 'c0000000-0000-0000-0000-00000000d111', 'Ali Yılmaz');
+
+select tst.esit('personele addan kullanıcı adı atanır',
+  (select kullanici_adi from public.kullanici where id = 'b0000000-0000-0000-0000-000000000050'), 'ali.yilmaz');
+select tst.esit('aynı müşteride aynı adlı ikinci personel ek alır',
+  (select kullanici_adi from public.kullanici where id = 'b0000000-0000-0000-0000-000000000051'), 'ali.yilmaz1');
+select tst.esit('başka müşteride aynı ad serbest',
+  (select kullanici_adi from public.kullanici where id = 'b0000000-0000-0000-0000-000000000052'), 'ali.yilmaz');
+select tst.esit('velide kullanıcı adı boş',
+  (select coalesce(kullanici_adi, 'yok') from public.kullanici where id = 'b0000000-0000-0000-0000-000000000053'), 'yok');
+select tst.esit('Kurum G personelinin hepsinde ad var',
+  (select count(*) from public.kullanici where kok_kurum_id = 'c0000000-0000-0000-0000-0000000000d0' and rol in ('kurum_admin', 'ogretmen') and kullanici_adi is null)::text, '0');
+select tst.esit('personelin müşterisi doldurulur',
+  (select kok_kurum_id::text from public.kullanici where id = 'b0000000-0000-0000-0000-000000000050'), 'c0000000-0000-0000-0000-0000000000d0');
+
+-- hocaG: kendi adını değiştiremez
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000050","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('öğretmen kendi kullanıcı adını değiştiremez',
+  tst.dene($q$update public.kullanici set kullanici_adi = 'ali' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'hata:42501');
+select tst.esit('öğretmen adını değiştirince kullanıcı adı korunur',
+  tst.dene($q$update public.kullanici set ad_soyad = 'Ali Can Yılmaz' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'ok:1');
+
+-- adminG111 (semt; 42 adminG11 29. bölümde öğretmen oldu): kapsamındakinin adını değiştirir
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000043","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('semt yöneticisi kapsamındaki hocanın adını değiştirir',
+  tst.dene($q$update public.kullanici set kullanici_adi = 'hoca.ali' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'ok:1');
+select tst.esit('semt yöneticisi kapsamı dışındakinin adını değiştiremez',
+  tst.dene($q$update public.kullanici set kullanici_adi = 'hoca.ali2' where id = 'b0000000-0000-0000-0000-000000000051'$q$), 'ok:0');
+select tst.esit('müşteride kullanılan ad verilemez',
+  tst.dene($q$update public.kullanici set kullanici_adi = 'ali.yilmaz1' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'hata:23505');
+select tst.esit('biçime uymayan ad verilemez',
+  tst.dene($q$update public.kullanici set kullanici_adi = 'Ali Y' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'hata:23514');
+select tst.esit('kullanıcı adı boşaltılamaz',
+  tst.dene($q$update public.kullanici set kullanici_adi = null where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'hata:23514');
+
+-- adminG (kök): rol değişince ad korunur
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000040","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('rol değişir',
+  tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'ok:1');
+select tst.esit('rol değişince kullanıcı adı korunur',
+  (select kullanici_adi from public.kullanici where id = 'b0000000-0000-0000-0000-000000000050'), 'hoca.ali');
+
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
 
