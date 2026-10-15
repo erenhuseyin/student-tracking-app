@@ -279,11 +279,14 @@ reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
 set local role authenticated;
 
-select tst.esit('ogretmen ogrenci insert',
-  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01')$q$), 'hata:42501');
-select tst.esit('ogretmen ogrenci update', tst.dene($q$update public.ogrenci set ad_soyad = 'x'$q$), 'ok:0');
+-- Kendi sınıfına ekleme / düzenleme 35. bölümde (B2); burada başka sınıflar.
+select tst.esit('ogretmen başka sınıfa ogrenci insert',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a2','x','2020-01-01')$q$), 'hata:42501');
+select tst.esit('ogretmen başka sınıfın ogrenci update',
+  tst.dene($q$update public.ogrenci set ad_soyad = 'x' where sinif_id <> 'd0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
 select tst.esit('ogretmen ogrenci delete', tst.dene($q$delete from public.ogrenci$q$), 'ok:0');
-select tst.esit('ogretmen sinif update', tst.dene($q$update public.sinif set ad = 'x'$q$), 'ok:0');
+select tst.esit('ogretmen başka sinif update',
+  tst.dene($q$update public.sinif set ad = 'x' where id <> 'd0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
 select tst.esit('ogretmen veli kullanici update',
   tst.dene($q$update public.kullanici set ad_soyad = 'x' where id = 'b0000000-0000-0000-0000-000000000008'$q$), 'ok:0');
 select tst.esit('ogretmen veli rol update',
@@ -1755,7 +1758,8 @@ reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
 set local role authenticated;
 
-select tst.esit('öğretmen öğrenciyi aktifleştiremez', tst.dene($q$update public.ogrenci set aktif = true where id = 'e0000000-0000-0000-0000-0000000000a1'$q$), 'ok:0');
+-- Kendi sınıfının öğrencisini pasife alma / geri açma 35. bölümde (B2).
+select tst.esit('öğretmen başka sınıfın öğrencisini pasife alamaz', tst.dene($q$update public.ogrenci set aktif = false where id = 'e0000000-0000-0000-0000-0000000000a3'$q$), 'ok:0');
 select tst.esit('öğretmen mazeretli yoklama girer',
   tst.dene($q$insert into public.yoklama (kurum_id, ogrenci_id, tarih, durum, giren_kullanici_id) values ('c0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a2', '2026-12-01', 'mazeretli', 'b0000000-0000-0000-0000-000000000005')$q$), 'ok:1');
 reset role;
@@ -2415,7 +2419,8 @@ select tst.esit('anon ders raporunu çağıramaz', tst.dene($q$select count(*) f
 -- Konu silinince not da silinir
 reset role;
 delete from public.ders_konusu where id = 'f0000000-0000-0000-0000-0000000000d2';
-select tst.esit('konu silinince notu silinir', (select count(*) from public.sinif_konu_notu)::text, '0');
+select tst.esit('konu silinince notu silinir',
+  (select count(*) from public.sinif_konu_notu where kurum_id in (select id from public.kurum where kok_kurum_id = 'c0000000-0000-0000-0000-0000000000d0'))::text, '0');
 
 -- ===========================================================================
 -- 34. PERSONEL KULLANICI ADI: addan üretilir, müşteri başına tekil, yalnızca yönetici değiştirir
@@ -2479,6 +2484,93 @@ select tst.esit('rol değişir',
   tst.dene($q$update public.kullanici set rol = 'kurum_admin' where id = 'b0000000-0000-0000-0000-000000000050'$q$), 'ok:1');
 select tst.esit('rol değişince kullanıcı adı korunur',
   (select kullanici_adi from public.kullanici where id = 'b0000000-0000-0000-0000-000000000050'), 'hoca.ali');
+
+-- ===========================================================================
+-- 35. HOCANIN SINIF VE ÖĞRENCİ AÇMASI (B2)
+--   ogrA1 (Kurum A, sA1). Kurum A'ya yeni kademe 10…35 (25. bölümünkü silindi); Kurum B'nin 10…0b.
+--   Bayrak kurum.ozellikler->ogretmen_kayit; yazılmamışsa açık.
+-- ===========================================================================
+reset role;
+insert into public.kademe (id, kurum_id, ad) values ('10000000-0000-0000-0000-000000000035', 'c0000000-0000-0000-0000-00000000000a', 'Kademe B2');
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+
+select tst.esit('hoca kendi birimine sınıf açar',
+  tst.dene($q$select public.ogretmen_sinif_ac(' Yeni Halka ', '2026-2027', '10000000-0000-0000-0000-000000000035')$q$), 'ok:1');
+select tst.esit('açtığı sınıf kendi biriminde ve okunabiliyor',
+  (select kurum_id::text || '/' || kademe_id::text from public.sinif where ad = 'Yeni Halka'),
+  'c0000000-0000-0000-0000-00000000000a/10000000-0000-0000-0000-000000000035');
+select tst.esit('hoca açtığı sınıfa atanır',
+  (select count(*) from public.ogretmen_sinif os join public.sinif s on s.id = os.sinif_id
+   where s.ad = 'Yeni Halka' and os.ogretmen_id = 'b0000000-0000-0000-0000-000000000005')::text, '1');
+select tst.esit('hoca başka müşterinin kademesiyle sınıf açamaz',
+  tst.dene($q$select public.ogretmen_sinif_ac('x', '2026', '10000000-0000-0000-0000-00000000000b')$q$), 'hata:23503');
+select tst.esit('hoca adsız sınıf açamaz',
+  tst.dene($q$select public.ogretmen_sinif_ac('  ', '2026', null)$q$), 'hata:22023');
+
+select tst.esit('hoca sınıfına öğrenci ekler (returning dahil)',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi)
+    select kurum_id, id, 'oYeni', '2020-05-05' from public.sinif where ad = 'Yeni Halka' returning id$q$), 'ok:1');
+select tst.esit('hoca sınıfına başka kurumla öğrenci ekleyemez',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi)
+    select 'c0000000-0000-0000-0000-00000000000b', id, 'x', '2020-05-05' from public.sinif where ad = 'Yeni Halka'$q$), 'hata:23503');
+select tst.esit('hoca kullanıcı adı yazamaz',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi, kullanici_adi)
+    select kurum_id, id, 'x', '2020-05-05', 'x.y' from public.sinif where ad = 'Yeni Halka'$q$), 'hata:42501');
+select tst.esit('hoca öğrencisini düzenler',
+  tst.dene($q$update public.ogrenci set ad_soyad = 'oYeni Can', cinsiyet = 'erkek' where ad_soyad = 'oYeni'$q$), 'ok:1');
+select tst.esit('hoca öğrencisini pasife alır',
+  tst.dene($q$update public.ogrenci set aktif = false where ad_soyad = 'oYeni Can'$q$), 'ok:1');
+select tst.esit('hoca pasif öğrencisini görür',
+  (select count(*) from public.ogrenci where ad_soyad = 'oYeni Can' and not aktif)::text, '1');
+select tst.esit('hoca öğrencisini geri açar',
+  tst.dene($q$update public.ogrenci set aktif = true where ad_soyad = 'oYeni Can'$q$), 'ok:1');
+select tst.esit('hoca öğrencisini başka hocanın sınıfına taşıyamaz',
+  tst.dene($q$update public.ogrenci set sinif_id = 'd0000000-0000-0000-0000-0000000000a2' where ad_soyad = 'oYeni Can'$q$), 'hata:42501');
+select tst.esit('hoca öğrencisini silemez',
+  tst.dene($q$delete from public.ogrenci where ad_soyad = 'oYeni Can'$q$), 'ok:0');
+
+select tst.esit('hoca sınıfını düzenler',
+  tst.dene($q$update public.sinif set ad = 'Yeni Halka 2', donem = '2027', kademe_id = null where ad = 'Yeni Halka'$q$), 'ok:1');
+select tst.esit('hoca sınıfının birimini değiştiremez',
+  tst.dene($q$update public.sinif set kurum_id = 'c0000000-0000-0000-0000-0000000000a1' where ad = 'Yeni Halka 2'$q$), 'hata:42501');
+select tst.esit('hoca sınıfını silemez',
+  tst.dene($q$delete from public.sinif where ad = 'Yeni Halka 2'$q$), 'ok:0');
+select tst.esit('hoca kendini başka sınıfa atayamaz',
+  tst.dene($q$insert into public.ogretmen_sinif (kurum_id, ogretmen_id, sinif_id) values ('c0000000-0000-0000-0000-00000000000a','b0000000-0000-0000-0000-000000000005','d0000000-0000-0000-0000-0000000000a2')$q$), 'hata:42501');
+
+-- Yönetici ve veli RPC'yi kullanamaz (yönetici kendi yolundan açar)
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('yönetici hoca RPC''sini çağıramaz',
+  tst.dene($q$select public.ogretmen_sinif_ac('x', '2026', null)$q$), 'hata:42501');
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000008","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('veli hoca RPC''sini çağıramaz',
+  tst.dene($q$select public.ogretmen_sinif_ac('x', '2026', null)$q$), 'hata:42501');
+
+-- Süper admin bayrağı kapatır: hocanın yazma yetkileri kalkar, okuma sürer
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('sa hoca kaydını kapatır',
+  tst.dene($q$update public.kurum set ozellikler = ozellikler || '{"ogretmen_kayit":false}'::jsonb where id = 'c0000000-0000-0000-0000-00000000000a'$q$), 'ok:1');
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}', true);
+set local role authenticated;
+select tst.esit('kapalıyken hoca sınıf açamaz',
+  tst.dene($q$select public.ogretmen_sinif_ac('x', '2026', null)$q$), 'hata:42501');
+select tst.esit('kapalıyken hoca öğrenci ekleyemez',
+  tst.dene($q$insert into public.ogrenci (kurum_id, sinif_id, ad_soyad, dogum_tarihi) values ('c0000000-0000-0000-0000-00000000000a','d0000000-0000-0000-0000-0000000000a1','x','2020-01-01')$q$), 'hata:42501');
+select tst.esit('kapalıyken hoca sınıfını düzenleyemez',
+  tst.dene($q$update public.sinif set ad = 'x' where ad = 'Yeni Halka 2'$q$), 'ok:0');
+select tst.esit('kapalıyken hoca öğrencisini pasife alamaz',
+  tst.dene($q$update public.ogrenci set aktif = false where ad_soyad = 'oYeni Can'$q$), 'ok:0');
+select tst.esit('kapalıyken hoca öğrencisini görmeye devam eder',
+  (select count(*) from public.ogrenci where ad_soyad = 'oYeni Can')::text, '1');
 
 reset role;
 select 'TÜM RLS TESTLERİ GEÇTİ' as sonuc;
