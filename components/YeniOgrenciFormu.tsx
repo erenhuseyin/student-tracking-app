@@ -1,6 +1,7 @@
 // Öğrenciler tablosundan yeni öğrenci: önce sınıf seçilir (öğrencinin birimi sınıfının birimidir),
-// sonra ad ve doğum tarihi girilir. Erişim: yalnızca kurum_admin (RLS: yönettiği kurumlar).
-// Sınıf ekranındaki "yeni öğrenci" (`/yeni-ogrenci`) sınıfı bildiği için ayrı ve daha kısadır.
+// sonra ad ve doğum tarihi girilir. Erişim: kurum_admin (RLS: yönettiği kurumlar) ve öğretmen
+// (Yeni Öğrenci ekranı; atandığı sınıflar, ogretmen_kayit bayrağı açıksa). Yöneticinin sınıf
+// ekranındaki "yeni öğrenci" (`/yeni-ogrenci`) sınıfı bildiği için ayrı ve daha kısadır.
 import { useState } from 'react';
 import { Text } from 'react-native';
 

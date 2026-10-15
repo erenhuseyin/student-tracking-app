@@ -1136,6 +1136,10 @@ export type Database = {
         Args: { p_kurum_id: string };
         Returns: Json;
       };
+      ogretmen_sinif_ac: {
+        Args: { p_ad: string; p_donem: string; p_kademe_id?: string | null };
+        Returns: string;
+      };
       ders_raporu: {
         Args: Record<PropertyKey, never>;
         Returns: {

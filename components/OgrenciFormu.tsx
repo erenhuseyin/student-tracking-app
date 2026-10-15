@@ -1,6 +1,7 @@
 // Öğrenci düzenleme formu: bilgiler, veli girişi (kullanıcı adı / PIN), pasife alma ve silme.
-// Erişim: yalnızca kurum_admin (yönettiği kurumların öğrencileri; RLS). Hem `/ogrenci-duzenle/[id]`
-// ekranında hem Öğrenciler tablosunun yan panelinde kullanılır.
+// Erişim: kurum_admin (yönettiği kurumların öğrencileri; RLS) ve öğretmen (sınıfının öğrencileri,
+// ogretmen_kayit bayrağı açıksa). Öğretmen silemez ve PIN sıfırlayamaz; bu düğmeler ona gösterilmez.
+// Hem `/ogrenci-duzenle/[id]` ekranında hem Öğrenciler tablosunun yan panelinde kullanılır.
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
@@ -15,6 +16,7 @@ import { TarihGirdisi } from '@/components/TarihGirdisi';
 import { Yukleniyor } from '@/components/Yukleniyor';
 import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
 import { ogrenciAktifliginiAyarla, ogrenciGetir, ogrenciGuncelle, ogrenciSil, veliGirisiniAc, veliPininiSifirla } from '@/lib/ogrenciler';
+import { useOturum } from '@/lib/oturum';
 import { useToast } from '@/lib/toast';
 import { useTema } from '@/lib/tema';
 
@@ -29,6 +31,7 @@ type Props = {
 export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
   const router = useRouter();
   const tema = useTema();
+  const yonetici = useOturum().kullanici?.rol !== 'ogretmen';
   const [adSoyad, setAdSoyad] = useState('');
   const [dogumTarihi, setDogumTarihi] = useState('');
   const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
@@ -150,18 +153,27 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
         {kullaniciAdi ? (
           <>
             <Girdi etiket="Kullanıcı adı (değişmez)" value={kullaniciAdi} editable={false} />
-            <Text style={tema.yazi.kucuk}>
-              Veli bu kullanıcı adı ve PIN ile giriş yapar. İlk PIN &quot;1234&quot;tür; veli ilk girişte yenisini belirler. PIN
-              unutulursa ya da hesap kilitlenirse sıfırlayın: PIN yeniden &quot;1234&quot; olur.
-            </Text>
-            <HataMesaji mesaj={pinBasarili ? 'PIN "1234" olarak sıfırlandı.' : null} tur="basari" />
-            <HataMesaji mesaj={pinHata} />
-            <OnayButonu
-              etiket="Veli PIN'ini Sıfırla"
-              soru={'Emin misiniz? PIN "1234" olacak.'}
-              onayEtiketi="Evet, sıfırla"
-              onOnay={pinSifirla}
-            />
+            {yonetici ? (
+              <>
+                <Text style={tema.yazi.kucuk}>
+                  Veli bu kullanıcı adı ve PIN ile giriş yapar. İlk PIN &quot;1234&quot;tür; veli ilk girişte yenisini belirler. PIN
+                  unutulursa ya da hesap kilitlenirse sıfırlayın: PIN yeniden &quot;1234&quot; olur.
+                </Text>
+                <HataMesaji mesaj={pinBasarili ? 'PIN "1234" olarak sıfırlandı.' : null} tur="basari" />
+                <HataMesaji mesaj={pinHata} />
+                <OnayButonu
+                  etiket="Veli PIN'ini Sıfırla"
+                  soru={'Emin misiniz? PIN "1234" olacak.'}
+                  onayEtiketi="Evet, sıfırla"
+                  onOnay={pinSifirla}
+                />
+              </>
+            ) : (
+              <Text style={tema.yazi.kucuk}>
+                Veli bu kullanıcı adı ve PIN ile giriş yapar. İlk PIN &quot;1234&quot;tür; veli ilk girişte yenisini belirler. PIN
+                unutulursa ya da hesap kilitlenirse yöneticiniz sıfırlar.
+              </Text>
+            )}
           </>
         ) : (
           <>
@@ -196,12 +208,14 @@ export function OgrenciFormu({ id, onDegisti, onSilindi }: Props) {
             <Buton tur="ikincil" baslik="Yeniden Aktifleştir" onPress={() => aktifligiDegistir(true)} />
           </>
         )}
-        <Text style={tema.yazi.kucuk}>
-          Yanlışlıkla açılmış bir kaydı tümüyle silebilirsiniz; yoklama kaydı olan öğrenci silinemez, gelişim, ezber ve
-          kitap kayıtları öğrenciyle birlikte silinir.
-        </Text>
+        {yonetici ? (
+          <Text style={tema.yazi.kucuk}>
+            Yanlışlıkla açılmış bir kaydı tümüyle silebilirsiniz; yoklama kaydı olan öğrenci silinemez, gelişim, ezber ve
+            kitap kayıtları öğrenciyle birlikte silinir.
+          </Text>
+        ) : null}
         <HataMesaji mesaj={silmeHatasi} />
-        <OnayButonu etiket="Öğrenciyi Sil" onOnay={sil} />
+        {yonetici ? <OnayButonu etiket="Öğrenciyi Sil" onOnay={sil} /> : null}
       </Kart>
     </>
   );
