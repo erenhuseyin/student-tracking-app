@@ -8,8 +8,9 @@
 
 - **Faz 1 — MVP.** Kalan büyük adım: telefonda doğrulama + development build, ardından KVKK/mağaza hazırlığı ve EAS build + Play Console iç test.
 - `redesign/defter` `main`'e birleşti. Web sürümü **Netlify**'da (`netlify.toml`; Supabase anahtarları Netlify ortam değişkenlerinde; "Powered by Netlify" rozeti proje ayarından kapatıldı).
-- **Push edilmemiş commit'ler** (Netlify'a gitmedi): Küçükçekmece test verisi betiği, il tohumu, pano il tablosunun 8 satırla sınırlanması (`57a6c05`, canlıda pano çok ille uzuyor), belgelerin kısaltılması, B6.
+- **Push edilmemiş commit'ler** (Netlify'a gitmedi): Küçükçekmece test verisi betiği, il tohumu, pano il tablosunun 8 satırla sınırlanması (`57a6c05`, canlıda pano çok ille uzuyor), belgelerin kısaltılması, B6, B1.
 - **Canlı veri (2026-10-15):** genel merkez altında 7 il kaldı (İstanbul, Ankara, İzmir, Bursa, Konya, Kocaeli + Gebze, Adana); tohumun eklediği diğer 20 il silindi.
+- **B1 (personele kullanıcı adı):** yerelde doğrulandı (RLS süiti 34. bölüm, backfill dolu veride, REST + görünmez Chrome 15/15, davette ad). **Canlıya alınmadı.** Adımlar: migration `20261024120000_personel_kullanici_adi.sql` → `rls.test.sql` tam süit → yeni fonksiyon `personel-giris` deploy + `personel-yonet` yeniden deploy → isteğe bağlı EmailJS şablonuna `{{kullanici_adi}}` → Netlify. Fonksiyon olmadan kullanıcı adıyla giriş çalışmaz; e-postayla giriş etkilenmez.
 - **B6 (rol ve görev arayüzde tek kavram):** yerelde doğrulandı (RLS süiti, görünmez Chrome 25/25). Migration ve fonksiyon yok; push + Netlify deploy yeter.
 - **B7 (konu notu, yanıt, ders raporu):** migration ve RLS testleri canlıda. Teyit edilmedi: `kademe-dersleri-genchareket.sql` tohumu ve `konu-notu-bildirim-gonder` deploy'u (bkz. YAPILACAKLAR A6).
 
@@ -52,7 +53,7 @@
 - `rls.test.sql` tek transaction'dır; bölümler önceki bölümlerin değişikliklerini devralır (rol değişmiş kullanıcı, eklenmiş sınıf). Sayım yerine adla kontrol tercih edilir; istemci rolüyle yalnızca grant verilmiş kolonlar yazılır.
 
 **Kimlik ve giriş**
-- Personel: e-posta daveti + 6 haneli kod (`personel-yonet`, EmailJS + kişisel Gmail, ayda 200). Personel silinmez, pasifleştirilir.
+- Personel: e-posta daveti + 6 haneli kod (`personel-yonet`, EmailJS + kişisel Gmail, ayda 200). Personel silinmez, pasifleştirilir. Girişte e-posta ya da `kullanici.kullanici_adi` (kullanıcı adı yolu `personel-giris` fonksiyonundan geçer; deneme sınırı yok). `kullaniciAdiniDuzelt` kopyası `lib/kullaniciAdi.ts`, `veli-giris` ve `personel-giris`'te — biri değişirse hepsi değişir.
 - Veli: `ad.soyad` kullanıcı adı + 4 haneli PIN; Auth şifresi `HMAC(VELI_PIN_ANAHTARI, e-posta:PIN)`, giriş yalnızca `veli-giris` fonksiyonundan (5 yanlışta 15 dk kilit). `pinSifresi` birkaç fonksiyonda kopya — biri değişirse hepsi değişir. Şifre yönetici API'siyle değişince Auth tüm oturumları kapatır; bu yüzden PIN değiştirme taze oturum döndürür.
 - `supabase-js` admin API'sinde `getUserByEmail` yok (`listUsers` sayfalaması ya da `kullanici.eposta` araması).
 - Supabase Auth ile devam (custom auth reddedildi; veli hesabı öğrenci başına, MAU ücretsiz katmanda rahat).
@@ -92,8 +93,8 @@
 - 2026-10-12 — Dört seviyeli kurum ağacı, yönetim tabloları + görevler + Menü Yetkileri, pano (harita, "en"ler), ortak ezber listesi, yoklama ekranı yenilemesi, yoklama tamamlanınca bildirim.
 - 2026-10-13 — Web/mobil düzen ayrımı, logo ve palet, TCKN'nin kaldırılması (veli `ad.soyad` ile girer).
 - 2026-10-14 — Takvim, herkesin programı, cinsiyet, öğrenci/hoca detay ekranları; kademe-ders kusurları; B7 (konu notu ve yanıtı, işlenme tarihi, Ezber görünümü, Konu Notları, Ders Raporu, Kademe I-III tohumu).
-- 2026-10-15 — B6: rol ve görev arayüzde tek "rol" (sistem + tanımlı roller), kişiye tek seçimle rol, Roller ekranında menüler, Menü Yetkileri ekranı kalktı. Netlify web dağıtımı; Küçükçekmece test verisi; temsilcilik illeri tohumu (canlıda 7 ile indirildi); pano il tablosu sınırı; bu dosyanın arşivlenip kısaltılması.
+- 2026-10-15 — B1: personele `ad.soyad` kullanıcı adı ve kullanıcı adıyla giriş. B6: rol ve görev arayüzde tek "rol" (sistem + tanımlı roller), kişiye tek seçimle rol, Roller ekranında menüler, Menü Yetkileri ekranı kalktı. Netlify web dağıtımı; Küçükçekmece test verisi; temsilcilik illeri tohumu (canlıda 7 ile indirildi); pano il tablosu sınırı; bu dosyanın arşivlenip kısaltılması.
 
 ## Son Oturum Notu
 
-- 2026-10-15: İl tohumu canlıda çalıştırıldı, pano il kartı uzadı → 20 il silindi, tabloya 8 satır sınırı (push bekliyor). Netlify rozeti kapatıldı. ILERLEME.md 168 KB'tan kısaltıldı, tam metin arşivde. B6 plan mode'da planlandı (yalnızca arayüz birleşmesi) ve yapıldı; `OnayKutusu` web'de `aria-checked` yazmıyordu, düzeltildi. Sıradaki: push + Netlify deploy, sonra YAPILACAKLAR (telefon doğrulaması, B1-B2).
+- 2026-10-15: İl tohumu canlıda çalıştırıldı, pano il kartı uzadı → 20 il silindi, tabloya 8 satır sınırı (push bekliyor). Netlify rozeti kapatıldı. ILERLEME.md 168 KB'tan kısaltıldı, tam metin arşivde. B6 plan mode'da planlandı (yalnızca arayüz birleşmesi) ve yapıldı; `OnayKutusu` web'de `aria-checked` yazmıyordu, düzeltildi. Ardından B1 (personel kullanıcı adı) planlanıp yapıldı. Sıradaki: canlıya alma (B1 migration + iki fonksiyon), push + Netlify; sonra YAPILACAKLAR (telefon doğrulaması, B2 hocanın kendi sınıfını açması).

@@ -1,6 +1,6 @@
 # Yapılacaklar
 
-> Sıradaki işler ve geliştirme önerileri. Bir iş bitince buradan silinir ve `docs/ILERLEME.md > Tamamlananlar`'a yazılır. Sıra önceliktir; kullanıcı sırayı değiştirebilir. Son güncelleme: 2026-10-15 (B6 yapıldı).
+> Sıradaki işler ve geliştirme önerileri. Bir iş bitince buradan silinir ve `docs/ILERLEME.md > Tamamlananlar`'a yazılır. Sıra önceliktir; kullanıcı sırayı değiştirebilir. Son güncelleme: 2026-10-15 (B6 ve B1 yapıldı).
 
 ## A. Bekleyen (kullanıcıda)
 
@@ -15,7 +15,6 @@
 
 Her biri çok dosyalı; başlamadan önce plan mode.
 
-1. **Hocaya da `ad.soyad` kullanıcı adı.** Hoca hesabı e-posta davetiyle açılmaya devam eder; ayrıca kullanıcı adı atanır (girişte e-posta yerine kullanılabilir). Öğrencideki üretim kuralı (`gizli.kullanici_adi_tabani`) yeniden kullanılır; personel girişinin de veli girişi gibi sunucudan geçmesi gerekir (deneme sınırı). Öğrenci ve personel adları aynı havuzdan mı verilecek, planda sorulacak.
 2. **Hoca kendi halkasını (sınıfını) ve öğrencisini açabilsin.** Bugün yalnızca yönetici açıyor. Öğretmene kendi biriminde sınıf açma (kendisi atanmış olarak) ve kendi sınıfına öğrenci ekleme yetkisi: RLS politikaları + testler, öğretmen ekranlarında "Yeni sınıf" / "Yeni öğrenci". Başvuruyla öğrenci kaydı da açık kalır. Hocanın eklediği öğrenciye de veli girişi açılmalı (`veli-hesap-olustur` bugün yalnızca yöneticiye açık). Hoca sınıf açarken kademeyi de seçer (B7'den taşındı; yöneticinin yeni sınıf formuna da eklenebilir). Açık noktalar: hoca sınıfı/öğrenciyi silebilir ya da pasife alabilir mi, müşteri bazında kapatılabilir mi.
 3. **Terimler markaya göre değişsin** (Hoca / Halka / Kademe …). Seviye adları zaten markadan geliyor; rol ve sınıf adları da `marka.json`'dan gelecek. **Sonraki adım (ileride):** ekran bazlı metin katmanı — hem çoklu dil hem de müşterinin ekran başlıklarını ve yazılarını kendisinin değiştirebilmesi için. Bu yüzden 3. madde, sabit metinleri tek bir sözlüğe toplayacak şekilde yapılmalı.
 4. **`genchareket` markasının ayrı uygulama olarak açılması.** Logo ve palet şimdilik `varsayilan` markasına uygulandı. Ayrı marka için: `markalar/genchareket/` (paket `com.ergenecode.genchareket`), EAS projesi, Firebase Android uygulaması + `google-services.json`, veritabanında kök kurumun marka kodu, ezber tohumunun o kurum için çalıştırılması. Mağaza ikonu için **yüksek çözünürlüklü ya da vektör logo** gerekiyor (eldeki 400×149 px). GH KÂŞİF'te büyük logolar var: `~/Desktop/uygulamam/public/brand/` (yatay 1672×941, rozet ve ikon 1254×1254, beyaz sürüm) — kullanılabilirliği kullanıcıya sorulmalı.
