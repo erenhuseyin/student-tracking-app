@@ -8,9 +8,10 @@
 
 - **Faz 1 — MVP.** Kalan büyük adım: telefonda doğrulama + development build, ardından KVKK/mağaza hazırlığı ve EAS build + Play Console iç test.
 - `redesign/defter` `main`'e birleşti. Web sürümü **Netlify**'da (`netlify.toml`; Supabase anahtarları Netlify ortam değişkenlerinde; "Powered by Netlify" rozeti proje ayarından kapatıldı).
-- **Push edilmemiş commit'ler** (Netlify'a gitmedi): Küçükçekmece test verisi betiği, il tohumu, pano il tablosunun 8 satırla sınırlanması (`57a6c05`, canlıda pano çok ille uzuyor), belgelerin kısaltılması, B6, B1.
+- **Push edilmemiş commit'ler** (Netlify'a gitmedi): Küçükçekmece test verisi betiği, il tohumu, pano il tablosunun 8 satırla sınırlanması (`57a6c05`, canlıda pano çok ille uzuyor), belgelerin kısaltılması, B6, B1, B2.
 - **Canlı veri (2026-10-15):** genel merkez altında 7 il kaldı (İstanbul, Ankara, İzmir, Bursa, Konya, Kocaeli + Gebze, Adana); tohumun eklediği diğer 20 il silindi.
 - **B1 (personele kullanıcı adı):** yerelde doğrulandı (RLS süiti 34. bölüm, backfill dolu veride, REST + görünmez Chrome 15/15, davette ad). **Canlıya alınmadı.** Adımlar: migration `20261024120000_personel_kullanici_adi.sql` → `rls.test.sql` tam süit → yeni fonksiyon `personel-giris` deploy + `personel-yonet` yeniden deploy → isteğe bağlı EmailJS şablonuna `{{kullanici_adi}}` → Netlify. Fonksiyon olmadan kullanıcı adıyla giriş çalışmaz; e-postayla giriş etkilenmez.
+- **B2 (hoca kendi sınıfını ve öğrencisini açar):** yerelde doğrulandı (RLS süiti 35. bölüm, boş ve dolu veride; görünmez Chrome 1440 ve 390'da 23/23; REST'te hocanın PIN sıfırlayamaması, başka sınıfın öğrencisine veli girişi açamaması, bayrak kapalıyken 42501). **Canlıya alınmadı.** Adımlar (B1'den sonra): migration `20261025120000_ogretmen_kayit.sql` → `rls.test.sql` tam süit → `veli-hesap-olustur` yeniden deploy → Netlify. Migration'sız canlıda hocanın düğmeleri görünür ama kayıt reddedilir; sırayı bozma.
 - **B6 (rol ve görev arayüzde tek kavram):** yerelde doğrulandı (RLS süiti, görünmez Chrome 25/25). Migration ve fonksiyon yok; push + Netlify deploy yeter.
 - **B7 (konu notu, yanıt, ders raporu):** migration ve RLS testleri canlıda. Teyit edilmedi: `kademe-dersleri-genchareket.sql` tohumu ve `konu-notu-bildirim-gonder` deploy'u (bkz. YAPILACAKLAR A6).
 
@@ -44,6 +45,8 @@
 **Veritabanı ve RLS**
 - Yardımcı fonksiyonlar API'ye kapalı `gizli` şemasında (`security definer`, `search_path=''`); politikalar yalnızca `authenticated` için, `anon` her tablodan revoke. `kullanici` satırı olmayan ya da pasif kullanıcı hiçbir şey görmez.
 - Yönetici politikası: `kurum_id in (select gizli.yonetilen_kurum_idleri())` (düğüm + altı, `kurum.yol` ile). **İstisna `kurum` tablosu:** politikalar satırın kendi kolonlarıyla yazılır (`insert ... returning`'de yeni satır fonksiyonun snapshot'ında görünmez).
+- Aynı nedenle istemcinin ekleyip geri okuduğu satırın okuma politikası satırın kendi kolonuna bakar (öğretmen: `ogretmen_sinifi_mi(sinif_id)`, `ogretmen_ogrencisi_mi(id)` değil). Okuması başka tablodaki satıra bağlı kayıt (hocanın açtığı sınıf → `ogretmen_sinif`) RPC ile yazılır (`ogretmen_sinif_ac`).
+- Müşteri bayrağı RLS'e girecekse varsayılanı SQL'de de yazılır (`coalesce(ozellikler->>'x', 'true')`); istemcide `useOzellik(ad, varsayilan)`.
 - "Eski değer"e bakan kural (`kimse kendi rolünü değiştiremez`, `yanıtı yalnızca yönetici yazar` vb.) `with check`'e değil **trigger**'a yazılır — `with check` içinde aynı tabloyu okuyan fonksiyon yeni değeri görür (2026-09-26'da bu yüzden yetki yükseltme açığı çıktı).
 - İstemcinin yazamayacağı alanlar kolon bazlı `grant` ile kapatılır. **Kolon yetkisi kısıtlı tabloda PostgREST upsert kullanılmaz** (çakışmada tüm kolonları yazmaya çalışır → 42501); önce oku, sonra update/insert.
 - Kurumlar arası yanlış bağ bileşik FK `(x_id, kurum_id)` ile engellenir.
@@ -78,7 +81,6 @@
 
 ## Açık Sorular
 
-- Hoca kendi sınıfını/öğrencisini açarken silme/pasife alma yetkisi ve müşteri bazında kapatılabilirliği (B2).
 - `genchareket` markasının paleti ve mağaza logosu (GH KÂŞİF'teki büyük logolar kullanılabilir mi).
 - Mağaza politikalarının (Apple 4.2.6/4.3, Google tekrarlayan içerik) güncel metni ilk özel uygulamadan önce doğrulanmalı.
 - GH KÂŞİF'in `PROJECT_STATE.md`'sinde yönetici şifreleri açık yazıyor; canlıda aynıysa değiştirilmeli (kullanıcıya iletildi).
@@ -93,8 +95,8 @@
 - 2026-10-12 — Dört seviyeli kurum ağacı, yönetim tabloları + görevler + Menü Yetkileri, pano (harita, "en"ler), ortak ezber listesi, yoklama ekranı yenilemesi, yoklama tamamlanınca bildirim.
 - 2026-10-13 — Web/mobil düzen ayrımı, logo ve palet, TCKN'nin kaldırılması (veli `ad.soyad` ile girer).
 - 2026-10-14 — Takvim, herkesin programı, cinsiyet, öğrenci/hoca detay ekranları; kademe-ders kusurları; B7 (konu notu ve yanıtı, işlenme tarihi, Ezber görünümü, Konu Notları, Ders Raporu, Kademe I-III tohumu).
-- 2026-10-15 — B1: personele `ad.soyad` kullanıcı adı ve kullanıcı adıyla giriş. B6: rol ve görev arayüzde tek "rol" (sistem + tanımlı roller), kişiye tek seçimle rol, Roller ekranında menüler, Menü Yetkileri ekranı kalktı. Netlify web dağıtımı; Küçükçekmece test verisi; temsilcilik illeri tohumu (canlıda 7 ile indirildi); pano il tablosu sınırı; bu dosyanın arşivlenip kısaltılması.
+- 2026-10-15 — B1: personele `ad.soyad` kullanıcı adı ve kullanıcı adıyla giriş. B6: rol ve görev arayüzde tek "rol" (sistem + tanımlı roller), kişiye tek seçimle rol, Roller ekranında menüler, Menü Yetkileri ekranı kalktı. B2: hoca kendi birimine sınıf açar (kademe seçerek), sınıfına öğrenci ekler, düzenler, pasife alır (`ogretmen_kayit` bayrağı, varsayılan açık). Netlify web dağıtımı; Küçükçekmece test verisi; temsilcilik illeri tohumu (canlıda 7 ile indirildi); pano il tablosu sınırı; bu dosyanın arşivlenip kısaltılması.
 
 ## Son Oturum Notu
 
-- 2026-10-15: İl tohumu canlıda çalıştırıldı, pano il kartı uzadı → 20 il silindi, tabloya 8 satır sınırı (push bekliyor). Netlify rozeti kapatıldı. ILERLEME.md 168 KB'tan kısaltıldı, tam metin arşivde. B6 plan mode'da planlandı (yalnızca arayüz birleşmesi) ve yapıldı; `OnayKutusu` web'de `aria-checked` yazmıyordu, düzeltildi. Ardından B1 (personel kullanıcı adı) planlanıp yapıldı. Sıradaki: canlıya alma (B1 migration + iki fonksiyon), push + Netlify; sonra YAPILACAKLAR (telefon doğrulaması, B2 hocanın kendi sınıfını açması).
+- 2026-10-15: İl tohumu canlıda çalıştırıldı, pano il kartı uzadı → 20 il silindi, tabloya 8 satır sınırı (push bekliyor). Netlify rozeti kapatıldı. ILERLEME.md 168 KB'tan kısaltıldı, tam metin arşivde. B6 plan mode'da planlandı (yalnızca arayüz birleşmesi) ve yapıldı; `OnayKutusu` web'de `aria-checked` yazmıyordu, düzeltildi. Ardından B1 (personel kullanıcı adı) ve B2 (hoca kendi sınıfını açar) planlanıp yapıldı; B2'de `ogrenci_ogretmen_oku` politikası `ogretmen_sinifi_mi(sinif_id)` ile yeniden yazıldı (insert-returning için) ve konu notu testi yalnızca test ağacını sayacak şekilde düzeltildi (dolu veride düşüyordu). Sıradaki: canlıya alma (B1, sonra B2 migration'ları + fonksiyonlar), push + Netlify; sonra YAPILACAKLAR (telefon doğrulaması, B3 terimler).

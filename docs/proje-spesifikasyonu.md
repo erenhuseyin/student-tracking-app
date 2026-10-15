@@ -17,7 +17,7 @@ Bir eğitim kurumu için, öğretmenlerin öğrenci gelişimini kaydedebildiği,
 |---|---|
 | Süper admin | Tüm kurumları görür/yönetir |
 | Kurum admini (yönetici) | Bağlı olduğu birimi ve altındaki tüm birimleri yönetir (genel merkez, bölge, ilçe ya da semt yöneticisi) |
-| Öğretmen | Kendine atanan sınıf/öğrencileri görür, yoklama ve gelişim kaydı girer |
+| Öğretmen | Kendine atanan sınıf/öğrencileri görür, yoklama ve gelişim kaydı girer; kendi birimine sınıf açar, sınıfına öğrenci ekler, düzenler ve pasife alır (müşteri kapatabilir) |
 | Veli | Sadece kendi çocuğunun kayıtlarını görür |
 
 > Not: Öğrenci girişi (öğrenci kendi hesabıyla giriş yapar mı) ilk fazda kapsam dışı — gerekirse sonraki fazda eklenir.
@@ -129,6 +129,8 @@ supabase/
 > Güncel durum (2026-10-08): rol grupları `(super_admin)`, `(kurum_admin)`, `(ogretmen)`, `(veli)`; her birinde ana bölümler `(sekmeler)/` altında sekmedir (`index`, …, `menu`), detay ekranları grubun kökünde durur ve sekmelerin üstünde açılır. Bölümlerin listesi `lib/menu.ts`'tedir.
 
 ## 9. Netleşen Kararlar
+
+- **Hoca kendi sınıfını ve öğrencisini açar (2026-10-15).** Kararlar (plan mode): hoca yalnızca **kendi birimine** sınıf açar ve kendisi atanır; açarken kademe seçer (yöneticinin yeni sınıf formuna da kademe geldi). Atandığı sınıfı düzenler (ad, dönem, kademe), sınıfına öğrenci ekler, öğrencisini düzenler ve **pasife alır / geri açar**; **silme yöneticide kalır**. Hocanın eklediği öğrenciye veli girişi kendiliğinden açılır; hoca "veli girişini aç" yapabilir, **PIN sıfırlama yöneticide kalır**. Müşteri bazında `kurum.ozellikler.ogretmen_kayit` bayrağı, **varsayılan açık** (yalnızca süper admin yazar); kapalıyken RLS de reddeder (eski davranış). Sınıf `ogretmen_sinif_ac` RPC'siyle açılır (sınıf + atama tek işlem; `ogretmen_sinif`'e istemciden yazma kapalı kalır). Başvuruyla kayıt değişmedi. **Kapsam dışı:** hocanın toplu öğrenci eklemesi, öğrenciyi sınıflar arası taşıma.
 
 - **Kademe-ders takibinde GH KÂŞİF'ten eksikler (2026-10-14).** Hoca ve yönetici konuya **not** yazar ve işlenme tarihini değiştirir (ileri tarih olmaz); not sınıfın o konusuna aittir, konunun işlenmiş olmasına bağlı değildir, veli görmez. Kapsamdaki **herhangi bir yönetici** notu açınca not "görüldü" olur (tek işaret, kimin gördüğü yazılır); yönetici nota **tek bir yanıt** yazar (yeniden yazılırsa üstüne yazılır), hocaya push + uygulama içi bildirim gider; hoca notu değiştirirse not yeniden okunmamış olur. Okunmamış notlar yöneticinin Menü > Konu Notları ekranında ve Özet'te sayı olarak görünür. Yöneticinin **Ders Raporu** sınıf başına kademe, hoca, işlenen / toplam konu ve okunmamış not sayısını gösterir (sunucuda toplanır, satır yetkisi RLS'tedir; web'de CSV). Ders takibi ekranında "Ezber" görünümü madde başına tamamlayan öğrenci sayısını verir. Kademe I-III ders ve konuları GH KÂŞİF'ten olduğu gibi tohum SQL'iyle aktarılır. Hocanın sınıf açarken kademe seçmesi, hocanın sınıf açabilmesiyle (YAPILACAKLAR B2) birlikte yapılacak.
 
