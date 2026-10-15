@@ -71,6 +71,8 @@ export type Database = {
           giris_deneme_sayisi: number;
           giris_kilit_bitis: string | null;
           gorev_id: string | null;
+          kok_kurum_id: string | null;
+          kullanici_adi: string | null;
           id: string;
           kod_deneme_sayisi: number;
           kurum_id: string | null;
@@ -90,6 +92,8 @@ export type Database = {
           giris_deneme_sayisi?: number;
           giris_kilit_bitis?: string | null;
           gorev_id?: string | null;
+          kok_kurum_id?: string | null;
+          kullanici_adi?: string | null;
           id?: string;
           kod_deneme_sayisi?: number;
           kurum_id?: string | null;
@@ -109,6 +113,8 @@ export type Database = {
           giris_deneme_sayisi?: number;
           giris_kilit_bitis?: string | null;
           gorev_id?: string | null;
+          kok_kurum_id?: string | null;
+          kullanici_adi?: string | null;
           id?: string;
           kod_deneme_sayisi?: number;
           kurum_id?: string | null;

@@ -1,4 +1,6 @@
-// Erişim: oturumu olmayan herkes. Personel (süper admin, kurum admini, öğretmen) e-posta + şifre ile girer.
+// Erişim: oturumu olmayan herkes. Personel (süper admin, kurum admini, öğretmen) e-posta ya da
+// kullanıcı adı (ali.yilmaz; süper adminde yok) + şifre ile girer. `@` içeren yazı e-posta sayılır
+// ve doğrudan Auth'a gider; içermeyen sunucudan (lib/personelGiris.ts) geçer.
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
@@ -9,6 +11,7 @@ import { HataMesaji } from '@/components/HataMesaji';
 import { Kart } from '@/components/Kart';
 import { MarkaBasligi } from '@/components/MarkaBasligi';
 import { useBasvuruAcik } from '@/lib/basvuruAcik';
+import { kullaniciAdiylaGirisYap } from '@/lib/personelGiris';
 import { supabase } from '@/lib/supabase';
 
 function hataMesajinaCevir(mesaj: string): string {
@@ -20,22 +23,31 @@ function hataMesajinaCevir(mesaj: string): string {
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [giris, setGiris] = useState('');
   const [sifre, setSifre] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
   const basvuruAcik = useBasvuruAcik();
 
   const girisYap = async () => {
-    if (!email.trim() || !sifre) {
-      setHata('E-posta ve şifre gerekli.');
+    const yazilan = giris.trim();
+    if (!yazilan || !sifre) {
+      setHata('E-posta ya da kullanıcı adı ve şifre gerekli.');
       return;
     }
     setGonderiliyor(true);
     setHata(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: sifre });
+    if (yazilan.includes('@')) {
+      const { error } = await supabase.auth.signInWithPassword({ email: yazilan, password: sifre });
+      if (error) setHata(hataMesajinaCevir(error.message));
+    } else {
+      try {
+        await kullaniciAdiylaGirisYap(yazilan, sifre);
+      } catch (e) {
+        setHata(e instanceof Error ? e.message : 'Giriş yapılamadı, lütfen tekrar deneyin.');
+      }
+    }
     setGonderiliyor(false);
-    if (error) setHata(hataMesajinaCevir(error.message));
   };
 
   return (
@@ -44,12 +56,13 @@ export default function Login() {
 
       <Kart>
         <Girdi
-          etiket="E-posta"
+          etiket="E-posta ya da kullanıcı adı"
           autoCapitalize="none"
-          autoComplete="email"
+          autoCorrect={false}
+          autoComplete="username"
           keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
+          value={giris}
+          onChangeText={setGiris}
           editable={!gonderiliyor}
         />
         <Girdi

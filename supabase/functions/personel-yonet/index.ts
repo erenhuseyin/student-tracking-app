@@ -52,7 +52,7 @@ const BEKLEME_OTURUMSUZ_SN = 600;
 const SURESIZ_BAN = '876000h';
 
 const KULLANICI_KOLONLARI =
-  'id, auth_id, rol, kurum_id, ad_soyad, eposta, aktif, sifre_belirlendi, son_kod_gonderim, kod_deneme_sayisi';
+  'id, auth_id, rol, kurum_id, ad_soyad, eposta, aktif, sifre_belirlendi, son_kod_gonderim, kod_deneme_sayisi, kullanici_adi';
 
 type KullaniciSatiri = {
   id: string;
@@ -65,6 +65,8 @@ type KullaniciSatiri = {
   sifre_belirlendi: boolean;
   son_kod_gonderim: string | null;
   kod_deneme_sayisi: number;
+  // Girişte e-posta yerine yazılabilen ad (personel-giris); veritabanı üretir.
+  kullanici_adi: string | null;
 };
 
 type Cagiran = { id: string; rol: string; kurum_id: string | null };
@@ -154,6 +156,8 @@ async function kodUretVeGonder(servis: SupabaseClient, hedef: KullaniciSatiri, d
     ad_soyad: hedef.ad_soyad,
     kurum_adi: await kurumAdiniGetir(servis, hedef.kurum_id),
     kod,
+    // Şablon kullanmıyorsa zararsızdır; EmailJS şablonuna "Kullanıcı adınız: {{kullanici_adi}}" eklenebilir.
+    kullanici_adi: hedef.kullanici_adi ?? '',
     konu: davetMi ? 'Hesabınız oluşturuldu' : 'Giriş kodunuz',
   });
 }
@@ -483,5 +487,5 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // E-posta gönderilemezse hesap geri alınmaz: yönetici personel ekranından kodu yeniden gönderebilir.
   const epostaGonderildi = await kodUretVeGonder(servis, yeniKullanici, true);
-  return yanit(200, { kullanici_id: yeniKullanici.id, eposta_gonderildi: epostaGonderildi });
+  return yanit(200, { kullanici_id: yeniKullanici.id, kullanici_adi: yeniKullanici.kullanici_adi, eposta_gonderildi: epostaGonderildi });
 });
