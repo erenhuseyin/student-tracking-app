@@ -2044,7 +2044,7 @@ select tst.esit('rol ve tanımlı rol tek güncellemede verilir',
 select tst.esit('tek güncellemede görev korunur',
   (select coalesce(gorev_id::text, 'yok') from public.kullanici where id = 'b0000000-0000-0000-0000-000000000042'), 'f0000000-0000-0000-0000-0000000000f1');
 select tst.esit('uyumsuz rol ve tanımlı rol tek güncellemede reddedilir',
-  tst.dene($q$update public.kullanici set rol = 'ogretmen', gorev_id = 'f0000000-0000-0000-0000-0000000000f1' where id = 'b0000000-0000-0000-0000-000000000042'$q$), 'hata:23514');
+  tst.dene($q$update public.kullanici set rol = 'kurum_admin', gorev_id = 'f0000000-0000-0000-0000-0000000000f2' where id = 'b0000000-0000-0000-0000-000000000042'$q$), 'hata:23514');
 select tst.esit('sistem rolüne dönüş tek güncellemede görevi boşaltır',
   tst.dene($q$update public.kullanici set rol = 'ogretmen', gorev_id = null where id = 'b0000000-0000-0000-0000-000000000042'$q$), 'ok:1');
 select tst.esit('boşalan görev artık silinebilir',

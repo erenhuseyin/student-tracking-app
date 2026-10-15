@@ -20,6 +20,8 @@ export function OnayKutusu({ etiket, secili, onDegis, pasif = false, calisiyor =
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: secili, disabled: pasif || calisiyor }}
+      // react-native-web accessibilityState.checked'i yazmaz; ekran okuyucu işareti buradan okur.
+      aria-checked={secili}
       disabled={pasif || calisiyor}
       onPress={() => onDegis(!secili)}
       style={({ pressed }) => [styles.satir, pressed && styles.basili]}

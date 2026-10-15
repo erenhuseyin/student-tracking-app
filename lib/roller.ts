@@ -19,8 +19,6 @@ export type RolSecenegi = {
   tur: 'sistem' | 'tanimli';
 };
 
-export const SISTEM_ROL_ADLARI = ['Yönetici', 'Öğretmen', 'Veli'];
-
 // Personele verilebilecek roller: önce iki sistem rolü, sonra tanımlılar (ada göre).
 // `temelRoller` verilirse yalnızca o sistem rollerine dayananlar listelenir.
 export function rolSecenekleri(gorevler: Gorev[], temelRoller: PersonelRolu[] = ['kurum_admin', 'ogretmen']): RolSecenegi[] {

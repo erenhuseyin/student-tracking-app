@@ -1,8 +1,9 @@
-// Görev tanımı formu (yeni ya da düzenleme). Görev = ad + temel rol + açıklama; hangi menüleri
-// gördüğü "Menü Yetkileri" ekranından ayarlanır. Temel rol yalnızca yeni görevde seçilir.
+// Tanımlı rol formu (yeni ya da düzenleme; veride `gorev`). Tanımlı rol = ad + dayandığı sistem rolü +
+// açıklama; menüleri Roller panelinde (components/RolMenuleri) ayarlanır. Dayandığı rol yalnızca
+// yeni kayıtta seçilir.
 // Erişim: yalnızca kök kurumun (genel merkezin) yöneticisi yazar (RLS); `saltOkunur` iken alt
 // birim yöneticisi tanımı yalnızca görür.
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Text } from 'react-native';
 
 import { Buton } from '@/components/Buton';
@@ -29,15 +30,17 @@ const TEMEL_ROL_ACIKLAMALARI: Record<GorevTemelRolu, string> = {
 };
 
 type Props = {
-  // Yeni görevde null.
+  // Yeni rolde null.
   gorev: Gorev | null;
   kokKurumId: string;
   saltOkunur: boolean;
   onKaydedildi: () => void;
   onSilindi: () => void;
+  // Form ile silme kartı arasında gösterilir (Roller panelinde rolün menüleri).
+  children?: ReactNode;
 };
 
-export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSilindi }: Props) {
+export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSilindi, children }: Props) {
   const tema = useTema();
   const toast = useToast();
   const [ad, setAd] = useState(gorev?.ad ?? '');
@@ -53,7 +56,7 @@ export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSili
     try {
       if (gorev) await gorevGuncelle(gorev.id, { ad, aciklama });
       else await gorevEkle(kokKurumId, { ad, temelRol, aciklama });
-      toast(gorev ? 'Görev kaydedildi' : 'Görev tanımlandı');
+      toast(gorev ? 'Rol kaydedildi' : 'Rol tanımlandı');
       onKaydedildi();
     } catch (e) {
       setHata(mesajaCevir(e));
@@ -67,7 +70,7 @@ export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSili
     setSilmeHatasi(null);
     try {
       await gorevSil(gorev.id);
-      toast('Görev silindi');
+      toast('Rol silindi');
       onSilindi();
     } catch (e) {
       setSilmeHatasi(mesajaCevir(e));
@@ -78,7 +81,7 @@ export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSili
     <>
       <Kart>
         <Girdi
-          etiket="Görev adı"
+          etiket="Rol adı"
           placeholder="örn. İstişare üyesi"
           value={ad}
           onChangeText={setAd}
@@ -86,13 +89,13 @@ export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSili
           maxLength={40}
         />
         {gorev ? (
-          <Girdi etiket="Temel rol (değiştirilemez)" value={TEMEL_ROL_ETIKETLERI[temelRol]} editable={false} />
+          <Girdi etiket="Dayandığı rol (değiştirilemez)" value={TEMEL_ROL_ETIKETLERI[temelRol]} editable={false} />
         ) : (
-          <Secenekler etiket="Temel rol" secenekler={TEMEL_ROL_SECENEKLERI} secili={temelRol} onSec={setTemelRol} pasif={gonderiliyor} />
+          <Secenekler etiket="Dayandığı rol" secenekler={TEMEL_ROL_SECENEKLERI} secili={temelRol} onSec={setTemelRol} pasif={gonderiliyor} />
         )}
         <Text style={tema.yazi.kucuk}>
-          {TEMEL_ROL_ACIKLAMALARI[temelRol]} Görev bu yetkiyi değiştirmez; kişinin unvanını ve hangi menüleri gördüğünü
-          belirler.
+          {TEMEL_ROL_ACIKLAMALARI[temelRol]} Tanımlı rol bu yetkiyi değiştirmez; kişinin unvanını ve hangi menüleri
+          gördüğünü belirler.
         </Text>
         <Girdi
           etiket="Açıklama (isteğe bağlı)"
@@ -104,19 +107,21 @@ export function GorevFormu({ gorev, kokKurumId, saltOkunur, onKaydedildi, onSili
         />
         <HataMesaji mesaj={hata} />
         {saltOkunur ? (
-          <Text style={tema.yazi.kucuk}>Görev tanımlarını yalnızca ana kurumun yöneticisi değiştirebilir.</Text>
+          <Text style={tema.yazi.kucuk}>Rolleri yalnızca ana kurumun yöneticisi değiştirebilir.</Text>
         ) : (
-          <Buton baslik={gorev ? 'Kaydet' : 'Görevi Tanımla'} onPress={kaydet} yukleniyor={gonderiliyor} />
+          <Buton baslik={gorev ? 'Kaydet' : 'Rolü Tanımla'} onPress={kaydet} yukleniyor={gonderiliyor} />
         )}
       </Kart>
+
+      {children}
 
       {gorev && !saltOkunur ? (
         <Kart>
           <Text style={tema.yazi.kucuk}>
-            Bu görevdeki kişiler varken görev silinemez; önce Kullanıcılar ekranından görevlerini değiştirin.
+            Bu rolde kişiler varken rol silinemez; önce Kullanıcılar ekranından rollerini değiştirin.
           </Text>
           <HataMesaji mesaj={silmeHatasi} />
-          <OnayButonu etiket="Görevi Sil" onOnay={sil} />
+          <OnayButonu etiket="Rolü Sil" onOnay={sil} />
         </Kart>
       ) : null}
     </>

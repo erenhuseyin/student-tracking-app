@@ -1,23 +1,24 @@
 // Erişim: yalnızca kurum_admin. "Roller": üç sistem rolü (Yönetici, Öğretmen, Veli — değiştirilemez)
-// ve müşterinin tanımladığı görevler tek tabloda. Görev = ad + temel rol; veriye erişimi temel rol
-// belirler (RLS), görev kişinin unvanını ve hangi menüleri gördüğünü belirler ("Menü Yetkileri").
-// Görevleri yalnızca kök kurumun (genel merkezin) yöneticisi tanımlar (RLS de bunu zorlar);
-// alt birim yöneticisi salt okunur görür, ama kapsamındaki kişilere görev atayabilir (Kullanıcılar).
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+// ve müşterinin tanımladığı roller tek tabloda (lib/roller.ts). Tanımlı rol = ad + dayandığı sistem
+// rolü (veride `gorev`); veriye erişimi sistem rolü belirler (RLS), tanımlı rol kişinin unvanını ve
+// hangi menüleri gördüğünü belirler. Seçilen rolün tanımı ve menüleri sağ paneldedir.
+// Rolleri ve menüleri yalnızca kök kurumun (genel merkezin) yöneticisi değiştirir (RLS de bunu
+// zorlar); alt birim yöneticisi salt okunur görür, ama kapsamındaki kişilere rol verebilir (Kullanıcılar).
+import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Text } from 'react-native';
 
-import { Buton } from '@/components/Buton';
 import { Girdi } from '@/components/Girdi';
 import { GorevFormu } from '@/components/GorevFormu';
 import { Kart } from '@/components/Kart';
 import { ListeSatiri } from '@/components/ListeSatiri';
+import { RolMenuleri } from '@/components/RolMenuleri';
 import { Rozet } from '@/components/Rozet';
 import { Secim } from '@/components/Secim';
 import type { TabloSiralamasi, TabloSutunu } from '@/components/Tablo';
 import { VeriEkrani } from '@/components/VeriEkrani';
-import { rolSayilariniGetir } from '@/lib/bolumler';
-import { gorevKisiSayilariniGetir, gorevleriGetir, type GorevTemelRolu, TEMEL_ROL_ETIKETLERI } from '@/lib/gorevler';
+import { kapaliBolumleriGetir, type KapaliBolum, rolSayilariniGetir } from '@/lib/bolumler';
+import { gorevKisiSayilariniGetir, gorevleriGetir, type GorevTemelRolu } from '@/lib/gorevler';
 import { ROL_ETIKETLERI } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { useTema } from '@/lib/tema';
@@ -44,18 +45,19 @@ const SISTEM_ACIKLAMALARI: Record<SistemRolu, string> = {
 const TEMEL_ROL_SECENEKLERI = SISTEM_ROLLERI.map((r) => ({ deger: r, etiket: ROL_ETIKETLERI[r] }));
 const TUR_SECENEKLERI: { deger: Satir['tur']; etiket: string }[] = [
   { deger: 'sistem', etiket: 'Sistem rolü' },
-  { deger: 'ozel', etiket: 'Tanımlı görev' },
+  { deger: 'ozel', etiket: 'Tanımlı rol' },
 ];
 
 type Secili = { tur: 'kayit'; anahtar: string } | { tur: 'yeni' } | null;
 
 export default function Roller() {
   const tema = useTema();
-  const router = useRouter();
   const { kurum, kokKurum } = useOturum();
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
+  const kokKurumId = kokKurum?.id;
 
   const [satirlar, setSatirlar] = useState<Satir[] | null>(null);
+  const [kapalilar, setKapalilar] = useState<KapaliBolum[]>([]);
   const [hata, setHata] = useState<string | null>(null);
   const [arama, setArama] = useState('');
   const [temelRol, setTemelRol] = useState<SistemRolu | null>(null);
@@ -66,11 +68,13 @@ export default function Roller() {
   const yenile = useCallback(async () => {
     setHata(null);
     try {
-      const [gorevler, kisiSayilari, rolSayilari] = await Promise.all([
+      const [gorevler, kisiSayilari, rolSayilari, kapali] = await Promise.all([
         gorevleriGetir(),
         gorevKisiSayilariniGetir(),
         rolSayilariniGetir(),
+        kokKurumId ? kapaliBolumleriGetir(kokKurumId) : Promise.resolve([]),
       ]);
+      setKapalilar(kapali);
       setSatirlar([
         ...SISTEM_ROLLERI.map<Satir>((r) => ({
           anahtar: r,
@@ -94,7 +98,7 @@ export default function Roller() {
     } catch (e) {
       setHata(e instanceof Error ? e.message : 'İşlem yapılamadı.');
     }
-  }, []);
+  }, [kokKurumId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,7 +106,7 @@ export default function Roller() {
     }, [yenile]),
   );
 
-  // Liste kısa olduğu için (birkaç on görev) istemcide süzülür ve sıralanır.
+  // Liste kısa olduğu için (birkaç on rol) istemcide süzülür ve sıralanır.
   const gorunen = useMemo(() => {
     if (!satirlar) return null;
     const aranan = arama.trim().toLocaleLowerCase('tr');
@@ -124,15 +128,15 @@ export default function Roller() {
       s.tur === 'sistem' ? (
         <Rozet metin="Sistem" renk={tema.renkler.metinIkincil} zemin={tema.renkler.ayirici} />
       ) : (
-        <Rozet metin="Görev" renk={tema.renkler.ana} zemin={tema.renkler.anaSoluk} />
+        <Rozet metin="Tanımlı" renk={tema.renkler.ana} zemin={tema.renkler.anaSoluk} />
       ),
     [tema],
   );
 
   const sutunlar = useMemo<TabloSutunu<Satir>[]>(
     () => [
-      { anahtar: 'ad', baslik: 'Rol / Görev', icerik: (s) => s.ad, siralanabilir: true },
-      { anahtar: 'temel', baslik: 'Temel Rol', icerik: (s) => ROL_ETIKETLERI[s.temelRol] },
+      { anahtar: 'ad', baslik: 'Rol', icerik: (s) => s.ad, siralanabilir: true },
+      { anahtar: 'temel', baslik: 'Dayandığı Rol', icerik: (s) => (s.tur === 'sistem' ? '—' : ROL_ETIKETLERI[s.temelRol]) },
       { anahtar: 'tur', baslik: 'Tür', icerik: turRozeti, genislik: 120 },
       { anahtar: 'kisi', baslik: 'Kişi', icerik: (s) => s.kisi, genislik: 90, hizalama: 'sag', siralanabilir: true },
     ],
@@ -140,6 +144,9 @@ export default function Roller() {
   );
 
   const seciliSatir = secili?.tur === 'kayit' ? (satirlar?.find((s) => s.anahtar === secili.anahtar) ?? null) : null;
+  // Menü değişikliği listeyi yeniden okumadan seçili satıra yansır.
+  const gorevGuncellendi = (gorev: Gorev) =>
+    setSatirlar((mevcut) => (mevcut ?? []).map((s) => (s.gorev?.id === gorev.id ? { ...s, gorev } : s)));
   const kapatVeYenile = () => {
     setSecili(null);
     yenile();
@@ -149,13 +156,13 @@ export default function Roller() {
     <>
       <Stack.Screen options={{ title: 'Roller' }} />
       <VeriEkrani
-        arama={<Girdi etiket="Rol ya da görev ara" value={arama} onChangeText={setArama} autoCorrect={false} />}
+        arama={<Girdi etiket="Rol ara" value={arama} onChangeText={setArama} autoCorrect={false} />}
         filtreler={[
-          <Secim key="temel" etiket="Temel rol" secenekler={TEMEL_ROL_SECENEKLERI} secili={temelRol} onSec={setTemelRol} bosEtiket="Tümü" />,
+          <Secim key="temel" etiket="Dayandığı rol" secenekler={TEMEL_ROL_SECENEKLERI} secili={temelRol} onSec={setTemelRol} bosEtiket="Tümü" />,
           <Secim key="tur" etiket="Tür" secenekler={TUR_SECENEKLERI} secili={tur} onSec={setTur} bosEtiket="Tümü" />,
         ]}
         etkinFiltreSayisi={[temelRol, tur].filter(Boolean).length}
-        yeniEtiket={kokKurumMu ? 'Yeni Görev' : undefined}
+        yeniEtiket={kokKurumMu ? 'Yeni Rol' : undefined}
         onYeni={() => setSecili({ tur: 'yeni' })}
         veri={gorunen}
         hata={hata}
@@ -164,7 +171,7 @@ export default function Roller() {
         kart={(s) => (
           <ListeSatiri
             baslik={s.ad}
-            altBaslik={`${ROL_ETIKETLERI[s.temelRol]} · ${s.kisi} kişi`}
+            altBaslik={s.tur === 'sistem' ? `${s.kisi} kişi` : `${ROL_ETIKETLERI[s.temelRol]} rolüne dayanır · ${s.kisi} kişi`}
             sag={turRozeti(s)}
             onPress={() => setSecili({ tur: 'kayit', anahtar: s.anahtar })}
           />
@@ -178,7 +185,7 @@ export default function Roller() {
           setSiralama((s) => ({ anahtar, yon: s?.anahtar === anahtar && s.yon === 'artan' ? 'azalan' : 'artan' }))
         }
         onYenile={yenile}
-        panelBasligi={secili?.tur === 'yeni' ? 'Yeni Görev' : seciliSatir?.ad}
+        panelBasligi={secili?.tur === 'yeni' ? 'Yeni Rol' : seciliSatir?.ad}
         onPanelKapat={() => setSecili(null)}
         panel={
           secili?.tur === 'yeni' && kokKurum ? (
@@ -192,27 +199,46 @@ export default function Roller() {
                 saltOkunur={!kokKurumMu}
                 onKaydedildi={yenile}
                 onSilindi={kapatVeYenile}
-              />
-              <Kart>
-                <Text style={tema.yazi.kucuk}>
-                  {seciliSatir.kisi} kişi bu görevde. Görev kişilere Kullanıcılar ekranından atanır; hangi menüleri
-                  göreceği Menü Yetkileri ekranından ayarlanır.
-                </Text>
-                <Buton tur="ikincil" ikon="eye-off-outline" baslik="Menü Yetkileri" onPress={() => router.push('/menu-yetkileri')} />
-              </Kart>
+              >
+                <RolMenuleri
+                  key={`menu-${seciliSatir.anahtar}`}
+                  temelRol={seciliSatir.temelRol}
+                  gorev={seciliSatir.gorev}
+                  kokKurumId={kokKurum.id}
+                  kapalilar={kapalilar}
+                  degistirebilir={kokKurumMu}
+                  onKapalilarDegisti={setKapalilar}
+                  onGorevDegisti={gorevGuncellendi}
+                />
+                <Kart>
+                  <Text style={tema.yazi.kucuk}>
+                    {seciliSatir.kisi} kişi bu rolde. Rol kişilere Kullanıcılar ekranından verilir.
+                  </Text>
+                </Kart>
+              </GorevFormu>
             </>
-          ) : seciliSatir ? (
-            <Kart>
-              <Text style={tema.yazi.bolum}>{TEMEL_ROL_ETIKETLERI[seciliSatir.temelRol as GorevTemelRolu] ?? seciliSatir.ad}</Text>
-              <Text style={tema.yazi.govde}>{seciliSatir.aciklama}</Text>
-              <Text style={tema.yazi.kucuk}>
-                {seciliSatir.kisi} kişi. Sistem rolleri değiştirilemez ve silinemez
-                {seciliSatir.temelRol === 'veli'
-                  ? '.'
-                  : '; bu role dayanan kendi görevlerinizi tanımlayabilirsiniz (ör. İstişare üyesi, Abi).'}
-              </Text>
-              <Buton tur="ikincil" ikon="eye-off-outline" baslik="Menü Yetkileri" onPress={() => router.push('/menu-yetkileri')} />
-            </Kart>
+          ) : seciliSatir && kokKurum ? (
+            <>
+              <Kart>
+                <Text style={tema.yazi.govde}>{seciliSatir.aciklama}</Text>
+                <Text style={tema.yazi.kucuk}>
+                  {seciliSatir.kisi} kişi. Sistem rolleri değiştirilemez ve silinemez
+                  {seciliSatir.temelRol === 'veli'
+                    ? '.'
+                    : '; bu role dayanan kendi rollerinizi tanımlayabilirsiniz (ör. İstişare üyesi, Abi).'}
+                </Text>
+              </Kart>
+              <RolMenuleri
+                key={`menu-${seciliSatir.anahtar}`}
+                temelRol={seciliSatir.temelRol}
+                gorev={null}
+                kokKurumId={kokKurum.id}
+                kapalilar={kapalilar}
+                degistirebilir={kokKurumMu}
+                onKapalilarDegisti={setKapalilar}
+                onGorevDegisti={gorevGuncellendi}
+              />
+            </>
           ) : null
         }
       />

@@ -51,7 +51,7 @@ export default function PersonelDetayi() {
         .catch((e: Error) => {
           if (!iptalEdildi) setHata(e.message);
         });
-      // Görev adı okunamazsa yalnızca rol yazılır.
+      // Tanımlı rolün adı okunamazsa yalnızca sistem rolü yazılır.
       gorevleriGetir()
         .then((veri) => {
           if (!iptalEdildi) setGorevler(veri);

@@ -1,11 +1,13 @@
-// Görev tanımları ("rol tanımlama"). Müşteri kendi görevlerini tanımlar (ör. İstişare üyesi, Abi);
-// her görev bir temel role (yönetici ya da öğretmen) bağlıdır ve o görevdeki kişilere gizlenen
+// Tanımlı roller (veride `gorev`; arayüzde "rol", bkz. lib/roller.ts). Müşteri kendi rollerini tanımlar
+// (ör. İstişare üyesi, Abi); her tanımlı rol bir sistem rolüne (yönetici ya da öğretmen) dayanır ve o görevdeki kişilere gizlenen
 // menü öğelerini tutar. Bu bir görünürlük ayarıdır: veriye erişimi temel rol ve kişinin bağlı
 // olduğu kurum belirler (RLS), görev belirlemez.
 // Erişim: görevleri müşterinin herkesi okur; tanımlar ve menü yetkisini yalnızca kök kurumun
 // (genel merkezin) yöneticisi değiştirir; görevi her yönetici kendi kapsamındaki kişiye atar.
 import { supabase } from '@/lib/supabase';
 import type { Gorev } from '@/lib/tipler';
+
+export const SISTEM_ROL_ADLARI = ['Yönetici', 'Öğretmen', 'Veli'];
 
 export type GorevTemelRolu = 'kurum_admin' | 'ogretmen';
 
@@ -15,9 +17,9 @@ export const TEMEL_ROL_ETIKETLERI: Record<GorevTemelRolu, string> = {
 };
 
 function hataMesajinaCevir(mesaj: string, kod?: string): string {
-  if (kod === '23505') return 'Bu adda bir görev zaten var.';
-  if (kod === '23503') return 'Bu görevde kişiler var; önce onların görevini değiştirin.';
-  if (kod === '23514') return 'Görev bu kişinin rolüne uygun değil.';
+  if (kod === '23505') return 'Bu adda bir rol zaten var.';
+  if (kod === '23503') return 'Bu rolde kişiler var; önce onların rolünü değiştirin.';
+  if (kod === '23514') return 'Rol bu kişiye uygun değil.';
   if (/permission denied|rls|row-level security|kendi görevini/i.test(mesaj)) return 'Bu işlem için yetkiniz yok.';
   if (/network|fetch/i.test(mesaj)) return 'Bağlantı sorunu, lütfen tekrar deneyin.';
   return 'İşlem yapılamadı, lütfen tekrar deneyin.';
@@ -45,7 +47,9 @@ export async function gorevEkle(
   girdi: { ad: string; temelRol: GorevTemelRolu; aciklama: string },
 ): Promise<Gorev> {
   const ad = girdi.ad.trim();
-  if (!ad) throw new Error('Görev adı gerekli.');
+  if (!ad) throw new Error('Rol adı gerekli.');
+  if (SISTEM_ROL_ADLARI.some((s) => s.toLocaleLowerCase('tr') === ad.toLocaleLowerCase('tr')))
+    throw new Error('Bu ad bir sistem rolüne ait; başka bir ad seçin.');
   const { data, error } = await supabase
     .from('gorev')
     .insert({ kurum_id: kokKurumId, ad, temel_rol: girdi.temelRol, aciklama: girdi.aciklama.trim() || null })
@@ -58,7 +62,9 @@ export async function gorevEkle(
 // Temel rol sonradan değiştirilemez (o görevdeki kişilerin rolüyle çelişirdi).
 export async function gorevGuncelle(id: string, girdi: { ad: string; aciklama: string }): Promise<void> {
   const ad = girdi.ad.trim();
-  if (!ad) throw new Error('Görev adı gerekli.');
+  if (!ad) throw new Error('Rol adı gerekli.');
+  if (SISTEM_ROL_ADLARI.some((s) => s.toLocaleLowerCase('tr') === ad.toLocaleLowerCase('tr')))
+    throw new Error('Bu ad bir sistem rolüne ait; başka bir ad seçin.');
   const { data, error } = await supabase
     .from('gorev')
     .update({ ad, aciklama: girdi.aciklama.trim() || null })

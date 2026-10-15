@@ -10,10 +10,11 @@ import { BaslikEkleButonu } from '@/components/BaslikEkleButonu';
 import { Liste } from '@/components/Liste';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { PersonelDurumRozeti } from '@/components/PersonelDurumRozeti';
+import { gorevleriGetir } from '@/lib/gorevler';
 import { rolEtiketi } from '@/lib/menu';
 import { personelleriGetir } from '@/lib/personel';
 import { type Tema, useTema } from '@/lib/tema';
-import type { Kullanici } from '@/lib/tipler';
+import type { Gorev, Kullanici } from '@/lib/tipler';
 import { useKurum } from '@/lib/useKurum';
 
 // `detayRotasi`: satıra dokununca açılan ekran (kurum yöneticisinde salt okunur detay, süper adminde
@@ -30,7 +31,10 @@ export function PersonelListesi({
   const styles = useMemo(() => olustur(tema), [tema]);
   const [personel, setPersonel] = useState<Kullanici[] | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const [gorevler, setGorevler] = useState<Gorev[]>([]);
   const { kurum } = useKurum(kurumId);
+  // Tanımlı rolü olan kişi o rolün adıyla görünür; roller okunamazsa sistem rolü yazılır.
+  const rolu = (k: Kullanici) => rolEtiketi(k.rol, kurum, gorevler.find((g) => g.id === k.gorev_id)?.ad);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +47,11 @@ export function PersonelListesi({
         .catch((e: Error) => {
           if (!iptalEdildi) setHata(e.message);
         });
+      gorevleriGetir()
+        .then((veri) => {
+          if (!iptalEdildi) setGorevler(veri);
+        })
+        .catch(() => {});
       return () => {
         iptalEdildi = true;
       };
@@ -64,7 +73,7 @@ export function PersonelListesi({
         bosAciklama="Sağ üstteki + ile öğretmen ya da yönetici ekleyin."
         sutunlar={[
           { anahtar: 'ad', baslik: 'Ad Soyad', icerik: (k) => k.ad_soyad },
-          { anahtar: 'rol', baslik: 'Rol', icerik: (k) => rolEtiketi(k.rol, kurum) },
+          { anahtar: 'rol', baslik: 'Rol', icerik: rolu },
           { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '' },
           { anahtar: 'durum', baslik: 'Durum', genislik: 160, icerik: (k) => <PersonelDurumRozeti personel={k} /> },
         ]}
@@ -72,7 +81,7 @@ export function PersonelListesi({
         satir={(k) => (
           <ListeSatiri
             baslik={k.ad_soyad}
-            altBaslik={[rolEtiketi(k.rol, kurum), k.eposta].filter(Boolean).join(' · ')}
+            altBaslik={[rolu(k), k.eposta].filter(Boolean).join(' · ')}
             sol={<Avatar ad={k.ad_soyad} />}
             sag={<PersonelDurumRozeti personel={k} />}
             onPress={() => router.push(`${detayRotasi}/${k.id}`)}

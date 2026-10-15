@@ -15,15 +15,15 @@ export const ROL_ETIKETLERI: Record<Rol, string> = {
   veli: 'Veli',
 };
 
-// Görevi olan kişi görevinin adıyla (ör. "İstişare üyesi"), görevsiz yönetici bağlı olduğu kurumun
-// seviyesiyle ("Bölge yöneticisi") gösterilir.
+// Tanımlı rolü olan kişi o rolün adıyla (ör. "İstişare üyesi"; veride görev), sistem rolündeki
+// yönetici bağlı olduğu kurumun seviyesiyle ("Bölge yöneticisi") gösterilir.
 export function rolEtiketi(rol: Rol, kurum: Pick<Kurum, 'seviye'> | null, gorevAdi?: string | null): string {
   if (gorevAdi) return gorevAdi;
   return rol === 'kurum_admin' ? yoneticiEtiketi(kurum) : ROL_ETIKETLERI[rol];
 }
 
 // Müşterinin (kök kurum yöneticisinin) öğretmen ve veliler için kapatabildiği bölümler
-// ("Roller ve Yetkiler" ekranı; tablo: kapali_bolum). Yönetici bölümleri kapatılamaz.
+// (Roller ekranı; tablo: kapali_bolum). Yönetici bölümleri kapatılamaz.
 export type AyarlanabilirRol = 'ogretmen' | 'veli';
 export type Bolum = { anahtar: string; etiket: string; aciklama: string };
 
@@ -112,7 +112,6 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
     { anahtar: 'ders-raporu', etiket: 'Ders Raporu', ikon: 'stats-chart-outline', yer: 'menu', rota: '/ders-raporu', ozellik: 'icerik_takibi' },
     { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'download-outline', yer: 'menu', rota: '/raporlar' },
     { anahtar: 'roller', etiket: 'Roller', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
-    { anahtar: 'menu-yetkileri', etiket: 'Menü Yetkileri', ikon: 'eye-off-outline', yer: 'menu', rota: '/menu-yetkileri' },
     {
       anahtar: 'gelisim-kategorileri',
       etiket: 'Gelişim Kategorileri',
@@ -145,7 +144,7 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
   ],
 };
 
-// Yönetici temelli bir görevde kapatılabilen menü öğeleri ("Menü Yetkileri" ekranı; gorev.kapali_ogeler).
+// Yöneticiye dayanan tanımlı bir rolde kapatılabilen menü öğeleri (Roller ekranı; gorev.kapali_ogeler).
 // Özet ve Menü kapatılamaz: kişi uygulamada bir yere düşebilmeli ve çıkış yapabilmelidir.
 const KAPATILAMAYAN_OGELER = ['ozet', 'menu'];
 export const YONETICI_MENU_OGELERI: Bolum[] = MENULER.kurum_admin

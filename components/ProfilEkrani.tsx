@@ -89,7 +89,7 @@ export function ProfilEkrani() {
           editable={!veli && !adKaydediliyor}
         />
         {kullanici.eposta ? <Girdi etiket="E-posta (değiştirilemez)" value={kullanici.eposta} editable={false} /> : null}
-        <Girdi etiket="Görev" value={rolEtiketi(kullanici.rol, kurum, gorev?.ad)} editable={false} />
+        <Girdi etiket="Rol" value={rolEtiketi(kullanici.rol, kurum, gorev?.ad)} editable={false} />
         {kurumAdi ? <Girdi etiket="Kurum" value={kurumAdi} editable={false} /> : null}
         <HataMesaji mesaj={adMesaji?.metin} tur={adMesaji?.tur} />
         {veli ? null : (

@@ -5,8 +5,8 @@ import { useBolumAcik } from '@/lib/menu';
 
 export default function Layout() {
   const secenekler = useStackSecenekleri();
-  // Kişinin görevinde kapatılan menünün ekranları adresle de açılamaz (bkz. gorev.kapali_ogeler,
-  // "Menü Yetkileri"). Bu yalnızca görünürlüktür; veriyi RLS korur.
+  // Kişinin tanımlı rolünde kapatılan menünün ekranları adresle de açılamaz (bkz.
+  // gorev.kapali_ogeler, Roller ekranı). Bu yalnızca görünürlüktür; veriyi RLS korur.
   const ogrencilerAcik = useBolumAcik('ogrenciler');
   const altBirimlerAcik = useBolumAcik('subeler');
   const basvurularAcik = useBolumAcik('basvurular');
@@ -18,7 +18,6 @@ export default function Layout() {
   const konuNotlariAcik = useBolumAcik('konu-notlari');
   const dersRaporuAcik = useBolumAcik('ders-raporu');
   const rollerAcik = useBolumAcik('roller');
-  const menuYetkileriAcik = useBolumAcik('menu-yetkileri');
   const kategorilerAcik = useBolumAcik('gelisim-kategorileri');
   return (
     <WebKabuk>
@@ -64,9 +63,6 @@ export default function Layout() {
         </Stack.Protected>
         <Stack.Protected guard={rollerAcik}>
           <Stack.Screen name="roller" />
-        </Stack.Protected>
-        <Stack.Protected guard={menuYetkileriAcik}>
-          <Stack.Screen name="menu-yetkileri" />
         </Stack.Protected>
         <Stack.Protected guard={kategorilerAcik}>
           <Stack.Screen name="gelisim-kategorileri" />
