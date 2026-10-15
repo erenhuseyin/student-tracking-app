@@ -44,5 +44,5 @@ eas submit --platform android
 ## Çalışma Şekli
 
 - Büyük/çok dosyalı işlerden önce **plan mode**'da önce plan sun, onay bekle
-- Her oturum sonunda `docs/ILERLEME.md`'yi güncelle: tamamlanan adımlar, alınan teknik kararlar, yarım kalanlar, açık sorular
+- Her oturum sonunda `docs/ILERLEME.md`'yi güncelle: güncel durum, hâlâ geçerli teknik kararlar, açık sorunlar ve sorular. Kısa tut — biten işin ayrıntısı commit mesajına gider; eski tam metin `docs/arsiv/`'dedir
 - Küçük ve anlamlı commit'ler at — bir özellik bitince commit, hepsi bitince değil
