@@ -4,6 +4,7 @@
 // (supabase/functions/personel-yonet); listeleme, ad değiştirme, sınıf ataması (rol: lib/roller.ts) doğrudan
 // tablolar üzerinde yapılır, yetkiyi RLS (kullanici_kurum_admin_*, ogretmen_sinif_kurum_admin) verir.
 import { edgeFonksiyonuCagir } from '@/lib/edge';
+import { kullaniciAdiGecerliMi, kullaniciAdiniDuzelt } from '@/lib/kullaniciAdi';
 import { supabase } from '@/lib/supabase';
 import type { Cinsiyet, Kullanici } from '@/lib/tipler';
 
@@ -65,7 +66,21 @@ export async function personelCinsiyetiniAyarla(id: string, cinsiyet: Cinsiyet |
   if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
 }
 
-export type DavetSonucu = { kullanici_id: string; eposta_gonderildi: boolean };
+// Girişte e-posta yerine yazılan ad (ali.yilmaz). Yalnızca yönetici değiştirir (trigger); satırı RLS
+// sınırlar. Yazılan değer kullanıcı adı biçimine getirilir.
+export async function personelKullaniciAdiDegistir(id: string, ham: string): Promise<string> {
+  const ad = kullaniciAdiniDuzelt(ham);
+  if (!kullaniciAdiGecerliMi(ad)) throw new Error('Kullanıcı adı harf ve rakamlardan oluşmalı (ör. ali.yilmaz).');
+  const { data, error } = await supabase.from('kullanici').update({ kullanici_adi: ad }).eq('id', id).select('kullanici_adi');
+  if (error?.code === '23505') throw new Error('Bu kullanıcı adı başka bir kişide.');
+  if (error?.code === '42501' || /yönetici değiştirebilir/i.test(error?.message ?? '')) throw new Error('Bu işlem için yetkiniz yok.');
+  if (error) throw new Error(hataMesajinaCevir(error.message));
+  if (data.length === 0) throw new Error('Bu işlem için yetkiniz yok.');
+  return data[0].kullanici_adi ?? ad;
+}
+
+// `kullanici_adi`: hesabın girişte kullanılabilecek adı (eski sürümdeki fonksiyon döndürmez).
+export type DavetSonucu = { kullanici_id: string; kullanici_adi?: string | null; eposta_gonderildi: boolean };
 
 // kurumId verilmezse sunucu çağıranın kendi kurumunu kullanır; süper admin için zorunludur.
 export async function personelDavetEt(istek: {

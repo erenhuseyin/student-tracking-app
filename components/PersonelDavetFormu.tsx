@@ -77,8 +77,9 @@ export function PersonelDavetFormu({ kurumId, roller, gorevler = [], onTamam }: 
       if (secilenRol.gorevId) await gorevAta(sonuc.kullanici_id, secilenRol.gorevId).catch(() => {});
       const c = cinsiyetGirdisi(cinsiyet);
       if (c) await personelCinsiyetiniAyarla(sonuc.kullanici_id, c).catch(() => {});
+      const ad = sonuc.kullanici_adi ? ` · Kullanıcı adı: ${sonuc.kullanici_adi}` : '';
       if (sonuc.eposta_gonderildi) {
-        toast('Personel eklendi, davet e-postası gönderildi');
+        toast(`Personel eklendi, davet e-postası gönderildi${ad}`);
         bitir();
       }
       else setEpostaGitmedi(true);

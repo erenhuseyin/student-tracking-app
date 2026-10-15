@@ -152,6 +152,8 @@ export default function Kullanicilar() {
       { anahtar: 'birim', baslik: 'Birim', icerik: (k) => birimAdi(k.kurum_id) },
       { anahtar: 'cinsiyet', baslik: 'Cinsiyet', icerik: (k) => cinsiyetEtiketi(k.cinsiyet), genislik: 100, ikincil: true },
       { anahtar: 'eposta', baslik: 'E-posta', icerik: (k) => k.eposta ?? '—', siralanabilir: true, ikincil: true },
+      // Velinin giriş adı öğrencidedir (Öğrenciler ekranı); burada yalnızca personelinki görünür.
+      { anahtar: 'kullanici_adi', baslik: 'Kullanıcı Adı', icerik: (k) => k.kullanici_adi ?? '—', ikincil: true },
       { anahtar: 'durum', baslik: 'Durum', icerik: (k) => <PersonelDurumRozeti personel={k} />, genislik: 170 },
     ],
     [birimAdi, rolu],
@@ -168,7 +170,7 @@ export default function Kullanicilar() {
 
   return (
     <VeriEkrani
-      arama={<Girdi etiket="Ad ya da e-posta ara" value={yazilan} onChangeText={setYazilan} autoCorrect={false} autoCapitalize="none" />}
+      arama={<Girdi etiket="Ad, e-posta ya da kullanıcı adı ara" value={yazilan} onChangeText={setYazilan} autoCorrect={false} autoCapitalize="none" />}
       filtreler={[
         <Secim
           key="rol"
@@ -199,7 +201,7 @@ export default function Kullanicilar() {
       hata={hata}
       anahtar={(k) => k.id}
       sutunlar={sutunlar}
-      tabloEnAzGenislik={920}
+      tabloEnAzGenislik={1060}
       kart={(k) => (
         <ListeSatiri
           baslik={k.ad_soyad}

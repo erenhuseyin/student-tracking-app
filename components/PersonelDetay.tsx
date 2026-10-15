@@ -29,6 +29,7 @@ import {
   personelEpostaDegistir,
   personelGetir,
   personelKodGonder,
+  personelKullaniciAdiDegistir,
 } from '@/lib/personel';
 import { kisininRolAnahtari, kisiyeRolVer, rolSecenegiEtiketi, rolSecenekleri } from '@/lib/roller';
 import { CINSIYET_SECENEKLERI, cinsiyetGirdisi } from '@/lib/cinsiyet';
@@ -71,6 +72,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const [personel, setPersonel] = useState<Kullanici | null>(null);
   const { kurum: personelKurumu } = useKurum(personel?.kurum_id ?? undefined);
   const [adSoyad, setAdSoyad] = useState('');
+  const [kullaniciAdi, setKullaniciAdi] = useState('');
   const [cinsiyet, setCinsiyet] = useState<'' | 'kadin' | 'erkek'>('');
   const [siniflar, setSiniflar] = useState<Sinif[]>([]);
   const [atananlar, setAtananlar] = useState<string[]>([]);
@@ -103,6 +105,7 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const uygula = (veri: PersonelVerisi) => {
     setPersonel(veri.personel);
     setAdSoyad(veri.personel.ad_soyad);
+    setKullaniciAdi(veri.personel.kullanici_adi ?? '');
     setCinsiyet(veri.personel.cinsiyet ?? '');
     setEposta(veri.personel.eposta ?? '');
     setSiniflar(veri.siniflar);
@@ -137,6 +140,8 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
   const davetBekliyor = personel.aktif && !personel.sifre_belirlendi;
   // Süper admin yalnızca kurum yöneticisi yönetir; rol değişikliği kurum yöneticisinin işidir.
   const rolDegisebilir = kullanici?.rol === 'kurum_admin' && !kendisi && personel.aktif;
+  // Kullanıcı adını yönetici ve süper admin değiştirir (trigger); kişinin kendisi de olabilir.
+  const kullaniciAdiDegisebilir = kullanici?.rol === 'kurum_admin' || kullanici?.rol === 'super_admin';
   const roller = rolSecenekleri(gorevler);
   const gorevAdi = gorevler.find((g) => g.id === personel.gorev_id)?.ad;
 
@@ -197,11 +202,16 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
     setAdMesaji(null);
     try {
       await personelAdGuncelle(personel.id, adSoyad);
+      let yeniAd = personel.kullanici_adi;
+      if (kullaniciAdiDegisebilir && kullaniciAdi.trim() !== (personel.kullanici_adi ?? '')) {
+        yeniAd = await personelKullaniciAdiDegistir(personel.id, kullaniciAdi);
+        setKullaniciAdi(yeniAd);
+      }
       const yeniCinsiyet = cinsiyetGirdisi(cinsiyet);
       if (yeniCinsiyet !== personel.cinsiyet) {
         await personelCinsiyetiniAyarla(personel.id, yeniCinsiyet);
-        setPersonel({ ...personel, cinsiyet: yeniCinsiyet });
       }
+      setPersonel({ ...personel, ad_soyad: adSoyad.trim(), cinsiyet: yeniCinsiyet, kullanici_adi: yeniAd });
       setAdMesaji({ tur: 'basari', metin: 'Kaydedildi.' });
       onDegisti?.();
     } catch (e) {
@@ -265,6 +275,16 @@ export function PersonelDetay({ id, onDegisti, onSilindi }: Props) {
         {davetBekliyor ? null : (
           <Girdi etiket="E-posta (değiştirilemez)" value={personel.eposta ?? '—'} editable={false} />
         )}
+        {personel.kullanici_adi !== null || kullaniciAdiDegisebilir ? (
+          <Girdi
+            etiket="Kullanıcı adı (girişte e-posta yerine)"
+            value={kullaniciAdi}
+            onChangeText={setKullaniciAdi}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={kullaniciAdiDegisebilir && !adKaydediliyor}
+          />
+        ) : null}
         {rolDegisebilir ? null : (
           <Girdi
             etiket="Rol"

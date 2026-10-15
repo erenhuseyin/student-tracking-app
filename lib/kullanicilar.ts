@@ -55,7 +55,7 @@ export async function kullanicilariAra(
     .trim()
     .replace(/[,()"]/g, ' ')
     .replace(/[%_\\]/g, (k) => `\\${k}`);
-  if (temiz) sorgu = sorgu.or(`ad_soyad.ilike.%${temiz}%,eposta.ilike.%${temiz}%`);
+  if (temiz) sorgu = sorgu.or(`ad_soyad.ilike.%${temiz}%,eposta.ilike.%${temiz}%,kullanici_adi.ilike.%${temiz}%`);
 
   const { data, error, count } = await sorgu
     .order(siralama.anahtar, { ascending: siralama.yon === 'artan', nullsFirst: false })
