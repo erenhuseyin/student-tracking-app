@@ -1,6 +1,6 @@
 # Yapılacaklar
 
-> Sıradaki işler ve geliştirme önerileri. Bir iş bitince buradan silinir ve `docs/ILERLEME.md > Tamamlananlar`'a yazılır. Sıra önceliktir; kullanıcı sırayı değiştirebilir. Son güncelleme: 2026-10-14 (B7 yapıldı).
+> Sıradaki işler ve geliştirme önerileri. Bir iş bitince buradan silinir ve `docs/ILERLEME.md > Tamamlananlar`'a yazılır. Sıra önceliktir; kullanıcı sırayı değiştirebilir. Son güncelleme: 2026-10-15 (B6 yapıldı).
 
 ## A. Bekleyen (kullanıcıda)
 
@@ -20,7 +20,6 @@ Her biri çok dosyalı; başlamadan önce plan mode.
 3. **Terimler markaya göre değişsin** (Hoca / Halka / Kademe …). Seviye adları zaten markadan geliyor; rol ve sınıf adları da `marka.json`'dan gelecek. **Sonraki adım (ileride):** ekran bazlı metin katmanı — hem çoklu dil hem de müşterinin ekran başlıklarını ve yazılarını kendisinin değiştirebilmesi için. Bu yüzden 3. madde, sabit metinleri tek bir sözlüğe toplayacak şekilde yapılmalı.
 4. **`genchareket` markasının ayrı uygulama olarak açılması.** Logo ve palet şimdilik `varsayilan` markasına uygulandı. Ayrı marka için: `markalar/genchareket/` (paket `com.ergenecode.genchareket`), EAS projesi, Firebase Android uygulaması + `google-services.json`, veritabanında kök kurumun marka kodu, ezber tohumunun o kurum için çalıştırılması. Mağaza ikonu için **yüksek çözünürlüklü ya da vektör logo** gerekiyor (eldeki 400×149 px). GH KÂŞİF'te büyük logolar var: `~/Desktop/uygulamam/public/brand/` (yatay 1672×941, rozet ve ikon 1254×1254, beyaz sürüm) — kullanılabilirliği kullanıcıya sorulmalı.
 5. **KVKK ve mağaza hazırlığı**, ardından EAS build + Play Console iç test: aydınlatma metni, açık rıza (başvuru formu dahil), gizlilik politikası, veri silme yolu, demo hesap.
-6. **Görev ve rol tek sistemde mi olmalı?** (kullanıcı, 2026-10-14: "görev ve rol olarak iki farklı sistem yapmışsın, bu biraz anlamsız olabilir; planlama yapacağız, not al"). Bugün: rol sabit ve veri yetkisini belirler (RLS), görev temel role bağlı bir unvan + menü görünürlüğüdür. Planlamada konuşulacaklar: görevlerin "rol" olarak görünmesi (Roller ve Menü Yetkileri ekranlarının birleşmesi), sabit rollerin arayüzde görev gibi yönetilmesi, ya da gerçek rol başına veri yetkisi (tüm RLS'in yetki tablosuna göre yeniden yazılması — 2026-10-08 ve 2026-10-12'de reddedilmişti).
 
 ## C. Geliştirme önerileri (Claude'un önerileri; kullanıcı "çoğu güzel" dedi, tek tek onaylanmadı)
 
@@ -54,4 +53,5 @@ Her biri çok dosyalı; başlamadan önce plan mode.
 14. Supabase CLI bağlantısı (`supabase link`, migration geçmişi, `gen types`): migration ve fonksiyonlar elle kopyalanıyor, tipler elle yazılıyor.
 15. Hata ve çökme izleme.
 16. Otomatik test ve CI (RLS testleri elle çalışıyor; uygulama kodunun testi yok).
+21. Rol başına veri yetkisi (ör. salt okunur yönetici, öğrenci silemeyen yönetici): bugün tanımlı rol yalnızca menüyü gizler; gerçek yetki tüm RLS'in bir yetki tablosuna göre yeniden yazılmasını ister (B6 2026-10-15'te arayüz birleşmesiyle kapandı, bu kısım bilinçli olarak yapılmadı).
 17. Rota adlarının rol başına ayrılması: sayfa yenileme sorunu ilk yüklemede adresi rol grubuna sabitleyerek çözüldü (`lib/menu.ts > rolYolu`); kalıcı çözüm aynı adresin tek grupta olmasıdır.

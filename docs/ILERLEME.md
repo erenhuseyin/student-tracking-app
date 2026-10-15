@@ -8,8 +8,9 @@
 
 - **Faz 1 — MVP.** Kalan büyük adım: telefonda doğrulama + development build, ardından KVKK/mağaza hazırlığı ve EAS build + Play Console iç test.
 - `redesign/defter` `main`'e birleşti. Web sürümü **Netlify**'da (`netlify.toml`; Supabase anahtarları Netlify ortam değişkenlerinde; "Powered by Netlify" rozeti proje ayarından kapatıldı).
-- **Push edilmemiş 3 commit** (Netlify'a gitmedi): Küçükçekmece test verisi betiği, il tohumu, pano il tablosunun 8 satırla sınırlanması (`57a6c05`, canlıda pano çok ille uzuyor).
+- **Push edilmemiş commit'ler** (Netlify'a gitmedi): Küçükçekmece test verisi betiği, il tohumu, pano il tablosunun 8 satırla sınırlanması (`57a6c05`, canlıda pano çok ille uzuyor), belgelerin kısaltılması, B6.
 - **Canlı veri (2026-10-15):** genel merkez altında 7 il kaldı (İstanbul, Ankara, İzmir, Bursa, Konya, Kocaeli + Gebze, Adana); tohumun eklediği diğer 20 il silindi.
+- **B6 (rol ve görev arayüzde tek kavram):** yerelde doğrulandı (RLS süiti, görünmez Chrome 25/25). Migration ve fonksiyon yok; push + Netlify deploy yeter.
 - **B7 (konu notu, yanıt, ders raporu):** migration ve RLS testleri canlıda. Teyit edilmedi: `kademe-dersleri-genchareket.sql` tohumu ve `konu-notu-bildirim-gonder` deploy'u (bkz. YAPILACAKLAR A6).
 
 ## Canlı Ortam ve Dağıtım
@@ -69,14 +70,13 @@
 - **Telefonda (native) son haftalarda yazılan hiçbir şey görülmedi**; yeni development build gerekiyor (Manrope, `userInterfaceStyle: 'automatic'`, logo/ikon/açılış). Yoklama tamamlanınca giden bildirim, konu notu yanıt bildirimi, etkinlik bildirimi gerçek push ile denenmedi.
 - Mağaza için logo çözünürlüğü düşük (400×149); vektör ya da büyük logo gerekli.
 - Özet ve bazı raporlar istemcide toplanıyor; büyük ağaçta 1000 satır sınırına takılabilir (pano ve ders raporu sunucuda).
-- Görevde kapatılan **sekme** gizlenir ama adresle açılabilir (menü ekranları adresle de kapalı). Menü yetkisi değişikliği kişinin bir sonraki girişinde görünür.
+- Tanımlı rolde kapatılan **sekme** gizlenir ama adresle açılabilir (menü ekranları adresle de kapalı). Menü değişikliği kişinin bir sonraki girişinde görünür.
 - Silme: yoklaması olan öğrenci silinemez (pasife alınır); bildirim almış kullanıcı `bildirim_log` FK'si yüzünden silinemez. Cascade mi anonimleştirme mi — KVKK veri silme politikasıyla karar verilecek.
 - Birimi, personeli ya da öğrenciyi başka birime taşıma yok.
 - Kod/DB ayrışma riski: migration, fonksiyon ve tipler elle taşınıyor; uygulama kodunun otomatik testi ve CI yok; hata/çökme izleme yok.
 
 ## Açık Sorular
 
-- Görev ve rol tek sistemde mi olmalı (YAPILACAKLAR B6; kullanıcı planlama istiyor).
 - Hoca kendi sınıfını/öğrencisini açarken silme/pasife alma yetkisi ve müşteri bazında kapatılabilirliği (B2).
 - `genchareket` markasının paleti ve mağaza logosu (GH KÂŞİF'teki büyük logolar kullanılabilir mi).
 - Mağaza politikalarının (Apple 4.2.6/4.3, Google tekrarlayan içerik) güncel metni ilk özel uygulamadan önce doğrulanmalı.
@@ -92,8 +92,8 @@
 - 2026-10-12 — Dört seviyeli kurum ağacı, yönetim tabloları + görevler + Menü Yetkileri, pano (harita, "en"ler), ortak ezber listesi, yoklama ekranı yenilemesi, yoklama tamamlanınca bildirim.
 - 2026-10-13 — Web/mobil düzen ayrımı, logo ve palet, TCKN'nin kaldırılması (veli `ad.soyad` ile girer).
 - 2026-10-14 — Takvim, herkesin programı, cinsiyet, öğrenci/hoca detay ekranları; kademe-ders kusurları; B7 (konu notu ve yanıtı, işlenme tarihi, Ezber görünümü, Konu Notları, Ders Raporu, Kademe I-III tohumu).
-- 2026-10-15 — Netlify web dağıtımı; Küçükçekmece test verisi; temsilcilik illeri tohumu (canlıda 7 ile indirildi); pano il tablosu sınırı; bu dosyanın arşivlenip kısaltılması.
+- 2026-10-15 — B6: rol ve görev arayüzde tek "rol" (sistem + tanımlı roller), kişiye tek seçimle rol, Roller ekranında menüler, Menü Yetkileri ekranı kalktı. Netlify web dağıtımı; Küçükçekmece test verisi; temsilcilik illeri tohumu (canlıda 7 ile indirildi); pano il tablosu sınırı; bu dosyanın arşivlenip kısaltılması.
 
 ## Son Oturum Notu
 
-- 2026-10-15: İl tohumu canlıda çalıştırıldı, pano il kartı uzadı → 20 il silindi, tabloya 8 satır sınırı (push bekliyor). Netlify rozeti kapatıldı. ILERLEME.md 168 KB'tan kısaltıldı, tam metin arşivde. Sıradaki: push + Netlify deploy, sonra YAPILACAKLAR (telefon doğrulaması, B6 görev/rol planlaması).
+- 2026-10-15: İl tohumu canlıda çalıştırıldı, pano il kartı uzadı → 20 il silindi, tabloya 8 satır sınırı (push bekliyor). Netlify rozeti kapatıldı. ILERLEME.md 168 KB'tan kısaltıldı, tam metin arşivde. B6 plan mode'da planlandı (yalnızca arayüz birleşmesi) ve yapıldı; `OnayKutusu` web'de `aria-checked` yazmıyordu, düzeltildi. Sıradaki: push + Netlify deploy, sonra YAPILACAKLAR (telefon doğrulaması, B1-B2).
