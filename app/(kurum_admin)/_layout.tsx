@@ -14,7 +14,12 @@ export default function Layout() {
   const programAcik = useBolumAcik('kurum-programi');
   const takvimAcik = useBolumAcik('takvim');
   const kademelerAcik = useBolumAcik('kademeler');
-  const raporlarAcik = useBolumAcik('raporlar');
+  // Rapor ekranları tek rotadır (/rapor/[tur]); hangi raporun açık olduğuna ekranın kendisi bakar.
+  const katilimRaporuAcik = useBolumAcik('katilim-raporu');
+  const yoklamaRaporuAcik = useBolumAcik('yoklama-raporu');
+  const ezberRaporuAcik = useBolumAcik('ezber-raporu');
+  const kitapRaporuAcik = useBolumAcik('kitap-raporu');
+  const raporAcik = katilimRaporuAcik || yoklamaRaporuAcik || ezberRaporuAcik || kitapRaporuAcik;
   const konuNotlariAcik = useBolumAcik('konu-notlari');
   const dersRaporuAcik = useBolumAcik('ders-raporu');
   const rollerAcik = useBolumAcik('roller');
@@ -58,8 +63,8 @@ export default function Layout() {
         <Stack.Protected guard={dersRaporuAcik}>
           <Stack.Screen name="ders-raporu" />
         </Stack.Protected>
-        <Stack.Protected guard={raporlarAcik}>
-          <Stack.Screen name="raporlar" />
+        <Stack.Protected guard={raporAcik}>
+          <Stack.Screen name="rapor/[tur]" />
         </Stack.Protected>
         <Stack.Protected guard={rollerAcik}>
           <Stack.Screen name="roller" />

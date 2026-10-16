@@ -16,6 +16,11 @@ export const PERSONEL_ROL_ETIKETLERI: Record<PersonelRolu, string> = {
 };
 
 export type PersonelDurumu = 'aktif' | 'davet_bekliyor' | 'pasif';
+export const PERSONEL_DURUM_ETIKETLERI: Record<PersonelDurumu, string> = {
+  aktif: 'Aktif',
+  davet_bekliyor: 'Davet bekliyor',
+  pasif: 'Pasif',
+};
 
 // Veli hesabı davetle açılmaz (kullanıcı adı + PIN); "davet bekliyor" yalnızca personel içindir.
 export function personelDurumu(k: Kullanici): PersonelDurumu {

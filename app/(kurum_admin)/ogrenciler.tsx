@@ -14,8 +14,9 @@ import type { TabloSutunu } from '@/components/Tablo';
 import { VeriEkrani } from '@/components/VeriEkrani';
 import { YeniOgrenciFormu } from '@/components/YeniOgrenciFormu';
 import { CINSIYET_SUZGECI, cinsiyetEtiketi } from '@/lib/cinsiyet';
+import { listeyiIndir, tumSatirlar } from '@/lib/disaAktar';
 import { birimSecenekleri, kurumAdlariniGetir, type KurumOzeti, kurumYolu } from '@/lib/kurumlar';
-import { OGRENCI_SAYFA_BOYUTU, type OgrenciSiralamasi, ogrencileriAra } from '@/lib/ogrenciler';
+import { OGRENCI_SAYFA_BOYUTU, type OgrenciSiralamasi, ogrenciSorgusu, ogrencileriAra } from '@/lib/ogrenciler';
 import { useOturum } from '@/lib/oturum';
 import { siniflariGetir } from '@/lib/siniflar';
 import type { Cinsiyet, Ogrenci, Sinif } from '@/lib/tipler';
@@ -134,6 +135,21 @@ export default function Ogrenciler() {
     [birimAdi, sinifAdi],
   );
 
+  // Rapor İndir: aynı süzgeç ve sıralamayla tüm sayfalar (tablodaki sütunlar + durum).
+  const indir = async () => {
+    const hepsi = await tumSatirlar((b, s) => ogrenciSorgusu({ arama, sinifId, durum, birimId, cinsiyet }, siralama).range(b, s));
+    const satirlar = (hepsi as unknown as Ogrenci[]).map((o) => [
+      o.ad_soyad,
+      birimAdi(o.kurum_id),
+      sinifAdi(o.sinif_id),
+      cinsiyetEtiketi(o.cinsiyet),
+      o.dogum_tarihi,
+      o.kullanici_adi ?? '',
+      o.aktif ? 'Aktif' : 'Pasif',
+    ]);
+    return listeyiIndir('ogrenciler', ['Ad Soyad', 'Birim', 'Sınıf', 'Cinsiyet', 'Doğum Tarihi', 'Veli Kullanıcı Adı', 'Durum'], satirlar);
+  };
+
   const birimler = kurum ? birimSecenekleri(kurumlar, kurum.id) : [];
   const seciliOgrenci = secili?.tur === 'kayit' ? secili.ogrenci : null;
   const kapatVeYenile = () => {
@@ -197,6 +213,7 @@ export default function Ogrenciler() {
         etkinFiltreSayisi={[birimId, sinifId, cinsiyet, durum === 'pasif' ? durum : null].filter(Boolean).length}
         yeniEtiket="Yeni Öğrenci"
         onYeni={() => setSecili({ tur: 'yeni' })}
+        onIndir={indir}
         ozet={`${toplam} öğrenci`}
         veri={ogrenciler}
         hata={hata}

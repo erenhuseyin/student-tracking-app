@@ -18,6 +18,7 @@ import type { TabloSutunu } from '@/components/Tablo';
 import { VeliDetay } from '@/components/VeliDetay';
 import { VeriEkrani } from '@/components/VeriEkrani';
 import { CINSIYET_SUZGECI, cinsiyetEtiketi } from '@/lib/cinsiyet';
+import { listeyiIndir, tumSatirlar } from '@/lib/disaAktar';
 import { gorevleriGetir } from '@/lib/gorevler';
 import {
   KULLANICI_DURUMU_ETIKETLERI,
@@ -25,11 +26,13 @@ import {
   type KullaniciDurumu,
   type KullaniciSiralamasi,
   kullanicilariAra,
+  kullaniciSorgusu,
   type ListelenenRol,
 } from '@/lib/kullanicilar';
 import { birimSecenekleri, kurumAdlariniGetir, type KurumOzeti, kurumYolu } from '@/lib/kurumlar';
 import { ROL_ETIKETLERI, rolEtiketi } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
+import { PERSONEL_DURUM_ETIKETLERI, personelDurumu } from '@/lib/personel';
 import type { Cinsiyet, Gorev, Kullanici } from '@/lib/tipler';
 
 const ARAMA_GECIKMESI_MS = 350;
@@ -159,6 +162,23 @@ export default function Kullanicilar() {
     [birimAdi, rolu],
   );
 
+  // Rapor İndir: aynı süzgeç ve sıralamayla tüm sayfalar.
+  const indir = async () => {
+    const hepsi = await tumSatirlar((b, s) =>
+      kullaniciSorgusu({ arama, rol, gorevId, birimId, durum, cinsiyet }, siralama).range(b, s),
+    );
+    const satirlar = (hepsi as unknown as Kullanici[]).map((k) => [
+      k.ad_soyad,
+      rolu(k),
+      birimAdi(k.kurum_id),
+      cinsiyetEtiketi(k.cinsiyet),
+      k.eposta ?? '',
+      k.kullanici_adi ?? '',
+      PERSONEL_DURUM_ETIKETLERI[personelDurumu(k)],
+    ]);
+    return listeyiIndir('kullanicilar', ['Ad Soyad', 'Rol', 'Birim', 'Cinsiyet', 'E-posta', 'Kullanıcı Adı', 'Durum'], satirlar);
+  };
+
   const birimler = kurum ? birimSecenekleri(kurumlar, kurum.id) : [];
   const davetBirimi = yeniBirimId ?? kurum?.id ?? null;
   const seciliKullanici = secili?.tur === 'kayit' ? secili.kullanici : null;
@@ -196,6 +216,7 @@ export default function Kullanicilar() {
       etkinFiltreSayisi={[rolSuzgeci, birimId, durum, cinsiyet].filter(Boolean).length}
       yeniEtiket="Yeni Kullanıcı"
       onYeni={() => setSecili({ tur: 'yeni' })}
+      onIndir={indir}
       ozet={`${toplam} kullanıcı`}
       veri={kullanicilar}
       hata={hata}

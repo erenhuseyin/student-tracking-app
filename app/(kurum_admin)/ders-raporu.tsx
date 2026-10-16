@@ -155,7 +155,7 @@ export default function DersRaporu() {
       <Stack.Screen options={{ title: 'Ders Raporu' }} />
       {web && disaAktarmaDestekleniyor ? (
         <EylemCubugu>
-          <Buton tur="ikincil" ikon="download-outline" baslik="CSV İndir" onPress={csvIndir} pasif={!suzulmus?.length} />
+          <Buton tur="ikincil" ikon="download-outline" baslik="Rapor İndir" onPress={csvIndir} pasif={!suzulmus?.length} />
         </EylemCubugu>
       ) : null}
       <View style={styles.suzgecler}>

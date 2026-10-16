@@ -169,13 +169,28 @@ export const OGRENCI_SAYFA_BOYUTU = 30;
 // sayfalanır: kurum büyüdükçe tüm listeyi indirmemek ve varsayılan 1000 satır sınırına takılmamak için.
 // Birim süzgeci kurumun `yol`'u üzerinden yapılır (tek kimlikle tüm alt ağaç).
 export async function ogrencileriAra(
-  { arama, sinifId, durum, birimId, cinsiyet }: OgrenciAramasi,
+  arama: OgrenciAramasi,
   sayfa: number,
   siralama: OgrenciSiralamasi = { anahtar: 'ad_soyad', yon: 'artan' },
 ): Promise<{ ogrenciler: Ogrenci[]; toplam: number }> {
+  const { data, error, count } = await ogrenciSorgusu(arama, siralama, { count: 'exact' }).range(
+    sayfa * OGRENCI_SAYFA_BOYUTU,
+    (sayfa + 1) * OGRENCI_SAYFA_BOYUTU - 1,
+  );
+  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
+  return { ogrenciler: data as unknown as Ogrenci[], toplam: count ?? data.length };
+}
+
+// Süzülmüş ve sıralanmış sorgu (sayfa aralığı verilmeden); liste sayfalar, dışa aktarma
+// (lib/disaAktar.ts) tüm sayfaları dolaşır.
+export function ogrenciSorgusu(
+  { arama, sinifId, durum, birimId, cinsiyet }: OgrenciAramasi,
+  siralama: OgrenciSiralamasi,
+  secenek?: { count: 'exact' },
+) {
   let sorgu = supabase
     .from('ogrenci')
-    .select('*, kurum!ogrenci_kurum_id_fkey!inner(yol)', { count: 'exact' })
+    .select('*, kurum!ogrenci_kurum_id_fkey!inner(yol)', secenek)
     .eq('aktif', durum === 'aktif');
   if (birimId) sorgu = sorgu.contains('kurum.yol', [birimId]);
   if (sinifId) sorgu = sorgu.eq('sinif_id', sinifId);
@@ -183,12 +198,7 @@ export async function ogrencileriAra(
   // % ve _ ilike joker karakterleridir; kullanıcının yazdığı metinde kaçırılır.
   const temiz = arama.trim().replace(/[%_\\]/g, (k) => `\\${k}`);
   if (temiz) sorgu = sorgu.ilike('ad_soyad', `%${temiz}%`);
-  const { data, error, count } = await sorgu
-    .order(siralama.anahtar, { ascending: siralama.yon === 'artan' })
-    .order('id')
-    .range(sayfa * OGRENCI_SAYFA_BOYUTU, (sayfa + 1) * OGRENCI_SAYFA_BOYUTU - 1);
-  if (error) throw new Error(hataMesajinaCevir(error.message, error.code));
-  return { ogrenciler: data as unknown as Ogrenci[], toplam: count ?? data.length };
+  return sorgu.order(siralama.anahtar, { ascending: siralama.yon === 'artan' }).order('id');
 }
 
 export async function ogrenciSil(id: string): Promise<void> {

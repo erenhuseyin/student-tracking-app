@@ -18,8 +18,9 @@ import { Secim } from '@/components/Secim';
 import type { TabloSiralamasi, TabloSutunu } from '@/components/Tablo';
 import { VeriEkrani } from '@/components/VeriEkrani';
 import { kapaliBolumleriGetir, type KapaliBolum, rolSayilariniGetir } from '@/lib/bolumler';
+import { listeyiIndir } from '@/lib/disaAktar';
 import { gorevKisiSayilariniGetir, gorevleriGetir, type GorevTemelRolu } from '@/lib/gorevler';
-import { ROL_ETIKETLERI } from '@/lib/menu';
+import { AYARLANABILIR_BOLUMLER, kapaliOgeleriGenislet, ROL_ETIKETLERI, YONETICI_MENU_OGELERI } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { useTema } from '@/lib/tema';
 import type { Gorev } from '@/lib/tipler';
@@ -143,6 +144,32 @@ export default function Roller() {
     [turRozeti],
   );
 
+  // Rapor İndir: süzülmüş roller ve her rolde kapalı menüler (sistem rolünde o rolün herkes için
+  // kapatılanları, tanımlı rolde ayrıca kendi kapattıkları).
+  const indir = async () => {
+    const kapaliMenuler = (s: Satir) => {
+      const ogeler = s.temelRol === 'kurum_admin' ? YONETICI_MENU_OGELERI : AYARLANABILIR_BOLUMLER[s.temelRol];
+      const sistemde = kapalilar.filter((k) => k.rol === s.temelRol).map((k) => k.anahtar);
+      const kapali = new Set([...sistemde, ...kapaliOgeleriGenislet(s.gorev?.kapali_ogeler ?? [])]);
+      return ogeler
+        .filter((o) => kapali.has(o.anahtar))
+        .map((o) => o.etiket)
+        .join(', ');
+    };
+    return listeyiIndir(
+      'roller',
+      ['Rol', 'Tür', 'Dayandığı Rol', 'Kişi', 'Açıklama', 'Kapalı Menüler'],
+      (gorunen ?? []).map((s) => [
+        s.ad,
+        s.tur === 'sistem' ? 'Sistem' : 'Tanımlı',
+        s.tur === 'sistem' ? '' : ROL_ETIKETLERI[s.temelRol],
+        s.kisi,
+        s.aciklama,
+        kapaliMenuler(s),
+      ]),
+    );
+  };
+
   const seciliSatir = secili?.tur === 'kayit' ? (satirlar?.find((s) => s.anahtar === secili.anahtar) ?? null) : null;
   // Menü değişikliği listeyi yeniden okumadan seçili satıra yansır.
   const gorevGuncellendi = (gorev: Gorev) =>
@@ -164,6 +191,7 @@ export default function Roller() {
         etkinFiltreSayisi={[temelRol, tur].filter(Boolean).length}
         yeniEtiket={kokKurumMu ? 'Yeni Rol' : undefined}
         onYeni={() => setSecili({ tur: 'yeni' })}
+        onIndir={indir}
         veri={gorunen}
         hata={hata}
         anahtar={(s) => s.anahtar}

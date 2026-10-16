@@ -49,7 +49,7 @@ export const AYARLANABILIR_BOLUMLER: Record<AyarlanabilirRol, Bolum[]> = {
 // grubunun `_layout.tsx` dosyası da kapalı bölümün rotalarını kapatır.
 export function useBolumAcik(anahtar: string): boolean {
   const { kapaliBolumler } = useOturum();
-  return !kapaliBolumler.includes(anahtar);
+  return !kapaliOgeleriGenislet(kapaliBolumler).includes(anahtar);
 }
 
 type Ortak = {
@@ -65,7 +65,16 @@ type Ortak = {
   bolum?: string;
   // Müşteriye özel özellik bayrağı (kurum.ozellikler; yalnızca süper admin açar); kapalıysa öğe gizlenir.
   ozellik?: string;
+  // Web kenar çubuğunda açılır bir grubun altında, telefonda Menü ekranında grup başlığının altında
+  // durur (MENU_GRUPLARI). Telefondaki sekme çubuğunu etkilemez: gruplu bir sekme yine sekmedir.
+  grup?: MenuGrubuAnahtari;
 };
+
+export type MenuGrubuAnahtari = 'raporlar' | 'yonetim';
+export const MENU_GRUPLARI: { anahtar: MenuGrubuAnahtari; etiket: string; ikon: IkonAdi }[] = [
+  { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'document-text-outline' },
+  { anahtar: 'yonetim', etiket: 'Uygulama Yönetimi', ikon: 'settings-outline' },
+];
 
 // `sekme`: rol grubunun `(sekmeler)` klasöründeki dosya adı.
 export type SekmeOgesi = Ortak & { yer: 'sekme'; sekme: string };
@@ -98,20 +107,16 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
   kurum_admin: [
     { anahtar: 'ozet', etiket: 'Özet', ikon: 'home-outline', yer: 'sekme', sekme: 'index' },
     { anahtar: 'siniflar', etiket: 'Sınıflar', ikon: 'school-outline', yer: 'sekme', sekme: 'siniflar' },
-    { anahtar: 'personel', etiket: 'Kullanıcılar', ikon: 'people-outline', yer: 'sekme', sekme: 'personel' },
+    { anahtar: 'personel', etiket: 'Kullanıcılar', ikon: 'people-outline', yer: 'sekme', sekme: 'personel', grup: 'yonetim' },
     DUYURULAR_SEKMESI,
     MENU_SEKMESI,
     { anahtar: 'ogrenciler', etiket: 'Öğrenciler', ikon: 'search-outline', yer: 'menu', rota: '/ogrenciler' },
-    { anahtar: 'subeler', etiket: 'Alt Birimler', ikon: 'business-outline', yer: 'menu', rota: '/subeler', altBirimler: true },
     { anahtar: 'basvurular', etiket: 'Başvurular', ikon: 'mail-unread-outline', yer: 'menu', rota: '/basvurular', ozellik: 'basvuru' },
     { anahtar: 'oneriler', etiket: 'Veli Önerileri', ikon: 'chatbox-ellipses-outline', yer: 'menu', rota: '/oneriler' },
     { anahtar: 'takvim', etiket: 'Takvim', ikon: 'calendar-number-outline', yer: 'menu', rota: '/takvim' },
     { anahtar: 'kurum-programi', etiket: 'Ders Programı', ikon: 'calendar-outline', yer: 'menu', rota: '/kurum-programi' },
     { anahtar: 'kademeler', etiket: 'Kademeler', ikon: 'layers-outline', yer: 'menu', rota: '/kademeler', ozellik: 'icerik_takibi' },
     { anahtar: 'konu-notlari', etiket: 'Konu Notları', ikon: 'chatbubble-ellipses-outline', yer: 'menu', rota: '/konu-notlari', ozellik: 'icerik_takibi' },
-    { anahtar: 'ders-raporu', etiket: 'Ders Raporu', ikon: 'stats-chart-outline', yer: 'menu', rota: '/ders-raporu', ozellik: 'icerik_takibi' },
-    { anahtar: 'raporlar', etiket: 'Raporlar', ikon: 'download-outline', yer: 'menu', rota: '/raporlar' },
-    { anahtar: 'roller', etiket: 'Roller', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller' },
     {
       anahtar: 'gelisim-kategorileri',
       etiket: 'Gelişim Kategorileri',
@@ -119,6 +124,47 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
       yer: 'menu',
       rota: '/gelisim-kategorileri',
       yalnizKok: true,
+    },
+    // Raporlar: her biri süzgeçli bir sorgulama ekranı; web'de "Rapor İndir" ile CSV.
+    {
+      anahtar: 'ders-raporu',
+      etiket: 'Ders Raporu',
+      ikon: 'stats-chart-outline',
+      yer: 'menu',
+      rota: '/ders-raporu',
+      ozellik: 'icerik_takibi',
+      grup: 'raporlar',
+    },
+    { anahtar: 'katilim-raporu', etiket: 'Katılım Raporu', ikon: 'pie-chart-outline', yer: 'menu', rota: '/rapor/katilim', grup: 'raporlar' },
+    { anahtar: 'yoklama-raporu', etiket: 'Yoklama Kayıtları', ikon: 'checkbox-outline', yer: 'menu', rota: '/rapor/yoklama', grup: 'raporlar' },
+    {
+      anahtar: 'ezber-raporu',
+      etiket: 'Ezber Raporu',
+      ikon: 'bookmark-outline',
+      yer: 'menu',
+      rota: '/rapor/ezber',
+      ozellik: 'icerik_takibi',
+      grup: 'raporlar',
+    },
+    {
+      anahtar: 'kitap-raporu',
+      etiket: 'Kitap Raporu',
+      ikon: 'book-outline',
+      yer: 'menu',
+      rota: '/rapor/kitap',
+      ozellik: 'icerik_takibi',
+      grup: 'raporlar',
+    },
+    // Uygulama yönetimi (Kullanıcılar yukarıda; telefonda sekmedir).
+    { anahtar: 'roller', etiket: 'Roller', ikon: 'shield-checkmark-outline', yer: 'menu', rota: '/roller', grup: 'yonetim' },
+    {
+      anahtar: 'subeler',
+      etiket: 'Alt Birimler',
+      ikon: 'business-outline',
+      yer: 'menu',
+      rota: '/subeler',
+      altBirimler: true,
+      grup: 'yonetim',
     },
   ],
   ogretmen: [
@@ -147,18 +193,40 @@ const MENULER: Record<Rol, MenuOgesi[]> = {
 // Yöneticiye dayanan tanımlı bir rolde kapatılabilen menü öğeleri (Roller ekranı; gorev.kapali_ogeler).
 // Özet ve Menü kapatılamaz: kişi uygulamada bir yere düşebilmeli ve çıkış yapabilmelidir.
 const KAPATILAMAYAN_OGELER = ['ozet', 'menu'];
+// Gruplu öğe grup adıyla gösterilir ("Raporlar › Katılım Raporu").
 export const YONETICI_MENU_OGELERI: Bolum[] = MENULER.kurum_admin
   .filter((o) => !KAPATILAMAYAN_OGELER.includes(o.anahtar))
-  .map((o) => ({ anahtar: o.anahtar, etiket: o.altBirimler ? 'Alt birimler' : o.etiket, aciklama: '' }));
+  .map((o) => {
+    const etiket = o.altBirimler ? 'Alt birimler' : o.etiket;
+    const grup = MENU_GRUPLARI.find((g) => g.anahtar === o.grup);
+    return { anahtar: o.anahtar, etiket: grup ? `${grup.etiket} › ${etiket}` : etiket, aciklama: '' };
+  });
+
+// Raporlar eskiden tek bir "Raporlar" ekranıydı (anahtar `raporlar`). Bir tanımlı rolde o kapatılmışsa
+// (gorev.kapali_ogeler) bugünkü tüm raporlar kapalı sayılır: liste bu anahtar yerine onları içerir.
+const ESKI_RAPORLAR_ANAHTARI = 'raporlar';
+export function kapaliOgeleriGenislet(kapali: string[]): string[] {
+  if (!kapali.includes(ESKI_RAPORLAR_ANAHTARI)) return kapali;
+  const raporlar = MENULER.kurum_admin.filter((o) => o.grup === 'raporlar').map((o) => o.anahtar);
+  return [...new Set([...kapali.filter((a) => a !== ESKI_RAPORLAR_ANAHTARI), ...raporlar])];
+}
+
+// Bir grubun görünür öğesi; sekme de olabilir, menü satırı da (adres ikisi için ortak biçimde).
+export type GrupOgesi = { anahtar: string; etiket: string; ikon: IkonAdi; href: Href };
+export type GorunurGrup = { anahtar: MenuGrubuAnahtari; etiket: string; ikon: IkonAdi; ogeler: GrupOgesi[] };
 
 export type Menu = {
   // Rolün tüm sekmeleri; `gorunur` yanlışsa sekme çubuğunda yer almaz (dosyası yine vardır).
   sekmeler: (SekmeOgesi & { gorunur: boolean })[];
+  // Grupsuz menü satırları (gruplu olanlar `gruplar`dadır).
   menuSatirlari: MenuSatiri[];
+  // Görünür öğesi olan gruplar, MENU_GRUPLARI sırasıyla.
+  gruplar: GorunurGrup[];
 };
 
 export function useMenu(): Menu {
-  const { kullanici, kurum, kokKurum, kapaliBolumler } = useOturum();
+  const { kullanici, kurum, kokKurum, kapaliBolumler: kapaliHam } = useOturum();
+  const kapaliBolumler = kapaliOgeleriGenislet(kapaliHam);
   const kokKurumMu = kurum !== null && kurum.ust_kurum_id === null;
   const ogeler = kullanici ? MENULER[kullanici.rol] : [];
   const ozellikler = kokKurum?.ozellikler;
@@ -170,13 +238,27 @@ export function useMenu(): Menu {
     !(o.bolum && kapaliBolumler.includes(o.bolum)) &&
     (KAPATILAMAYAN_OGELER.includes(o.anahtar) || !kapaliBolumler.includes(o.anahtar)) &&
     (!o.ozellik || ozellikAcik(o.ozellik));
+  const etiketli = <T extends MenuOgesi>(o: T): T =>
+    o.altBirimler && kurum ? { ...o, etiket: seviyeAdiCogul(kurum.seviye + 1) } : o;
 
   return {
     sekmeler: ogeler.filter((o) => o.yer === 'sekme').map((o) => ({ ...o, gorunur: gorunur(o) })),
     menuSatirlari: ogeler
-      .filter((o) => o.yer === 'menu')
+      .filter((o): o is MenuSatiri => o.yer === 'menu' && !o.grup)
       .filter(gorunur)
-      .map((o) => (o.altBirimler && kurum ? { ...o, etiket: seviyeAdiCogul(kurum.seviye + 1) } : o)),
+      .map(etiketli),
+    gruplar: MENU_GRUPLARI.map((g) => ({
+      ...g,
+      ogeler: ogeler
+        .filter((o) => o.grup === g.anahtar && gorunur(o))
+        .map(etiketli)
+        .map((o) => ({
+          anahtar: o.anahtar,
+          etiket: o.etiket,
+          ikon: o.ikon,
+          href: o.yer === 'sekme' ? ((o.sekme === 'index' ? '/' : `/${o.sekme}`) as Href) : o.rota,
+        })),
+    })).filter((g) => g.ogeler.length > 0),
   };
 }
 

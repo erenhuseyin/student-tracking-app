@@ -15,7 +15,7 @@ import { Kart } from '@/components/Kart';
 import { OnayKutusu } from '@/components/OnayKutusu';
 import { bolumGorunurlugunuAyarla, type KapaliBolum } from '@/lib/bolumler';
 import { gorevKapaliOgeleriAyarla } from '@/lib/gorevler';
-import { AYARLANABILIR_BOLUMLER, type Bolum, YONETICI_MENU_OGELERI } from '@/lib/menu';
+import { AYARLANABILIR_BOLUMLER, type Bolum, kapaliOgeleriGenislet, YONETICI_MENU_OGELERI } from '@/lib/menu';
 import { useTema } from '@/lib/tema';
 import type { Gorev } from '@/lib/tipler';
 
@@ -51,14 +51,16 @@ export function RolMenuleri({ temelRol, gorev, kokKurumId, kapalilar, degistireb
   // Tanımlı öğretmen rolünde, Öğretmen sistem rolünde kapatılan bölüm zaten kapalıdır.
   const sistemdeKapali = (anahtar: string) =>
     temelRol !== 'kurum_admin' && kapalilar.some((k) => k.rol === temelRol && k.anahtar === anahtar);
-  const acik = (anahtar: string) => !sistemdeKapali(anahtar) && !(gorev?.kapali_ogeler.includes(anahtar) ?? false);
+  const gorevdeKapali = kapaliOgeleriGenislet(gorev?.kapali_ogeler ?? []);
+  const acik = (anahtar: string) => !sistemdeKapali(anahtar) && !gorevdeKapali.includes(anahtar);
 
   const degistir = async (anahtar: string, yeniAcik: boolean) => {
     setDegisen(anahtar);
     setHata(null);
     try {
       if (gorev) {
-        const yeni = yeniAcik ? gorev.kapali_ogeler.filter((a) => a !== anahtar) : [...gorev.kapali_ogeler, anahtar];
+        // Eski "raporlar" anahtarı burada bugünkü rapor anahtarlarına çevrilir ve öyle kaydedilir.
+        const yeni = yeniAcik ? gorevdeKapali.filter((a) => a !== anahtar) : [...gorevdeKapali, anahtar];
         await gorevKapaliOgeleriAyarla(gorev.id, yeni);
         onGorevDegisti({ ...gorev, kapali_ogeler: yeni });
       } else if (temelRol !== 'kurum_admin') {

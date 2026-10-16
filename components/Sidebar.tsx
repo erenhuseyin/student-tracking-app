@@ -1,5 +1,6 @@
 // 'web' düzeninin kalıcı kenar çubuğu (bkz. components/WebKabuk): rolün TÜM bölümleri — telefondaki
-// sekmeler ve Menü ekranının satırları — tek listede; altta kullanıcı (profil), tema ve çıkış.
+// sekmeler ve Menü ekranının satırları — tek listede; gruplu bölümler (Raporlar, Uygulama Yönetimi;
+// lib/menu.ts > MENU_GRUPLARI) açılır başlıkların altında. Altta kullanıcı (profil), tema ve çıkış.
 // Öğeler lib/menu.ts'ten gelir, yani bölüm kapatma ve menü yetkisi süzgeçleri telefondakiyle aynıdır.
 // 768-1023 px arasında daralır (yalnızca ikon).
 import { type Href, usePathname, useRouter } from 'expo-router';
@@ -10,7 +11,7 @@ import { Avatar } from '@/components/Avatar';
 import { Ikon, type IkonAdi } from '@/components/Ikon';
 import { MarkaLogosu, markaLogosuVar } from '@/components/MarkaLogosu';
 import { marka } from '@/lib/marka';
-import { rolEtiketi, rolYolu, useMenu } from '@/lib/menu';
+import { type MenuGrubuAnahtari, rolEtiketi, rolYolu, useMenu } from '@/lib/menu';
 import { useOturum } from '@/lib/oturum';
 import { type Tema, useKirilma, useTema } from '@/lib/tema';
 import { type TemaTercihi, useTemaTercihi } from '@/lib/temaTercihi';
@@ -44,13 +45,17 @@ export function Sidebar() {
   const router = useRouter();
   const yol = usePathname();
   const { kullanici, kurum, gorev, cikisYap } = useOturum();
-  const { sekmeler, menuSatirlari } = useMenu();
+  const { sekmeler, menuSatirlari, gruplar } = useMenu();
   const { tercih, tercihiAyarla } = useTemaTercihi();
   const [cikisSoruluyor, setCikisSoruluyor] = useState(false);
+  // Kullanıcının açıp kapadığı gruplar (oturum içinde); dokunulmamış grup, içindeki bir sayfa
+  // açıksa açık başlar.
+  const [grupTercihi, setGrupTercihi] = useState<Partial<Record<MenuGrubuAnahtari, boolean>>>({});
 
-  // Telefondaki "Menü" sekmesinin web'de karşılığı yoktur: satırları zaten bu çubuktadır.
+  // Telefondaki "Menü" sekmesinin web'de karşılığı yoktur: satırları zaten bu çubuktadır. Gruplu
+  // sekmeler (Kullanıcılar) grubun altında çizilir.
   const ustOgeler = sekmeler
-    .filter((s) => s.gorunur && s.anahtar !== 'menu')
+    .filter((s) => s.gorunur && s.anahtar !== 'menu' && !s.grup)
     .map((s) => ({ anahtar: s.anahtar, etiket: s.etiket, ikon: s.ikon, href: (s.sekme === 'index' ? '/' : `/${s.sekme}`) as Href }));
   const altOgeler = menuSatirlari.map((m) => ({ anahtar: m.anahtar, etiket: m.etiket, ikon: m.ikon, href: m.rota }));
 
@@ -62,10 +67,15 @@ export function Sidebar() {
     router.navigate(kullanici && typeof href === 'string' ? rolYolu(kullanici.rol, href) : href);
   };
 
-  const oge = (o: { anahtar: string; etiket: string; ikon: IkonAdi; href: Href }) => {
+  type Oge = { anahtar: string; etiket: string; ikon: IkonAdi; href: Href };
+  const seciliMi = (o: Oge) => {
     const adres = typeof o.href === 'string' ? o.href : '';
     const altinda = (onek: string) => yol === onek || yol.startsWith(`${onek}/`);
-    const secili = (adres === '/' ? yol === '/' : altinda(adres)) || (ALT_ROTALAR[o.anahtar] ?? []).some(altinda);
+    return (adres === '/' ? yol === '/' : altinda(adres)) || (ALT_ROTALAR[o.anahtar] ?? []).some(altinda);
+  };
+
+  const oge = (o: Oge, girintili = false) => {
+    const secili = seciliMi(o);
     return (
       <Pressable
         key={o.anahtar}
@@ -76,11 +86,12 @@ export function Sidebar() {
         style={({ hovered, pressed }: Vurgu) => [
           styles.satir,
           dar && styles.satirDar,
+          girintili && !dar && styles.girintili,
           (hovered || pressed) && styles.vurgulu,
           secili && styles.seciliSatir,
         ]}
       >
-        <Ikon ad={o.ikon} boyut={20} renk={secili ? tema.renkler.ana : tema.renkler.metinIkincil} />
+        <Ikon ad={o.ikon} boyut={girintili ? 18 : 20} renk={secili ? tema.renkler.ana : tema.renkler.metinIkincil} />
         {dar ? null : (
           <Text style={[styles.etiket, secili && styles.seciliEtiket]} numberOfLines={1}>
             {o.etiket}
@@ -110,9 +121,39 @@ export function Sidebar() {
       </View>
 
       <ScrollView style={styles.liste} contentContainerStyle={styles.listeIcerigi}>
-        {ustOgeler.map(oge)}
+        {ustOgeler.map((o) => oge(o))}
         {altOgeler.length > 0 ? <View style={styles.ayirici} /> : null}
-        {altOgeler.map(oge)}
+        {altOgeler.map((o) => oge(o))}
+        {gruplar.map((g) => {
+          // Daraltılmış çubukta açılır başlığa yer yok: grubun öğeleri ayırıcıdan sonra ikon olarak.
+          if (dar) {
+            return (
+              <View key={g.anahtar} style={styles.grup}>
+                <View style={styles.ayirici} />
+                {g.ogeler.map((o) => oge(o))}
+              </View>
+            );
+          }
+          const acik = grupTercihi[g.anahtar] ?? g.ogeler.some(seciliMi);
+          return (
+            <View key={g.anahtar} style={styles.grup}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={g.etiket}
+                accessibilityState={{ expanded: acik }}
+                onPress={() => setGrupTercihi((t) => ({ ...t, [g.anahtar]: !acik }))}
+                style={({ hovered, pressed }: Vurgu) => [styles.satir, (hovered || pressed) && styles.vurgulu]}
+              >
+                <Ikon ad={g.ikon} boyut={20} renk={tema.renkler.metinIkincil} />
+                <Text style={[styles.etiket, styles.grupEtiketi]} numberOfLines={1}>
+                  {g.etiket}
+                </Text>
+                <Ikon ad={acik ? 'chevron-down' : 'chevron-forward'} boyut={16} renk={tema.renkler.metinIkincil} />
+              </Pressable>
+              {acik ? g.ogeler.map((o) => oge(o, true)) : null}
+            </View>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.alt}>
@@ -253,6 +294,16 @@ function olustur(t: Tema) {
     satirDar: {
       justifyContent: 'center',
       paddingHorizontal: 0,
+    },
+    girintili: {
+      height: 34,
+      paddingLeft: t.bosluk.m + t.bosluk.l,
+    },
+    grup: {
+      gap: 2,
+    },
+    grupEtiketi: {
+      color: t.renkler.metin,
     },
     vurgulu: {
       backgroundColor: t.renkler.ayirici,

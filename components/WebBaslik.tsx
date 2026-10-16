@@ -28,8 +28,9 @@ export function WebBaslik({ baslik, onGeri, sag }: Props) {
   // Kenar çubuğundan açılan bölümlerin kendisi (Kademeler, Raporlar…) üst düzey sayfadır: geri
   // bağlantısı yalnızca onların altındaki ekranlarda çizilir.
   const yol = usePathname();
-  const { menuSatirlari } = useMenu();
-  const ustDuzey = yol === '/profil' || menuSatirlari.some((m) => m.rota === yol);
+  const { menuSatirlari, gruplar } = useMenu();
+  const ustDuzey =
+    yol === '/profil' || menuSatirlari.some((m) => m.rota === yol) || gruplar.some((g) => g.ogeler.some((o) => o.href === yol));
 
   return (
     <View style={styles.cubuk}>

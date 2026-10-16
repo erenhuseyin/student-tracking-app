@@ -34,15 +34,30 @@ function hataMesajinaCevir(mesaj: string): string {
 }
 
 export async function kullanicilariAra(
-  { arama, rol, gorevId, birimId, durum, cinsiyet }: KullaniciAramasi,
+  arama: KullaniciAramasi,
   siralama: KullaniciSiralamasi,
   sayfa: number,
 ): Promise<{ kullanicilar: Kullanici[]; toplam: number }> {
+  const { data, error, count } = await kullaniciSorgusu(arama, siralama, { count: 'exact' }).range(
+    sayfa * KULLANICI_SAYFA_BOYUTU,
+    (sayfa + 1) * KULLANICI_SAYFA_BOYUTU - 1,
+  );
+  if (error) throw new Error(hataMesajinaCevir(error.message));
+  return { kullanicilar: data as unknown as Kullanici[], toplam: count ?? data.length };
+}
+
+// Süzülmüş ve sıralanmış sorgu (sayfa aralığı verilmeden); liste sayfalar, dışa aktarma
+// (lib/disaAktar.ts) tüm sayfaları dolaşır.
+export function kullaniciSorgusu(
+  { arama, rol, gorevId, birimId, durum, cinsiyet }: KullaniciAramasi,
+  siralama: KullaniciSiralamasi,
+  secenek?: { count: 'exact' },
+) {
   // Birim süzgeci kurumun `yol`'u üzerinden yapılır (tek kimlikle tüm alt ağaç); bunun için
   // kurum satırı iç birleştirmeyle seçilir.
   let sorgu = supabase
     .from('kullanici')
-    .select('*, kurum!kullanici_kurum_id_fkey!inner(yol)', { count: 'exact' })
+    .select('*, kurum!kullanici_kurum_id_fkey!inner(yol)', secenek)
     .in('rol', rol ? [rol] : ['kurum_admin', 'ogretmen', 'veli']);
   if (birimId) sorgu = sorgu.contains('kurum.yol', [birimId]);
   if (gorevId) sorgu = sorgu.eq('gorev_id', gorevId);
@@ -56,13 +71,7 @@ export async function kullanicilariAra(
     .replace(/[,()"]/g, ' ')
     .replace(/[%_\\]/g, (k) => `\\${k}`);
   if (temiz) sorgu = sorgu.or(`ad_soyad.ilike.%${temiz}%,eposta.ilike.%${temiz}%,kullanici_adi.ilike.%${temiz}%`);
-
-  const { data, error, count } = await sorgu
-    .order(siralama.anahtar, { ascending: siralama.yon === 'artan', nullsFirst: false })
-    .order('id')
-    .range(sayfa * KULLANICI_SAYFA_BOYUTU, (sayfa + 1) * KULLANICI_SAYFA_BOYUTU - 1);
-  if (error) throw new Error(hataMesajinaCevir(error.message));
-  return { kullanicilar: data as unknown as Kullanici[], toplam: count ?? data.length };
+  return sorgu.order(siralama.anahtar, { ascending: siralama.yon === 'artan', nullsFirst: false }).order('id');
 }
 
 export async function kullaniciGetir(id: string): Promise<Kullanici> {

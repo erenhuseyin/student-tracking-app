@@ -1,11 +1,13 @@
 // "Menü" sekmesinin gövdesi (tüm roller): profile giden kullanıcı satırı, sekme çubuğuna sığmayan bölümler
-// (lib/menu.ts), tema seçimi ve çıkış. Yalnızca 'mobil' düzende: 'web' düzeninde bunların hepsi kenar
+// (lib/menu.ts; gruplu olanlar grup başlığının altında — sekme olan öğe burada tekrar edilmez), tema
+// seçimi ve çıkış. Yalnızca 'mobil' düzende: 'web' düzeninde bunların hepsi kenar
 // çubuğundadır (components/Sidebar), bu adres açılırsa ana ekrana dönülür.
-import { Redirect, useRouter } from 'expo-router';
+import { type Href, Redirect, useRouter } from 'expo-router';
+import { Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Ekran } from '@/components/Ekran';
-import { Ikon } from '@/components/Ikon';
+import { Ikon, type IkonAdi } from '@/components/Ikon';
 import { Kart } from '@/components/Kart';
 import { ListeSatiri } from '@/components/ListeSatiri';
 import { OnayButonu } from '@/components/OnayButonu';
@@ -25,7 +27,19 @@ export function MenuEkrani() {
   const router = useRouter();
   const tema = useTema();
   const { kullanici, kurum, gorev, cikisYap } = useOturum();
-  const { menuSatirlari } = useMenu();
+  const { menuSatirlari, sekmeler, gruplar } = useMenu();
+  const sekmeAdresleri = new Set(sekmeler.map((s) => (s.sekme === 'index' ? '/' : `/${s.sekme}`)));
+  const menuGruplari = gruplar
+    .map((g) => ({ ...g, ogeler: g.ogeler.filter((o) => !(typeof o.href === 'string' && sekmeAdresleri.has(o.href))) }))
+    .filter((g) => g.ogeler.length > 0);
+  const satir = (o: { anahtar: string; etiket: string; ikon: IkonAdi; href: Href }) => (
+    <ListeSatiri
+      key={o.anahtar}
+      baslik={o.etiket}
+      sol={<Ikon ad={o.ikon} boyut={24} renk={tema.renkler.anaParlak} />}
+      onPress={() => router.push(o.href)}
+    />
+  );
   const { tercih, tercihiAyarla } = useTemaTercihi();
   const duzen = useDuzen();
 
@@ -43,13 +57,15 @@ export function MenuEkrani() {
         />
       ) : null}
 
-      {menuSatirlari.map((o) => (
-        <ListeSatiri
-          key={o.anahtar}
-          baslik={o.etiket}
-          sol={<Ikon ad={o.ikon} boyut={24} renk={tema.renkler.anaParlak} />}
-          onPress={() => router.push(o.rota)}
-        />
+      {menuSatirlari.map((o) => satir({ ...o, href: o.rota }))}
+
+      {menuGruplari.map((g) => (
+        <View key={g.anahtar} style={{ gap: tema.bosluk.m }}>
+          <Text accessibilityRole="header" style={[tema.yazi.etiket, { marginTop: tema.bosluk.s }]}>
+            {g.etiket}
+          </Text>
+          {g.ogeler.map(satir)}
+        </View>
       ))}
 
       <Kart>

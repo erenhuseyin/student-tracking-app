@@ -6,6 +6,10 @@
 //
 // İskelet veri çekmez: sorgu, filtre durumu, sıralama ve sayfa ekrana aittir (sunucuda süzülen
 // listeler için); burada yalnızca yükleniyor / boş / hata durumları ve yerleşim vardır.
+//
+// `onIndir` verilirse 'web' düzeninde filtrelerin yanında "Rapor İndir" düğmesi çıkar: ekran o anki
+// süzgeçle tüm satırları (sayfa değil) CSV olarak indirir ve satır sayısını döndürür. Telefonda
+// dışa aktarma yoktur (lib/disaAktar.ts).
 import { Children, useMemo, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -21,7 +25,9 @@ import { Liste } from '@/components/Liste';
 import { Sayfalama } from '@/components/Sayfalama';
 import { SkeletonSatir } from '@/components/Skeleton';
 import { Tablo, type TabloSiralamasi, type TabloSutunu } from '@/components/Tablo';
+import { disaAktarmaDestekleniyor } from '@/lib/disaAktar';
 import { type Tema, useTema } from '@/lib/tema';
+import { useToast } from '@/lib/toast';
 
 const PANEL_GENISLIGI = 420;
 
@@ -36,6 +42,8 @@ type Props<T> = {
   onYeni?: () => void;
   // Sonuçların üstündeki kısa bilgi (ör. "124 kullanıcı").
   ozet?: string;
+  // Süzülmüş listenin tamamını indirir; indirilen satır sayısını döndürür (yalnızca web).
+  onIndir?: () => Promise<number>;
 
   // null = henüz yüklenmedi.
   veri: T[] | null;
@@ -70,6 +78,7 @@ export function VeriEkrani<T>({
   yeniEtiket,
   onYeni,
   ozet,
+  onIndir,
   veri,
   hata,
   anahtar,
@@ -94,6 +103,23 @@ export function VeriEkrani<T>({
   const kenarlar = useSafeAreaInsets();
   const masaustu = tema.duzen === 'web';
   const [filtrelerAcik, setFiltrelerAcik] = useState(false);
+  const toast = useToast();
+  const [indiriliyor, setIndiriliyor] = useState(false);
+  const [indirmeHatasi, setIndirmeHatasi] = useState<string | null>(null);
+
+  const indir = async () => {
+    if (!onIndir) return;
+    setIndiriliyor(true);
+    setIndirmeHatasi(null);
+    try {
+      const satir = await onIndir();
+      toast(`${satir} satır indirildi`);
+    } catch (e) {
+      setIndirmeHatasi(e instanceof Error ? e.message : 'Rapor hazırlanamadı.');
+    } finally {
+      setIndiriliyor(false);
+    }
+  };
 
   const yeniDugmesi =
     yeniEtiket && onYeni ? <Buton baslik={yeniEtiket} ikon="add" onPress={onYeni} /> : null;
@@ -121,8 +147,23 @@ export function VeriEkrani<T>({
               {c}
             </View>
           ))}
-          {yeniDugmesi ? <View style={styles.yeniAlani}>{yeniDugmesi}</View> : null}
+          {(onIndir && disaAktarmaDestekleniyor) || yeniDugmesi ? (
+            <View style={styles.eylemAlani}>
+              {onIndir && disaAktarmaDestekleniyor ? (
+                <Buton
+                  tur="ikincil"
+                  ikon="download-outline"
+                  baslik="Rapor İndir"
+                  onPress={indir}
+                  yukleniyor={indiriliyor}
+                  pasif={indiriliyor || veri === null || veri.length === 0}
+                />
+              ) : null}
+              {yeniDugmesi}
+            </View>
+          ) : null}
         </View>
+        <HataMesaji mesaj={indirmeHatasi} />
 
         <View style={styles.govde}>
           <ScrollView style={styles.esnek} contentContainerStyle={styles.sonuclar}>
@@ -235,7 +276,9 @@ function olustur(t: Tema) {
       flexBasis: 160,
       maxWidth: 230,
     },
-    yeniAlani: {
+    eylemAlani: {
+      flexDirection: 'row',
+      gap: t.bosluk.s,
       marginLeft: 'auto',
     },
     govde: {
