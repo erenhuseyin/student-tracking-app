@@ -117,7 +117,7 @@ export default function PersonelDetayi() {
         </View>
         <BilgiListesi
           satirlar={[
-            { etiket: 'Rol / görev', deger: rolEtiketi(p.rol, birim, gorevAdi) },
+            { etiket: 'Rol', deger: rolEtiketi(p.rol, birim, gorevAdi) },
             { etiket: 'Birim', deger: yol || birim?.ad },
             { etiket: 'Cinsiyet', deger: cinsiyetEtiketi(p.cinsiyet) },
             { etiket: 'E-posta', deger: p.eposta },

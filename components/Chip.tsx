@@ -68,10 +68,11 @@ function olustur(t: Tema) {
       backgroundColor: t.renkler.yuzey,
     },
     // Eşit genişlikte yan boşluk küçük tutulur: yedi günlük seçicide (Pzt … Paz) telefon
-    // genişliğinde etiket tek harfe kırpılıyordu.
+    // genişliğinde etiket tek harfe kırpılıyordu. Sıfır da olmaz: uzun etiket ("Belirtilmemiş")
+    // yuvarlak kenara değiyordu.
     esitGenislik: {
       flex: 1,
-      paddingHorizontal: 0,
+      paddingHorizontal: t.bosluk.xs,
     },
     uzerinde: {
       backgroundColor: t.renkler.ayirici,

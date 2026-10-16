@@ -26,8 +26,9 @@ export function CubukGrafik({ cubuklar, yukseklik = 160 }: { cubuklar: GrafikCub
   const dar = useKirilma() === 'mobil';
   const [secili, setSecili] = useState<number | null>(null);
   const gosterilen = cubuklar[secili ?? cubuklar.length - 1];
-  // Dar ekranda eksen etiketleri sığmaz: sondan başlayarak birer atlanır.
-  const etiketGoster = (i: number) => !dar || (cubuklar.length - 1 - i) % 2 === 0;
+  // Dar ekranda eksen etiketleri çubuk genişliğine sığmaz: sondan başlayarak ikişer atlanır ve
+  // etiket kendi sütununun iki yanına taşarak tam yazılır (kırpılıp "1…" olmasın).
+  const etiketGoster = (i: number) => !dar || (cubuklar.length - 1 - i) % 3 === 0;
 
   return (
     <View style={styles.kapsayici}>
@@ -71,9 +72,11 @@ export function CubukGrafik({ cubuklar, yukseklik = 160 }: { cubuklar: GrafikCub
           </View>
           <View style={styles.etiketler}>
             {cubuklar.map((c, i) => (
-              <Text key={c.anahtar} style={styles.etiket} numberOfLines={1}>
-                {etiketGoster(i) ? c.etiket : ''}
-              </Text>
+              <View key={c.anahtar} style={styles.etiketSutunu}>
+                <Text style={styles.etiket} numberOfLines={1}>
+                  {etiketGoster(i) ? c.etiket : ''}
+                </Text>
+              </View>
             ))}
           </View>
         </View>
@@ -144,10 +147,17 @@ function olustur(t: Tema) {
       gap: 4,
       marginTop: t.bosluk.xs,
     },
+    etiketSutunu: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    // Sütundan geniş, ortalı: dar sütunda iki yana eşit taşar.
     etiket: {
       ...t.yazi.kucuk,
       fontSize: 11,
-      flex: 1,
+      width: 48,
+      // react-native-web metne `max-width: 100%` verir; o kalırsa yine sütun genişliğine kırpılır.
+      maxWidth: 48,
       textAlign: 'center',
     },
   });

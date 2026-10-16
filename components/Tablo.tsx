@@ -172,8 +172,9 @@ function olustur(t: Tema) {
       flexDirection: 'row',
       alignItems: 'center',
       minHeight: t.dokunmaAlani.normal + 4,
-      paddingHorizontal: t.bosluk.l,
-      gap: t.bosluk.m,
+      // Telefonda (kart içindeki küçük tablolar, ör. pano) ad sütununa yer kalsın.
+      paddingHorizontal: t.duzen === 'web' ? t.bosluk.l : t.bosluk.m,
+      gap: t.duzen === 'web' ? t.bosluk.m : t.bosluk.s,
     },
     baslikSatiri: {
       backgroundColor: t.renkler.vurguSoluk,
@@ -203,7 +204,7 @@ function olustur(t: Tema) {
       backgroundColor: t.renkler.anaSoluk,
       borderLeftWidth: 3,
       borderLeftColor: t.renkler.ana,
-      paddingLeft: t.bosluk.l - 3,
+      paddingLeft: (t.duzen === 'web' ? t.bosluk.l : t.bosluk.m) - 3,
     },
     basili: {
       opacity: 0.7,

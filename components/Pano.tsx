@@ -20,6 +20,7 @@ import { KatilimDagilimi } from '@/components/KatilimDagilimi';
 import { MetrikKarti } from '@/components/MetrikKarti';
 import { Rozet } from '@/components/Rozet';
 import { Secenekler } from '@/components/Secenekler';
+import { Sayfalama } from '@/components/Sayfalama';
 import { Secim } from '@/components/Secim';
 import { Tablo, type TabloSiralamasi, type TabloSutunu } from '@/components/Tablo';
 import { TurkiyeHaritasi } from '@/components/TurkiyeHaritasi';
@@ -52,6 +53,8 @@ const kisaTarih = (t: string) => `${t.slice(8, 10)}.${t.slice(5, 7)}`;
 
 // İl tablosunda ilk gösterilen il sayısı (gerisi "Tüm iller" ile).
 const IL_SINIRI = 8;
+// Alt birim tablosunun sayfa boyutu (ağaç büyükken kart ekranı uzatmasın).
+const BIRIM_SAYFA_BOYUTU = 10;
 
 const HARITA_OLCULERI: { deger: HaritaOlcusu; etiket: string }[] = [
   { deger: 'katilim', etiket: 'Katılım oranı' },
@@ -70,6 +73,8 @@ export function Pano({ sabit = false, alt }: Props) {
   const styles = useMemo(() => olustur(tema), [tema]);
   const genisPencere = useKirilma() === 'masaustu';
   const masaustu = tema.duzen === 'web' && genisPencere;
+  // Telefonda tablolar yatay kaymasın diye yalnızca ad, öğrenci ve katılım sütunları gösterilir.
+  const mobil = tema.duzen === 'mobil';
   const { kurum, kokKurum } = useOturum();
   const icerikAcik = useOzellik('icerik_takibi');
 
@@ -86,6 +91,7 @@ export function Pano({ sabit = false, alt }: Props) {
   const [tumIller, setTumIller] = useState(false);
   const [cinsiyet, setCinsiyet] = useState<PanoCinsiyet | null>(null);
   const [siralama, setSiralama] = useState<TabloSiralamasi>({ anahtar: 'ogrenci', yon: 'azalan' });
+  const [birimSayfasi, setBirimSayfasi] = useState(0);
 
   const birimId = secilenId ?? kurum?.id ?? null;
   const kokId = kokKurum?.id ?? null;
@@ -142,6 +148,7 @@ export function Pano({ sabit = false, alt }: Props) {
   const birimSec = (id: string) => {
     setSecilenId(id);
     setSecilenIl(null);
+    setBirimSayfasi(0);
   };
 
   // Kademeli birim süzgeci: her seviye için bir seçim kutusu (adları markadan). Bir kutunun
@@ -194,13 +201,26 @@ export function Pano({ sabit = false, alt }: Props) {
     [tema],
   );
 
-  const birimSutunlari = useMemo<TabloSutunu<PanoBirimi>[]>(
-    () => [
-      { anahtar: 'ad', baslik: 'Birim', icerik: (b) => b.ad, siralanabilir: true },
-      { anahtar: 'ogrenci', baslik: 'Öğrenci', icerik: (b) => b.ogrenci, genislik: 90, hizalama: 'sag', siralanabilir: true },
-      { anahtar: 'sinif', baslik: 'Sınıf', icerik: (b) => b.sinif, genislik: 80, hizalama: 'sag', siralanabilir: true },
-      { anahtar: 'ogretmen', baslik: 'Öğretmen', icerik: (b) => b.ogretmen, genislik: 100, hizalama: 'sag', siralanabilir: true },
-      { anahtar: 'katilim', baslik: 'Katılım', icerik: (b) => katilimRozeti(b.katildi, b.gelmedi), genislik: 110, siralanabilir: true },
+  const birimSutunlari = useMemo<TabloSutunu<PanoBirimi>[]>(() => {
+    const sutunlar: TabloSutunu<PanoBirimi>[] = [
+      {
+        anahtar: 'ad',
+        baslik: 'Birim',
+        // Telefonda dar sütunda tek satıra kırpılınca birimler ayırt edilemiyor ("Genç Ha…").
+        icerik: (b) =>
+          mobil ? (
+            <Text style={tema.yazi.govde} numberOfLines={2}>
+              {b.ad}
+            </Text>
+          ) : (
+            b.ad
+          ),
+        siralanabilir: true,
+      },
+      { anahtar: 'ogrenci', baslik: 'Öğrenci', icerik: (b) => b.ogrenci, genislik: mobil ? 68 : 90, hizalama: 'sag', siralanabilir: true },
+      { anahtar: 'sinif', baslik: 'Sınıf', icerik: (b) => b.sinif, genislik: 80, hizalama: 'sag', siralanabilir: true, ikincil: true },
+      { anahtar: 'ogretmen', baslik: 'Öğretmen', icerik: (b) => b.ogretmen, genislik: 100, hizalama: 'sag', siralanabilir: true, ikincil: true },
+      { anahtar: 'katilim', baslik: 'Katılım', icerik: (b) => katilimRozeti(b.katildi, b.gelmedi), genislik: mobil ? 76 : 110, siralanabilir: true },
       {
         anahtar: 'duzen',
         baslik: 'Yoklama Düzeni',
@@ -208,20 +228,21 @@ export function Pano({ sabit = false, alt }: Props) {
         genislik: 140,
         hizalama: 'sag',
         siralanabilir: true,
+        ikincil: true,
       },
-    ],
-    [katilimRozeti],
-  );
+    ];
+    return mobil ? sutunlar.filter((s) => !s.ikincil) : sutunlar;
+  }, [katilimRozeti, mobil, tema]);
 
-  const ilSutunlari = useMemo<TabloSutunu<PanoIli>[]>(
-    () => [
+  const ilSutunlari = useMemo<TabloSutunu<PanoIli>[]>(() => {
+    const sutunlar: TabloSutunu<PanoIli>[] = [
       { anahtar: 'il', baslik: 'İl', icerik: ilEtiketi },
-      { anahtar: 'ogrenci', baslik: 'Öğrenci', icerik: (i) => i.ogrenci, genislik: 90, hizalama: 'sag' },
-      { anahtar: 'alt', baslik: 'Alt Birim', icerik: (i) => i.alt_birim, genislik: 100, hizalama: 'sag' },
-      { anahtar: 'katilim', baslik: 'Katılım', icerik: (i) => katilimRozeti(i.katildi, i.gelmedi), genislik: 110 },
-    ],
-    [katilimRozeti],
-  );
+      { anahtar: 'ogrenci', baslik: 'Öğrenci', icerik: (i) => i.ogrenci, genislik: mobil ? 64 : 90, hizalama: 'sag' },
+      { anahtar: 'alt', baslik: 'Alt Birim', icerik: (i) => i.alt_birim, genislik: 100, hizalama: 'sag', ikincil: true },
+      { anahtar: 'katilim', baslik: 'Katılım', icerik: (i) => katilimRozeti(i.katildi, i.gelmedi), genislik: mobil ? 76 : 110 },
+    ];
+    return mobil ? sutunlar.filter((s) => !s.ikincil) : sutunlar;
+  }, [katilimRozeti, mobil]);
 
   const ilSec = (il: PanoIli) => {
     if (il.dugumler.length === 1) birimSec(il.dugumler[0].id);
@@ -242,6 +263,13 @@ export function Pano({ sabit = false, alt }: Props) {
   // "Tüm iller" ile açılır (birimi olup henüz öğrencisi olmayan iller sona düşer).
   const sonIller = [...(iller ?? [])].sort((a, b) => b.ogrenci - a.ogrenci || b.alt_birim - a.alt_birim);
   const gorunenIller = tumIller ? sonIller : sonIller.slice(0, IL_SINIRI);
+  // Birim değişince sayfa sıfırlanır; sayfa listenin sonunu aşarsa (ör. dönem değişti) son sayfaya düşer.
+  const birimSayfaSayisi = Math.max(1, Math.ceil(altBirimler.length / BIRIM_SAYFA_BOYUTU));
+  const gecerliBirimSayfasi = Math.min(birimSayfasi, birimSayfaSayisi - 1);
+  const gorunenAltBirimler = altBirimler.slice(
+    gecerliBirimSayfasi * BIRIM_SAYFA_BOYUTU,
+    (gecerliBirimSayfasi + 1) * BIRIM_SAYFA_BOYUTU,
+  );
 
   // Harita (telefonda il tablosu) birim seçtiği için süzgeçlerin hemen altında durur.
   const haritaKarti =
@@ -405,16 +433,25 @@ export function Pano({ sabit = false, alt }: Props) {
           <Text style={tema.yazi.bolum}>{seviyeAdiCogul(altSeviye)}</Text>
           {sabit ? null : <Text style={tema.yazi.kucuk}>Satıra dokununca o birimin özetine inilir.</Text>}
           <Tablo
-            veri={altBirimler}
+            veri={gorunenAltBirimler}
             sutunlar={birimSutunlari}
             anahtar={(b) => b.id}
             onPress={sabit ? undefined : (b) => birimSec(b.id)}
             siralama={siralama}
-            onSirala={(anahtar) =>
-              setSiralama((s) => ({ anahtar, yon: s.anahtar === anahtar && s.yon === 'azalan' ? 'artan' : 'azalan' }))
-            }
-            enAzGenislik={720}
+            onSirala={(anahtar) => {
+              setSiralama((s) => ({ anahtar, yon: s.anahtar === anahtar && s.yon === 'azalan' ? 'artan' : 'azalan' }));
+              setBirimSayfasi(0);
+            }}
+            enAzGenislik={mobil ? undefined : 720}
           />
+          {altBirimler.length > BIRIM_SAYFA_BOYUTU ? (
+            <Sayfalama
+              sayfa={gecerliBirimSayfasi}
+              sayfaBoyutu={BIRIM_SAYFA_BOYUTU}
+              toplam={altBirimler.length}
+              onDegis={setBirimSayfasi}
+            />
+          ) : null}
         </Kart>
       ) : null}
 
@@ -502,13 +539,17 @@ function olustur(t: Tema) {
       alignItems: 'flex-end',
       gap: t.bosluk.m,
     },
+    // Satır sarılır; dar telefonda tek kalan öğe taban genişliğinden de daralabilmeli (RN'de
+    // flexShrink varsayılanı 0, yoksa kutu ekrandan taşar).
     secimAlani: {
       flexGrow: 1,
+      flexShrink: 1,
       flexBasis: 180,
       maxWidth: 280,
     },
     donemAlani: {
       flexGrow: 1,
+      flexShrink: 1,
       flexBasis: 300,
       maxWidth: 440,
     },
@@ -535,16 +576,19 @@ function olustur(t: Tema) {
     },
     hucre: {
       flexGrow: 1,
+      flexShrink: 1,
       flexBasis: 340,
       minWidth: 0,
     },
     haritaAlani: {
       flexGrow: 2,
+      flexShrink: 1,
       flexBasis: 560,
       minWidth: 0,
     },
     ilTablosu: {
       flexGrow: 1,
+      flexShrink: 1,
       flexBasis: 420,
       minWidth: 0,
       gap: t.bosluk.s,
@@ -565,6 +609,7 @@ function olustur(t: Tema) {
     },
     en: {
       flexGrow: 1,
+      flexShrink: 1,
       flexBasis: 200,
       gap: t.bosluk.xs,
       padding: t.bosluk.l,
